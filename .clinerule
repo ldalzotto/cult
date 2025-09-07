@@ -13,14 +13,16 @@ This project enforces the exclusive use of custom primitive types defined in `sr
 - For 16-bit signed integers: Use `i16`
 - For 32-bit signed integers: Use `i32`
 - For 64-bit signed integers: Use `i64`
+- For pointer-sized signed integers: Use `imax`
 - For 8-bit unsigned integers: Use `u8`
 - For 16-bit unsigned integers: Use `u16`
 - For 32-bit unsigned integers: Use `u32`
 - For 64-bit unsigned integers: Use `u64`
+- For pointer-sized unsigned integers: Use `uimax`
 
 ### Additional Notes
 - Include `src/primitive.h` in all source files that require these types
-- These types are defined with platform-agnostic size requirements (verified with static assertions)
+- These types are defined with platform-agnostic size requirements (verified with static assertions), including pointer-sized types where sizeof(imax) == sizeof(uimax) == sizeof(void*)
 - Always prefer the custom types over standard C integers for consistency and portability
 
 ### Example Usage
@@ -35,3 +37,4 @@ i64 bigNumber = 9223372036854775807LL;
 // Incorrect usage (DO NOT USE)
 int standardInt = 42;
 unsigned int standardUint = 100;
+long standardLong = 0;
