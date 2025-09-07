@@ -1,10 +1,10 @@
 /**
  * @file win_x11.h
- * @brief Thin abstraction layer over X11 window management
+ * @brief Thin abstraction layer for window management without X11
  *
  * This module provides a clean, minimal interface for creating and managing
- * X11 windows while hiding all X11-specific headers and complexities.
- * All memory is managed through the stack allocator system.
+ * windows without X11 dependencies. All memory is managed through the stack
+ * allocator system.
  */
 
 #ifndef WIN_X11_H
@@ -12,18 +12,23 @@
 
 #include "../primitive.h"
 #include "../stack_alloc.h"
-#include <X11/Xlib.h>
 
 /**
- * @brief Opaque handle to X11 window context
+ * @brief Simple event structure
+ */
+typedef struct {
+    i32 type;
+} win_event;
+
+/**
+ * @brief Opaque handle to window context
  *
- * This struct manages Display connections, window handles, and screen information.
- * The internal structure is opaque to prevent X11 dependencies from leaking
- * into user code.
+ * This struct manages window state without external dependencies.
+ * The internal structure is opaque.
  */
 typedef struct win_x11 win_x11;
 
-XEvent* win_x11_poll_events(win_x11* win, stack_alloc* alloc);
+win_event* win_x11_poll_events(win_x11* win, stack_alloc* alloc);
 
 /**
  * @brief Initialize X11 window context
