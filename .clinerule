@@ -26,8 +26,10 @@ This project enforces the exclusive use of custom primitive types defined in `sr
 - Always prefer the custom types over standard C integers for consistency and portability
 
 ## Memory Operations
-- Use the `byteoffset` macro (defined in `src/stack_alloc.h`) for calculating byte offsets instead of direct `char*` casting
+- Use the `byteoffset` macro for calculating byte offsets instead of direct `char*` casting or arithmetic
 - Example: Instead of `(char*)ptr + offset`, use `byteoffset(ptr, offset)`
+- DO NOT use manual pointer arithmetic with `(char*)` casting for offsets
+- For pointer comparisons, use direct void* comparison if pointers are within the same memory object
 
 ### Example Usage
 ```c
