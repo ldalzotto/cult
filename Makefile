@@ -27,3 +27,4 @@ build/$(TARGET): $(OBJ_DIR)/main.o $(OBJ_DIR)/mem.o
 
 clean:
 	rm -rf build
+	mkdir build
