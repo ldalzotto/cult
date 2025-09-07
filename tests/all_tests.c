@@ -1,6 +1,7 @@
 #include "test_framework.h"
 #include "test_mem.h"
 #include "test_stack_alloc.h"
+#include "test_win_x11.h"
 #include <stdio.h>
 
 int main() {
@@ -14,6 +15,7 @@ int main() {
     // Run all module tests
     test_mem_module(&ctx);
     test_sa_module(&ctx);
+    test_win_x11_module(&ctx);
 
     // Report results
     test_report_context(&ctx);
