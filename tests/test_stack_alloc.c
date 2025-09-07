@@ -3,14 +3,12 @@
 #include "../src/mem.h"
 #include "../src/stack_alloc.h"
 #include "../src/assert.h"
-#include <sys/mman.h>
 #include <stdio.h>
 
 static void test_sa_basic_alloc(test_context* t) {
     uptr size = 1024;
     void* mem = mem_map(size);
     TEST_ASSERT_NOT_NULL(t, mem);
-    TEST_ASSERT_TRUE(t, mem != MAP_FAILED);
 
     stack_alloc alloc;
     sa_init(&alloc, mem, byteoffset(mem, size));
@@ -48,7 +46,6 @@ static void test_sa_reuse_space(test_context* t) {
     uptr size = 256;
     void* mem = mem_map(size);
     TEST_ASSERT_NOT_NULL(t, mem);
-    TEST_ASSERT_TRUE(t, mem != MAP_FAILED);
 
     stack_alloc alloc;
     sa_init(&alloc, mem, byteoffset(mem, size));
@@ -78,7 +75,6 @@ static void test_sa_over_allocation(test_context* t) {
     uptr size = 128;
     void* mem = mem_map(size);
     TEST_ASSERT_NOT_NULL(t, mem);
-    TEST_ASSERT_TRUE(t, mem != MAP_FAILED);
 
     stack_alloc alloc;
     sa_init(&alloc, mem, byteoffset(mem, size));
