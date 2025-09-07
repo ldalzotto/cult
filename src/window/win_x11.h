@@ -93,7 +93,7 @@ void* win_x11_end(win_x11* win);
  * @pre title must not be NULL
  * @post If successful, window is created and mapped on screen
  */
-i32 win_x11_open_window(win_x11* win, const char* title, i32 width, i32 height);
+i32 win_x11_open_window(win_x11* win, const char* title, i32 width, i32 height, stack_alloc* alloc);
 
 /**
  * @brief Close and destroy the current window
@@ -108,6 +108,34 @@ i32 win_x11_open_window(win_x11* win, const char* title, i32 width, i32 height);
  * @post Window is destroyed, resources cleared
  */
 void win_x11_close_window(win_x11* win);
+
+/**
+ * @brief Get pixel buffer base address for direct pixel data access
+ *
+ * Returns a pointer to the pixel buffer that can be written to directly.
+ * The buffer contains 32-bit RGBA pixels in row-major order.
+ *
+ * @param win Pointer to initialized win_x11 context
+ *
+ * @return Pointer to pixel buffer (uint32_t*), or NULL if no window is open
+ * @pre win must be valid win_x11 context
+ * @pre A window must be open (call win_x11_open_window first)
+ */
+void* win_x11_get_pixel_buffer(win_x11* win);
+
+/**
+ * @brief Present pixel buffer contents to the window
+ *
+ * Updates the window display with the current contents of the pixel buffer.
+ * This function should be called after writing pixel data to make changes visible.
+ *
+ * @param win Pointer to initialized win_x11 context
+ *
+ * @return void
+ * @pre win must be valid win_x11 context
+ * @pre A window must be open and have an initialized pixel buffer
+ */
+void win_x11_present(win_x11* win);
 
 
 #endif /* WIN_X11_H */

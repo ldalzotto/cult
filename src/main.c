@@ -52,7 +52,7 @@ i32 main() {
 
     // Example usage of win_x11.h
     // Initialize stack allocator for window management
-    uptr win_mem_size = 4096; // 4KB should be sufficient for window context
+    uptr win_mem_size = 4096 * 1024; // 4KB should be sufficient for window context
     void* win_mem = mem_map(win_mem_size);
 
     stack_alloc win_alloc;
@@ -67,7 +67,7 @@ i32 main() {
     }
 
     // Open a window
-    i32 window_created = win_x11_open_window(win_ctx, "X11 Window Example", 800, 600);
+    i32 window_created = win_x11_open_window(win_ctx, "X11 Window Example", 200, 200, &win_alloc);
     if (window_created == 0) {
         printf("Failed to create window\n");
         win_x11_deinit(&win_alloc, win_ctx);
@@ -80,15 +80,30 @@ i32 main() {
     // Simple event polling loop
     // In a real application, you'd have proper event handling
     while (1) {
+        u8 should_exit = 0;
         win_event* event_begin = win_x11_poll_events(win_ctx, &win_alloc);
         win_event* event_end = win_alloc.cursor;
         for (win_event* event = event_begin; event < event_end;++event) {
             // Simple event handling - just print for demonstration
             printf("Received event type: %d\n", event->type);
+            if (event->type == 2) {
+                should_exit = 1;
+            }
         }
 
         // Free the event memory if it was allocated
         sa_free(&win_alloc, event_begin);
+
+        i32* buffer = win_x11_get_pixel_buffer(win_ctx);
+        for (i32* x = buffer; x < buffer + (200 * 200); ++x) {
+            *x = 100;
+        }
+
+        win_x11_present(win_ctx);
+
+        if (should_exit) {
+            break;
+        }
     }
 
     // Close the window
