@@ -14,9 +14,6 @@
  */
 
 #include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/Xos.h>
-#include <stdlib.h>
 #include <stdio.h>
 #include "../assert.h"
 #include "../stack_alloc.h"
