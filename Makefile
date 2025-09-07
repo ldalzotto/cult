@@ -49,6 +49,7 @@ build/$(TARGET): $(OBJ_DIR)/main.o $(COMMON_OBJS)
 -include $(DEP_DIR)/mem.d
 -include $(DEP_DIR)/stack_alloc.d
 -include $(DEP_DIR)/backtrace.d
+-include $(DEP_DIR)/assert.d
 
 test: build/$(TEST_TARGET)
 	./build/$(TEST_TARGET)
