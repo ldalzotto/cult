@@ -40,4 +40,7 @@ STATIC_ASSERT(sizeof(u64) == 8);
 // Generic macro for byte offset calculation
 #define byteoffset(ptr, offset) ((u8*)(ptr) + (offset))
 
+// Generic macro for byte size calculation (ptr2 - ptr1)
+#define bytesize(from, to) ((uptr)((u8*)(to) - (u8*)(from)))
+
 #endif /* PRIMITIVE_H */

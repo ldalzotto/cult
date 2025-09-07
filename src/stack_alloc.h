@@ -49,14 +49,18 @@ void sa_deinit(stack_alloc* alloc);
 // Returns: Pointer to allocated memory (asserts if out of memory)
 void* sa_alloc(stack_alloc* alloc, uptr size);
 
-// Free memory by rolling back the current allocation pointer to the specified pointer
+void sa_free(stack_alloc* alloc, void* pointer);
+
+// Move a block of memory from 'from' to 'to' within the stack allocator
 //
 // @param alloc: Pointer to stack_alloc
-// @param pointer: The pointer to revert the current allocation to (must be within the allocated memory block)
+// @param from: Start of the memory block to move (must be within the allocated region)
+// @param to: Destination where the block should be moved to
 //
 // Returns: void
-// Preconditions: pointer must be between alloc->begin and alloc->current
-// Postconditions: alloc->current == pointer
-void sa_free(stack_alloc* alloc, void* pointer);
+// Preconditions: from must be between alloc->begin and alloc->cursor, to must be between alloc->begin
+//                and alloc->end - (alloc->cursor - from), to ensure the block fits
+// Postconditions: The memory block has been moved, alloc->cursor is updated to the new position
+void sa_move_tail(stack_alloc* alloc, void* from, void* to);
 
 #endif /* STACK_ALLOC_H */

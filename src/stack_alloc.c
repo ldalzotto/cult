@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <string.h>
 #include "./stack_alloc.h"
 #include "./assert.h"
 
@@ -34,4 +35,13 @@ void sa_free(stack_alloc* alloc, void* pointer) {
     debug_assert(pointer >= alloc->begin);
 
     alloc->cursor = pointer;
+}
+
+// Move a block of memory from 'from' to 'to' within the stack allocator
+void sa_move_tail(stack_alloc* alloc, void* from, void* to) {
+    debug_assert(from >= alloc->begin && from <= alloc->cursor);
+    uptr len = bytesize(from, alloc->cursor);
+    debug_assert(to >= alloc->begin && byteoffset(to, len) <= (u8*)alloc->end);
+    memmove(to, from, len);
+    alloc->cursor = byteoffset(to, len);
 }
