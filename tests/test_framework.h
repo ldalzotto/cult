@@ -9,17 +9,9 @@ typedef struct test_context {
     u32 failed;
 } test_context;
 
-static inline void test_reset_context(test_context* t) {
-    t->passed = 0;
-    t->failed = 0;
-}
-
-static inline void test_report_context(test_context* t) {
-    printf("Test Results:\n");
-    printf("  Passed: %u\n", t->passed);
-    printf("  Failed: %u\n", t->failed);
-    printf("  Total: %u\n", t->passed + t->failed);
-}
+// Function declarations
+void test_reset_context(test_context* t);
+void test_report_context(test_context* t);
 
 // Test macros using context
 #define TEST_ASSERT(ctx, cond, msg) \

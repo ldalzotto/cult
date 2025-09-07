@@ -3,8 +3,6 @@
 # Get the current working directory
 PWD=$(pwd)
 
-# Clean to ensure all commands are shown, then run make dry-run
-make clean
 # Run make dry-run, extract gcc compilation commands with -c
 # Then parse and generate JSON
 make -n all | grep -E "^gcc.* -c" | awk -v dir="$PWD" '

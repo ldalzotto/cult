@@ -25,14 +25,22 @@ $(DEP_DIR)/%.d: $(SRC_DIR)/%.c
 	mkdir -p $(DEP_DIR)
 	$(CC) $(CFLAGS) -MM $< -MT $(OBJ_DIR)/$*.o -MF $@
 
+$(DEP_DIR)/tests/%.d: tests/%.c
+	mkdir -p $(DEP_DIR)/tests
+	$(CC) $(CFLAGS) -MM $< -MT $(OBJ_DIR)/tests/$*.o -MF $@ -I src
+
 # Object file compilation
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-build/$(TARGET): $(OBJ_DIR)/main.o $(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o
+$(OBJ_DIR)/tests/%.o: tests/%.c
+	mkdir -p $(OBJ_DIR)/tests
+	$(CC) $(CFLAGS) -c $< -o $@ -I src
+
+build/$(TARGET): $(OBJ_DIR)/main.o $(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o $(OBJ_DIR)/assert.o
 	mkdir -p build
-	$(CC) $(CFLAGS) -o build/$(TARGET) $(OBJ_DIR)/main.o $(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o
+	$(CC) $(CFLAGS) -o build/$(TARGET) $(OBJ_DIR)/main.o $(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o $(OBJ_DIR)/assert.o
 
 # Include the dependency files (if they exist)
 -include $(DEP_DIR)/main.d
@@ -40,14 +48,20 @@ build/$(TARGET): $(OBJ_DIR)/main.o $(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(O
 -include $(DEP_DIR)/stack_alloc.d
 -include $(DEP_DIR)/backtrace.d
 
-clean:
-	rm -rf build
-	mkdir build
-
 test: build/test_runner
 	./build/test_runner
 
-# TODO: use the module for compile_commands.json and header rebuild
-build/test_runner: tests/all_tests.c tests/test_mem.c tests/test_stack_alloc.c src/mem.c src/stack_alloc.c src/backtrace.c
+build/test_runner: $(OBJ_DIR)/tests/all_tests.o $(OBJ_DIR)/tests/test_mem.o $(OBJ_DIR)/tests/test_stack_alloc.o $(OBJ_DIR)/tests/test_framework.o $(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o $(OBJ_DIR)/assert.o
 	mkdir -p build
-	$(CC) $(CFLAGS) -o build/test_runner tests/all_tests.c tests/test_mem.c tests/test_stack_alloc.c src/mem.c src/stack_alloc.c src/backtrace.c -I src
+	$(CC) $(CFLAGS) -o build/test_runner $(OBJ_DIR)/tests/all_tests.o $(OBJ_DIR)/tests/test_mem.o $(OBJ_DIR)/tests/test_stack_alloc.o $(OBJ_DIR)/tests/test_framework.o $(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o $(OBJ_DIR)/assert.o
+
+# Include test dependency files
+-include $(DEP_DIR)/tests/all_tests.d
+-include $(DEP_DIR)/tests/test_mem.d
+-include $(DEP_DIR)/tests/test_stack_alloc.d
+-include $(DEP_DIR)/tests/test_framework.d
+
+clean:
+	rm -rf build
+	mkdir build
+	./generate_compile_commands.sh
