@@ -35,4 +35,4 @@ test: build/test_runner
 
 build/test_runner: tests/all_tests.c tests/test_mem.c tests/test_stack_alloc.c src/mem.c src/stack_alloc.c
 	mkdir -p build
-	$(CC) -Wall -Wextra -pedantic -g -DDEBUG_ASSERTIONS_ENABLED=0 -o build/test_runner tests/all_tests.c tests/test_mem.c tests/test_stack_alloc.c src/mem.c src/stack_alloc.c -I src
+	$(CC) $(CFLAGS) -o build/test_runner tests/all_tests.c tests/test_mem.c tests/test_stack_alloc.c src/mem.c src/stack_alloc.c -I src
