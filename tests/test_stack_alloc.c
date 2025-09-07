@@ -6,7 +6,7 @@
 #include <sys/mman.h>
 #include <stdio.h>
 
-void test_sa_basic_alloc(test_context* t) {
+static void test_sa_basic_alloc(test_context* t) {
     uptr size = 1024;
     void* mem = mem_map(size);
     TEST_ASSERT_NOT_NULL(t, mem);
@@ -44,7 +44,7 @@ void test_sa_basic_alloc(test_context* t) {
     mem_unmap(mem, size);
 }
 
-void test_sa_reuse_space(test_context* t) {
+static void test_sa_reuse_space(test_context* t) {
     uptr size = 256;
     void* mem = mem_map(size);
     TEST_ASSERT_NOT_NULL(t, mem);
@@ -74,7 +74,7 @@ void test_sa_reuse_space(test_context* t) {
     mem_unmap(mem, size);
 }
 
-void test_sa_over_allocation(test_context* t) {
+static void test_sa_over_allocation(test_context* t) {
     uptr size = 128;
     void* mem = mem_map(size);
     TEST_ASSERT_NOT_NULL(t, mem);

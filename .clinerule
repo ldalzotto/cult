@@ -157,16 +157,28 @@ void test_example_module(test_context* t) {
     test_example_edge_case(t);
 }
 
+// In tests/test_example.h
+#ifndef TEST_EXAMPLE_H
+#define TEST_EXAMPLE_H
+
+#include "test_framework.h"
+
+// Declaration of example module test function
+void test_example_module(test_context* t);
+
+#endif /* TEST_EXAMPLE_H */
+
 // In tests/all_tests.c
 #include "test_framework.h"
-// ... includes for all modules ...
+#include "test_example.h"
+// ... additional module header includes ...
 
 int main() {
     test_context ctx;
     test_reset_context(&ctx);
 
     test_example_module(&ctx);
-    // ... other modules ...
+    // ... other module tests ...
 
     test_report_context(&ctx);
     return ctx.failed > 0 ? 1 : 0;

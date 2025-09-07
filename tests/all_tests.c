@@ -1,9 +1,7 @@
 #include "test_framework.h"
+#include "test_mem.h"
+#include "test_stack_alloc.h"
 #include <stdio.h>
-
-// Forward declarations for test module functions
-void test_mem_module(test_context* t);
-void test_sa_module(test_context* t);
 
 int main() {
     test_context ctx;
