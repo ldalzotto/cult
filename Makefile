@@ -20,8 +20,6 @@ TARGET=myapp
 TEST_TARGET=test_runner
 COMMON_OBJS=$(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o $(OBJ_DIR)/assert.o
 
-all: build/$(TARGET)
-
 # Dependency generation rule
 $(DEP_DIR)/%.d: $(SRC_DIR)/%.c
 	mkdir -p $(DEP_DIR)
@@ -63,6 +61,8 @@ build/$(TEST_TARGET): $(OBJ_DIR)/tests/all_tests.o $(OBJ_DIR)/tests/test_mem.o $
 -include $(DEP_DIR)/tests/test_mem.d
 -include $(DEP_DIR)/tests/test_stack_alloc.d
 -include $(DEP_DIR)/tests/test_framework.d
+
+all: build/$(TARGET) build/$(TEST_TARGET)
 
 clean:
 	rm -rf build
