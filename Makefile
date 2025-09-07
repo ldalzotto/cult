@@ -19,6 +19,8 @@ endif
 TARGET=myapp
 TEST_TARGET=test_runner
 COMMON_OBJS=$(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o $(OBJ_DIR)/assert.o
+MAIN_DEPS := $(patsubst $(OBJ_DIR)/%.o, $(DEP_DIR)/%.d, $(OBJ_DIR)/main.o $(COMMON_OBJS))
+TEST_DEPS := $(patsubst $(OBJ_DIR)/tests/%.o, $(DEP_DIR)/tests/%.d, $(OBJ_DIR)/tests/all_tests.o $(OBJ_DIR)/tests/test_mem.o $(OBJ_DIR)/tests/test_stack_alloc.o $(OBJ_DIR)/tests/test_framework.o) $(patsubst $(OBJ_DIR)/%.o, $(DEP_DIR)/%.d, $(COMMON_OBJS))
 
 # Dependency generation rule
 $(DEP_DIR)/%.d: $(SRC_DIR)/%.c
@@ -43,11 +45,7 @@ build/$(TARGET): $(OBJ_DIR)/main.o $(COMMON_OBJS)
 	$(CC) $(CFLAGS) -o build/$(TARGET) $(OBJ_DIR)/main.o $(COMMON_OBJS)
 
 # Include the dependency files (if they exist)
--include $(DEP_DIR)/main.d
--include $(DEP_DIR)/mem.d
--include $(DEP_DIR)/stack_alloc.d
--include $(DEP_DIR)/backtrace.d
--include $(DEP_DIR)/assert.d
+-include $(MAIN_DEPS)
 
 test: build/$(TEST_TARGET)
 	./build/$(TEST_TARGET)
@@ -57,10 +55,7 @@ build/$(TEST_TARGET): $(OBJ_DIR)/tests/all_tests.o $(OBJ_DIR)/tests/test_mem.o $
 	$(CC) $(CFLAGS) -o build/$(TEST_TARGET) $(OBJ_DIR)/tests/all_tests.o $(OBJ_DIR)/tests/test_mem.o $(OBJ_DIR)/tests/test_stack_alloc.o $(OBJ_DIR)/tests/test_framework.o $(COMMON_OBJS)
 
 # Include test dependency files
--include $(DEP_DIR)/tests/all_tests.d
--include $(DEP_DIR)/tests/test_mem.d
--include $(DEP_DIR)/tests/test_stack_alloc.d
--include $(DEP_DIR)/tests/test_framework.d
+-include $(TEST_DEPS)
 
 all: build/$(TARGET) build/$(TEST_TARGET)
 
