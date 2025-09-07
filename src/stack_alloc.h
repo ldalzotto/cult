@@ -63,4 +63,20 @@ void sa_free(stack_alloc* alloc, void* pointer);
 // Postconditions: The memory block has been moved, alloc->cursor is updated to the new position
 void sa_move_tail(stack_alloc* alloc, void* from, void* to);
 
+// Move a block of memory from 'from' to 'to' with specified size within the stack allocator
+//
+// @param alloc: Pointer to stack_alloc
+// @param from: Start of the memory block to move (must be within the allocated region)
+// @param to: Destination where the block should be moved to
+// @param size: Size in bytes of the memory block to move
+//
+// Returns: void
+// Preconditions:
+// - from must be between alloc->begin and alloc->cursor
+// - from + size must not exceed alloc->cursor (the block must be allocated)
+// - to must be between alloc->begin and alloc->end
+// - to + size must not exceed alloc->end
+// Postconditions: The memory block has been moved to the destination, alloc->cursor remains unchanged
+void sa_move(stack_alloc* alloc, void* from, void* to, uptr size);
+
 #endif /* STACK_ALLOC_H */

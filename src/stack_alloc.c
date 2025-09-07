@@ -31,8 +31,8 @@ void* sa_alloc(stack_alloc* alloc, uptr size) {
 
 // Free memory by rolling back the current allocation pointer to the specified pointer
 void sa_free(stack_alloc* alloc, void* pointer) {
-    debug_assert(pointer <= alloc->cursor);
-    debug_assert(pointer >= alloc->begin);
+    debug_assert((uptr)pointer <= (uptr)alloc->cursor);
+    debug_assert((uptr)pointer >= (uptr)alloc->begin);
 
     alloc->cursor = pointer;
 }
@@ -44,4 +44,15 @@ void sa_move_tail(stack_alloc* alloc, void* from, void* to) {
     debug_assert(to >= alloc->begin && byteoffset(to, len) <= (u8*)alloc->end);
     memmove(to, from, len);
     alloc->cursor = byteoffset(to, len);
+}
+
+// Move a block of memory from 'from' to 'to' with specified size within the stack allocator
+void sa_move(stack_alloc* alloc, void* from, void* to, uptr size) {
+    debug_assert((uptr)from >= (uptr)alloc->begin && (uptr)from <= (uptr)alloc->cursor);
+    debug_assert((uptr)byteoffset(from, size) <= (uptr)alloc->cursor);  // Ensure the block to move is within allocated memory
+    debug_assert((uptr)to >= (uptr)alloc->begin && (uptr)byteoffset(to, size) <= (uptr)alloc->end);
+
+    memmove(to, from, size);
+
+    // Note: cursor is never updated in sa_move (unlike sa_move_tail)
 }
