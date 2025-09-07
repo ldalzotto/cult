@@ -26,12 +26,19 @@ Memory revenue is calculated, not explicitly stored. This eliminates redundant d
 
 ### Example Implementation:
 ```c
-// CORRECT - return start pointer, calculate count via arithmetic
-XEvent* events = win_x11_poll_events(context, &alloc);
-i32 event_count = ((u8*)alloc->cursor - (u8*)events) / sizeof(XEvent);
+// CORRECT - poll_xxx or any collection-returning function returns start pointer
+foo_t* collection_begin = poll_xxx(context, &alloc);
+foo_t* collection_end = alloc.cursor;
+// Loop through contiguous collection without separate count variable
+for (foo_t* item = collection_begin; item != collection_end; ++item) {
+    // Process item
+    process_item(item);
+}
+// Free entire collection block back to before allocation
+sa_free(&alloc, collection_begin);
 
-// INCORRECT - wrapper with explicit count
-// typedef struct { XEvent* events; i32 count; } event_collection; // NOT ALLOWED
+// INCORRECT - wrapper with explicit count (violates pattern)
+// typedef struct { foo_t* items; i32 count; } collection_t; // NOT ALLOWED
 ```
 
 ### Why This is MOST Critical:
