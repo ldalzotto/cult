@@ -37,4 +37,7 @@ STATIC_ASSERT(sizeof(u32) == 4);
 STATIC_ASSERT(sizeof(uptr) == sizeof(void*));
 STATIC_ASSERT(sizeof(u64) == 8);
 
+// Generic macro for byte offset calculation
+#define byteoffset(ptr, offset) ((char*)(ptr) + (offset))
+
 #endif /* PRIMITIVE_H */

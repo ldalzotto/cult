@@ -17,13 +17,14 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-build/$(TARGET): $(OBJ_DIR)/main.o $(OBJ_DIR)/mem.o
+build/$(TARGET): $(OBJ_DIR)/main.o $(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o
 	mkdir -p build
-	$(CC) $(CFLAGS) -o build/$(TARGET) $(OBJ_DIR)/main.o $(OBJ_DIR)/mem.o
+	$(CC) $(CFLAGS) -o build/$(TARGET) $(OBJ_DIR)/main.o $(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o
 
 # Include the dependency files (if they exist)
 -include $(DEP_DIR)/main.d
 -include $(DEP_DIR)/mem.d
+-include $(DEP_DIR)/stack_alloc.d
 
 clean:
 	rm -rf build

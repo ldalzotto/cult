@@ -25,6 +25,10 @@ This project enforces the exclusive use of custom primitive types defined in `sr
 - These types are defined with platform-agnostic size requirements (verified with static assertions), including pointer-sized types where sizeof(imax) == sizeof(uimax) == sizeof(void*)
 - Always prefer the custom types over standard C integers for consistency and portability
 
+## Memory Operations
+- Use the `byteoffset` macro (defined in `src/stack_alloc.h`) for calculating byte offsets instead of direct `char*` casting
+- Example: Instead of `(char*)ptr + offset`, use `byteoffset(ptr, offset)`
+
 ### Example Usage
 ```c
 #include "primitive.h"
@@ -38,3 +42,56 @@ i64 bigNumber = 9223372036854775807LL;
 int standardInt = 42;
 unsigned int standardUint = 100;
 long standardLong = 0;
+```
+
+## Memory Allocation Enforcement
+
+This project enforces the exclusive use of the stack_alloc module for all dynamic memory allocations to ensure consistent and controlled memory management.
+
+### Prohibited Allocation Functions
+- DO NOT use `malloc`, `calloc`, `realloc`, `free`
+- DO NOT use any direct system memory allocation functions
+- DO NOT use alternative allocators without explicit approval
+
+### Required Allocation Method
+- Use the stack_alloc module (`src/stack_alloc.h`) for all memory allocations
+- Initialize the allocator with `sa_init()`
+- Allocate memory with `sa_alloc()` (asserts if out of memory)
+- Free memory with `sa_free()` (selective rollback) or reset the allocator
+- Deinitialize with `sa_deinit()` to verify all memory is properly deallocated
+- For large memory blocks, acquire memory via `mem_map()` from `src/mem.h` and manage it with the stack allocator
+- Use `uptr` type for sizes where appropriate
+
+### Allocation Strategy
+- This is a stack-based allocator: allocations are linear and deallocation is typically by rolling back to a previous state
+- Suitable for temporary allocations within a scope; not suitable for long-lived or complex object graphs
+- Assert is triggered if allocation would exceed the memory block bounds
+
+### Example Usage
+```c
+#include "stack_alloc.h"
+#include "mem.h"
+
+// Acquire memory block
+void* memory = mem_map(1024);
+
+// Initialize stack allocator
+stack_alloc alloc;
+sa_init(&alloc, memory, byteoffset(memory, 1024));
+
+// Allocate memory
+void* ptr = sa_alloc(&alloc, 64);
+
+// Use ptr...
+
+// Free specific allocation (rollback to ptr)
+sa_free(&alloc, ptr);
+
+// Or reset entire allocator for bulk deallocation
+alloc.cursor = alloc.begin;
+
+// Deinitialize (verifies cursor is back to begin)
+sa_deinit(&alloc);
+
+// Release memory block
+mem_unmap(memory, 1024);
