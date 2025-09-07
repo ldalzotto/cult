@@ -1,0 +1,37 @@
+# Project Coding Rules - Type Usage
+
+## Type Usage Enforcement
+
+This project enforces the exclusive use of custom primitive types defined in `src/primitive.h` instead of standard C types to ensure consistent type sizes across different platforms.
+
+### Prohibited Types
+- Do NOT use `char`, `short`, `int`, `long`, `long long` (signed or unsigned variants)
+- Do NOT use direct standard C integer types for any variable declarations, function parameters, or return types
+
+### Required Types
+- For 8-bit signed integers: Use `i8`
+- For 16-bit signed integers: Use `i16`
+- For 32-bit signed integers: Use `i32`
+- For 64-bit signed integers: Use `i64`
+- For 8-bit unsigned integers: Use `u8`
+- For 16-bit unsigned integers: Use `u16`
+- For 32-bit unsigned integers: Use `u32`
+- For 64-bit unsigned integers: Use `u64`
+
+### Additional Notes
+- Include `src/primitive.h` in all source files that require these types
+- These types are defined with platform-agnostic size requirements (verified with static assertions)
+- Always prefer the custom types over standard C integers for consistency and portability
+
+### Example Usage
+```c
+#include "primitive.h"
+
+// Correct usage
+i32 myVariable = 42;
+u16 anotherVar = 100;
+i64 bigNumber = 9223372036854775807LL;
+
+// Incorrect usage (DO NOT USE)
+int standardInt = 42;
+unsigned int standardUint = 100;

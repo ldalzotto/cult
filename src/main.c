@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "primitive.h"
 
-int main() {
+i32 main() {
     // Test the primitive definitions
     i32 signed_32bit = -12345;
     u32 unsigned_32bit = 12345;
