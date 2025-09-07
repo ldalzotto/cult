@@ -2,7 +2,7 @@
 #define TEST_FRAMEWORK_H
 
 #include "../src/primitive.h"
-#include <stdio.h>
+#include "../src/backtrace.h"
 
 typedef struct test_context {
     u32 passed;
@@ -27,6 +27,7 @@ static inline void test_report_context(test_context* t) {
         (ctx)->passed++; \
     } else { \
         printf("TEST FAILED: %s at %s:%d\n", msg, __FILE__, __LINE__); \
+        print_backtrace(); \
         (ctx)->failed++; \
     }
 
