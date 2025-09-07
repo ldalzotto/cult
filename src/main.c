@@ -1,7 +1,11 @@
 #include <stdio.h>
 #include "primitive.h"
+#include "./mem.h"
 
 i32 main() {
+    uptr size = 200;
+    void* p = mem_map(size);
+    mem_unmap(p, size);
     // Test the primitive definitions
     i32 signed_32bit = -12345;
     u32 unsigned_32bit = 12345;
