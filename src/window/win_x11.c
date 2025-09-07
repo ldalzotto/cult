@@ -48,16 +48,13 @@ struct win_x11 {
 win_x11* win_x11_init(stack_alloc* alloc) {
     // Allocate memory for win_x11 struct
     win_x11* win = (win_x11*)sa_alloc(alloc, sizeof(win_x11));
-    if (!win) {
-        return NULL;
-    }
 
     // Open connection to X server
     win->display = XOpenDisplay(NULL);
     if (!win->display) {
         printf("win_x11: Cannot open display\n");
         sa_free(alloc, win);
-        return NULL;
+        return alloc->cursor;
     }
 
     win->screen_num = (i32)DefaultScreen(win->display);
@@ -77,7 +74,6 @@ win_x11* win_x11_init(stack_alloc* alloc) {
  * Used for stack allocator memory boundary tracking.
  */
 void* win_x11_end(win_x11* win) {
-    debug_assert(win != NULL);
     return win->pixel_buffer_end;
 }
 
@@ -90,7 +86,6 @@ void* win_x11_end(win_x11* win) {
  * 3. Free win_x11 struct from stack allocator
  */
 void win_x11_deinit(stack_alloc* alloc, win_x11* win) {
-    debug_assert(win != NULL);
     debug_assert(alloc != NULL);
     debug_assert(win->display != NULL);
     
@@ -117,7 +112,6 @@ void win_x11_deinit(stack_alloc* alloc, win_x11* win) {
  * - Auto-centering on current screen
  */
 i32 win_x11_open_window(win_x11* win, const char* title, i32 width, i32 height, stack_alloc* alloc) {
-    debug_assert(win != NULL);
     debug_assert(win->display != NULL);
     debug_assert(title != NULL);
     debug_assert(width > 0 && height > 0);
@@ -201,7 +195,6 @@ i32 win_x11_open_window(win_x11* win, const char* title, i32 width, i32 height, 
  * - No-op if no window is currently open
  */
 void win_x11_close_window(win_x11* win) {
-    debug_assert(win != NULL);
     debug_assert(win->display != NULL);
 
     if (win->window) {
@@ -222,7 +215,6 @@ void win_x11_close_window(win_x11* win) {
 }
 
 win_event* win_x11_poll_events(win_x11* win, stack_alloc* alloc) {
-    debug_assert(win != NULL);
     debug_assert(alloc != NULL);
     debug_assert(win->display != NULL);
 
@@ -247,7 +239,6 @@ win_event* win_x11_poll_events(win_x11* win, stack_alloc* alloc) {
  * The buffer contains 32-bit RGBA pixels in row-major order.
  */
 void* win_x11_get_pixel_buffer(win_x11* win) {
-    debug_assert(win != NULL);
     return win->pixel_buffer;
 }
 
@@ -258,7 +249,6 @@ void* win_x11_get_pixel_buffer(win_x11* win) {
  * Uses XPutImage to efficiently copy the pixel buffer to the window surface.
  */
 void win_x11_present(win_x11* win) {
-    debug_assert(win != NULL);
     debug_assert(win->display != NULL);
     debug_assert(win->pixel_buffer_img != NULL);
     debug_assert(win->window != 0);
