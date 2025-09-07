@@ -10,15 +10,8 @@
 #ifndef WIN_X11_H
 #define WIN_X11_H
 
-#include "../primitive.h"
 #include "../stack_alloc.h"
-
-/**
- * @brief Simple event structure
- */
-typedef struct {
-    i32 type;
-} win_event;
+#include "./win.h"
 
 /**
  * @brief Opaque handle to window context
@@ -121,7 +114,7 @@ void win_x11_close_window(win_x11* win);
  * @pre win must be valid win_x11 context
  * @pre A window must be open (call win_x11_open_window first)
  */
-void* win_x11_get_pixel_buffer(win_x11* win);
+win_buffer win_x11_get_pixel_buffer(win_x11* win);
 
 /**
  * @brief Present pixel buffer contents to the window

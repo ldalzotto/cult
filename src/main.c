@@ -3,6 +3,7 @@
 #include "./mem.h"
 #include "./stack_alloc.h"
 #include "./window/win_x11.h"
+#include "./assert.h"
 
 static void memory_test() {
     // Simple test for stack_alloc
@@ -94,8 +95,9 @@ i32 main() {
         // Free the event memory if it was allocated
         sa_free(&win_alloc, event_begin);
 
-        i32* buffer = win_x11_get_pixel_buffer(win_ctx);
-        for (i32* x = buffer; x < buffer + (200 * 200); ++x) {
+        win_buffer buffer = win_x11_get_pixel_buffer(win_ctx);
+        debug_assert(bytesize(buffer.begin, buffer.end) % sizeof(i32) == 0);
+        for (i32* x = buffer.begin; x < (i32*)buffer.end; ++x) {
             *x = 100;
         }
 

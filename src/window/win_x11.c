@@ -238,8 +238,11 @@ win_event* win_x11_poll_events(win_x11* win, stack_alloc* alloc) {
  * Returns the base address of the pixel buffer for direct pixel data access.
  * The buffer contains 32-bit RGBA pixels in row-major order.
  */
-void* win_x11_get_pixel_buffer(win_x11* win) {
-    return win->pixel_buffer;
+win_buffer win_x11_get_pixel_buffer(win_x11* win) {
+    win_buffer buffer;
+    buffer.begin = win->pixel_buffer;
+    buffer.end = win->pixel_buffer_end;
+    return buffer;
 }
 
 /**
