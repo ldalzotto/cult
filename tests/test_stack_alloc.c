@@ -81,6 +81,7 @@ static void test_sa_over_allocation(test_context* t) {
 
     // Allocate most of the space
     void* p1 = sa_alloc(&alloc, 80);
+    TEST_ASSERT_TRUE(t, p1 != NULL);
 
     // Try to allocate more than remaining space
     void* p2 = sa_alloc(&alloc, 60);  // 48 remaining (128 - 80 = 48)
