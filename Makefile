@@ -17,6 +17,8 @@ else
 endif
 
 TARGET=myapp
+TEST_TARGET=test_runner
+COMMON_OBJS=$(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o $(OBJ_DIR)/assert.o
 
 all: build/$(TARGET)
 
@@ -38,9 +40,9 @@ $(OBJ_DIR)/tests/%.o: tests/%.c
 	mkdir -p $(OBJ_DIR)/tests
 	$(CC) $(CFLAGS) -c $< -o $@ -I src
 
-build/$(TARGET): $(OBJ_DIR)/main.o $(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o $(OBJ_DIR)/assert.o
+build/$(TARGET): $(OBJ_DIR)/main.o $(COMMON_OBJS)
 	mkdir -p build
-	$(CC) $(CFLAGS) -o build/$(TARGET) $(OBJ_DIR)/main.o $(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o $(OBJ_DIR)/assert.o
+	$(CC) $(CFLAGS) -o build/$(TARGET) $(OBJ_DIR)/main.o $(COMMON_OBJS)
 
 # Include the dependency files (if they exist)
 -include $(DEP_DIR)/main.d
@@ -48,12 +50,12 @@ build/$(TARGET): $(OBJ_DIR)/main.o $(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(O
 -include $(DEP_DIR)/stack_alloc.d
 -include $(DEP_DIR)/backtrace.d
 
-test: build/test_runner
-	./build/test_runner
+test: build/$(TEST_TARGET)
+	./build/$(TEST_TARGET)
 
-build/test_runner: $(OBJ_DIR)/tests/all_tests.o $(OBJ_DIR)/tests/test_mem.o $(OBJ_DIR)/tests/test_stack_alloc.o $(OBJ_DIR)/tests/test_framework.o $(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o $(OBJ_DIR)/assert.o
+build/$(TEST_TARGET): $(OBJ_DIR)/tests/all_tests.o $(OBJ_DIR)/tests/test_mem.o $(OBJ_DIR)/tests/test_stack_alloc.o $(OBJ_DIR)/tests/test_framework.o $(COMMON_OBJS)
 	mkdir -p build
-	$(CC) $(CFLAGS) -o build/test_runner $(OBJ_DIR)/tests/all_tests.o $(OBJ_DIR)/tests/test_mem.o $(OBJ_DIR)/tests/test_stack_alloc.o $(OBJ_DIR)/tests/test_framework.o $(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o $(OBJ_DIR)/assert.o
+	$(CC) $(CFLAGS) -o build/$(TEST_TARGET) $(OBJ_DIR)/tests/all_tests.o $(OBJ_DIR)/tests/test_mem.o $(OBJ_DIR)/tests/test_stack_alloc.o $(OBJ_DIR)/tests/test_framework.o $(COMMON_OBJS)
 
 # Include test dependency files
 -include $(DEP_DIR)/tests/all_tests.d
