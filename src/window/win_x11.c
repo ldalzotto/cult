@@ -169,3 +169,19 @@ void win_x11_close_window(win_x11* win) {
         XFlush(win->display);
     }
 }
+
+XEvent* win_x11_poll_events(win_x11* win, stack_alloc* alloc) {
+    debug_assert(win != NULL);
+    debug_assert(alloc != NULL);
+    debug_assert(win->display != NULL);
+
+    XEvent* events = alloc->cursor;
+    // Poll all pending events using while loop
+    while (XPending(win->display) > 0) {
+        
+        XEvent* event = sa_alloc(alloc, sizeof(*event));
+        XNextEvent(win->display, event);
+    }
+
+    return events;
+}

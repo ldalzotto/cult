@@ -12,6 +12,7 @@
 
 #include "../primitive.h"
 #include "../stack_alloc.h"
+#include <X11/Xlib.h>
 
 /**
  * @brief Opaque handle to X11 window context
@@ -21,6 +22,8 @@
  * into user code.
  */
 typedef struct win_x11 win_x11;
+
+XEvent* win_x11_poll_events(win_x11* win, stack_alloc* alloc);
 
 /**
  * @brief Initialize X11 window context

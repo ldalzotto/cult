@@ -1,3 +1,52 @@
+# MOST CRITICAL: STACK ALLOCATOR MEMORY REVENUE PATTERN
+
+**THIS IS THE MOST IMPORTANT RULE IN THE ENTIRE PROJECT.**
+
+## Memory Revenue Pattern Enforcement
+
+All memory operations returning collections MUST return contiguous ranges using the following pattern:
+
+### REQUIRED Pattern:
+1. **Return the start pointer** to the allocated range (not a wrapper struct)
+2. **Calculate count via cursor arithmetic**:
+   ```c
+   element_count = ((u8*)alloc->cursor - (u8*)start_pointer) / sizeof(element_t)
+   ```
+3. **NO separate count returns or wrapper structures** - let math determine boundaries
+4. **Iterate linearly** through contiguous memory
+
+### Prohibited Alternatives:
+- ❌ Returning wrapper structs with separate `count` fields
+- ❌ Separate allocation for count variables
+- ❌ Any abstraction that obscures the contiguous nature
+- ❌ Non-linear memory layouts
+
+### Core Principle:
+Memory revenue is calculated, not explicitly stored. This eliminates redundant data structures and leverages the stack allocator's linear property directly.
+
+### Example Implementation:
+```c
+// CORRECT - return start pointer, calculate count via arithmetic
+XEvent* events = win_x11_poll_events(context, &alloc);
+i32 event_count = ((u8*)alloc->cursor - (u8*)events) / sizeof(XEvent);
+
+// INCORRECT - wrapper with explicit count
+// typedef struct { XEvent* events; i32 count; } event_collection; // NOT ALLOWED
+```
+
+### Why This is MOST Critical:
+- **Fundamentally Exploits** stack allocator's linear allocation property
+- **Eliminates Redundancy** - no extra count fields or structures
+- **Ensures Consistency** - all collections managed the same way
+- **Mathematical Precision** - exact boundary calculation
+- **Performance Optimum** - zero overhead abstraction
+- **Memory Efficiency** - no wasted space on metadata
+
+**VIOLATING THIS PATTERN IS THE MOST SERIOUS CODE INFRACTION IN THE PROJECT.**
+**ALL MEMORY OPERATIONS MUST FOLLOW THIS PATTERN.**
+
+---
+
 # Project Coding Rules - Type Usage
 
 ## Type Usage Enforcement
