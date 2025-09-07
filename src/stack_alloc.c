@@ -56,3 +56,14 @@ void sa_move(stack_alloc* alloc, void* from, void* to, uptr size) {
 
     // Note: cursor is never updated in sa_move (unlike sa_move_tail)
 }
+
+// Copy a block of memory from 'from' to 'to' with specified size within the stack allocator
+void sa_copy(stack_alloc* alloc, void* from, void* to, uptr size) {
+    debug_assert((uptr)from >= (uptr)alloc->begin && (uptr)from <= (uptr)alloc->cursor);
+    debug_assert((uptr)byteoffset(from, size) <= (uptr)alloc->cursor);  // Ensure the block to copy is within allocated memory
+    debug_assert((uptr)to >= (uptr)alloc->begin && (uptr)byteoffset(to, size) <= (uptr)alloc->end);
+
+    memcpy(to, from, size);
+
+    // Note: cursor is never updated in sa_copy (similar to sa_move)
+}

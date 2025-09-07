@@ -187,10 +187,89 @@ static void test_sa_move(test_context* t) {
     mem_unmap(mem, size);
 }
 
+static void test_sa_copy(test_context* t) {
+    uptr size = 1024;
+    void* mem = mem_map(size);
+    TEST_ASSERT_NOT_NULL(t, mem);
+
+    stack_alloc alloc;
+    sa_init(&alloc, mem, byteoffset(mem, size));
+
+    // Test 1: Copy a block - cursor should never be updated
+    void* p1 = sa_alloc(&alloc, 100 * sizeof(i32));  // 400 bytes, cursor now at mem+400
+
+    // Fill with test data 0-99
+    i32* slice = (i32*)p1;
+    for (i32 i = 0; i < 100; i++) {
+        slice[i] = i;
+    }
+
+    // Copy part of the block to a new position
+    uptr copy_size = 50 * sizeof(i32);  // 200 bytes (first half of p1)
+    void* copy_position = byteoffset(mem, 600);
+    void* original_cursor = alloc.cursor;  // should be mem+400
+    sa_copy(&alloc, p1, copy_position, copy_size);
+
+    // Cursor should remain unchanged in sa_copy (similar to sa_move)
+    TEST_ASSERT_TRUE(t, alloc.cursor == original_cursor);
+
+    // Check copied data is correct
+    i32* copied_slice = (i32*)copy_position;
+    for (i32 i = 0; i < 50; i++) {
+        TEST_ASSERT_TRUE(t, copied_slice[i] == i);
+    }
+
+    // Check original data remains intact
+    for (i32 i = 0; i < 100; i++) {
+        TEST_ASSERT_TRUE(t, slice[i] == i);
+    }
+
+    // Reset for next test
+    sa_free(&alloc, alloc.begin);
+
+    // Test 2: Copy middle portion
+    void* base_block = sa_alloc(&alloc, 200 * sizeof(i32));  // Large block: 800 bytes
+    void* small_block = sa_alloc(&alloc, 32);               // Small block: 32 bytes
+
+    original_cursor = alloc.cursor;  // Should be at mem+832
+
+    // Fill base block with test data 0-199
+    slice = (i32*)base_block;
+    for (i32 i = 0; i < 200; i++) {
+        slice[i] = i;
+    }
+    *(i32*)small_block = 999;
+
+    // Copy middle portion
+    copy_size = 30 * sizeof(i32);  // 120 bytes, elements 50-79
+    void* from_ptr = byteoffset(base_block, 50 * sizeof(i32));
+    void* to_ptr = byteoffset(mem, 400);
+    sa_copy(&alloc, from_ptr, to_ptr, copy_size);
+
+    // Cursor should remain unchanged (sa_copy never updates cursor)
+    TEST_ASSERT_TRUE(t, alloc.cursor == original_cursor);
+
+    // Check copied data is correct
+    i32* copied_internal = (i32*)to_ptr;
+    for (i32 i = 0; i < 30; i++) {
+        TEST_ASSERT_TRUE(t, copied_internal[i] == i + 50);  // Copied elements 50-79
+    }
+
+    // Check that original data is still intact
+    TEST_ASSERT_TRUE(t, slice[25] == 25);  // Before copied region
+    TEST_ASSERT_TRUE(t, slice[150] == 150);  // After copied region
+    TEST_ASSERT_TRUE(t, *(i32*)small_block == 999);  // Small block preserved
+
+    sa_free(&alloc, alloc.begin);
+    sa_deinit(&alloc);
+    mem_unmap(mem, size);
+}
+
 void test_sa_module(test_context* t) {
     printf("Running Stack Allocator Module Tests...\n");
     test_sa_basic_alloc(t);
     test_sa_reuse_space(t);
     test_sa_move_tail(t);
     test_sa_move(t);
+    test_sa_copy(t);
 }
