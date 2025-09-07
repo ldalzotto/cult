@@ -1,4 +1,6 @@
 #include "./assert.h"
+#include "./backtrace.h"
+#include <stdio.h>
 
 void __debug_assert(u8 condition, char* cond_str, char* file, int line) {
     if (!condition) {
