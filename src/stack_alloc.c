@@ -7,12 +7,12 @@ void sa_init(stack_alloc* alloc, void* begin, void* end) {
     alloc->begin = begin;
     alloc->end = end;
     alloc->cursor = begin;
-};
+}
 
 // Deinitialize the stack allocator by checking that the cursor is back to begin
 void sa_deinit(stack_alloc* alloc) {
     debug_assert(alloc->cursor == alloc->begin);
-};
+}
 
 // Allocate a block of memory
 void* sa_alloc(stack_alloc* alloc, uptr size) {
@@ -26,7 +26,7 @@ void* sa_alloc(stack_alloc* alloc, uptr size) {
     void* result = alloc->cursor;
     alloc->cursor = new_current;
     return result;
-};
+}
 
 // Free memory by rolling back the current allocation pointer to the specified pointer
 void sa_free(stack_alloc* alloc, void* pointer) {
@@ -34,4 +34,4 @@ void sa_free(stack_alloc* alloc, void* pointer) {
     debug_assert(pointer >= alloc->begin);
 
     alloc->cursor = pointer;
-};
+}

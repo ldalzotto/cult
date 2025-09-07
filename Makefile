@@ -2,7 +2,7 @@ SRC_DIR=src
 DEP_DIR=build/deps
 OBJ_DIR=build/objects
 CC=gcc
-CFLAGS=-Wall -Wextra -g -DDEBUG_ASSERTIONS_ENABLED=1
+CFLAGS=-Wall -Wextra -pedantic -g -DDEBUG_ASSERTIONS_ENABLED=1
 TARGET=myapp
 
 all: build/$(TARGET)
