@@ -1,4 +1,5 @@
 SRC_DIR=src
+ELIBS_DIR=elibs
 DEP_DIR=build/deps
 OBJ_DIR=build/objects
 CC=gcc
@@ -24,6 +25,17 @@ TEST_OBJS=$(OBJ_DIR)/tests/all_tests.o $(OBJ_DIR)/tests/test_mem.o $(OBJ_DIR)/te
 MAIN_DEPS := $(patsubst $(OBJ_DIR)/%.o, $(DEP_DIR)/%.d, $(OBJ_DIR)/main.o $(COMMON_OBJS))
 TEST_DEPS := $(patsubst $(OBJ_DIR)/tests/%.o, $(DEP_DIR)/tests/%.d, $(TEST_OBJS)) $(patsubst $(OBJ_DIR)/%.o, $(DEP_DIR)/%.d, $(COMMON_OBJS))
 
+X11_EXTRACTED_DIR = $(SRC_DIR)/elibs/X11
+X11_MARKER = $(SRC_DIR)/elibs/X11/.x11_extracted
+
+$(X11_MARKER): $(ELIBS_DIR)/x11_headers.tar.gz
+	@if [ ! -d "$(X11_EXTRACTED_DIR)" ]; then \
+	    echo "Extracting $< into $(SRC_DIR)/elibs/..."; \
+	    rm -rf $(X11_EXTRACTED_DIR); \
+	    tar -xzvf $< -C $(SRC_DIR)/elibs; \
+	fi
+	touch $@
+
 # Dependency generation rule
 $(DEP_DIR)/%.d: $(SRC_DIR)/%.c
 	mkdir -p $(dir $@)
@@ -37,6 +49,10 @@ $(DEP_DIR)/tests/%.d: tests/%.c
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/window/win_x11.o: $(SRC_DIR)/window/win_x11.c $(X11_MARKER)
+	mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -I$(SRC_DIR)/elibs -c $< -o $@
 
 $(OBJ_DIR)/tests/%.o: tests/%.c
 	mkdir -p $(OBJ_DIR)/tests
@@ -63,5 +79,6 @@ all: build/$(TARGET) build/$(TEST_TARGET)
 
 clean:
 	rm -rf build
+	rm -rf $(SRC_DIR)/elibs/X11
 	mkdir build
 	./generate_compile_commands.sh
