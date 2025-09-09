@@ -29,11 +29,9 @@ X11_EXTRACTED_DIR = $(SRC_DIR)/elibs/X11
 X11_MARKER = $(SRC_DIR)/elibs/X11/.x11_extracted
 
 $(X11_MARKER): $(ELIBS_DIR)/x11_headers.tar.gz
-	@if [ ! -d "$(X11_EXTRACTED_DIR)" ]; then \
-	    echo "Extracting $< into $(SRC_DIR)/elibs/..."; \
-	    rm -rf $(X11_EXTRACTED_DIR); \
-	    tar -xzvf $< -C $(SRC_DIR)/elibs; \
-	fi
+	echo "Extracting $< into $(SRC_DIR)/elibs/..."
+	rm -rf $(X11_EXTRACTED_DIR)
+	tar -xzvf $< -C $(SRC_DIR)/elibs
 	touch $@
 
 # Dependency generation rule
