@@ -4,6 +4,7 @@ DEP_DIR=build/deps
 OBJ_DIR=build/objects
 CC=gcc
 CFLAGS_SHARED=-Wall -Wextra -pedantic
+LDFLAGS=
 
 # Default build flavor
 FLAVOR ?= DEBUG
@@ -19,11 +20,15 @@ endif
 
 TARGET=myapp
 TEST_TARGET=test_runner
-LDFLAGS=-lX11
 COMMON_OBJS=$(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o $(OBJ_DIR)/assert.o $(OBJ_DIR)/window/win_x11.o $(OBJ_DIR)/window/win_headless.o
 TEST_OBJS=$(OBJ_DIR)/tests/all_tests.o $(OBJ_DIR)/tests/test_mem.o $(OBJ_DIR)/tests/test_stack_alloc.o $(OBJ_DIR)/tests/test_win_x11.o $(OBJ_DIR)/tests/test_win_headless.o $(OBJ_DIR)/tests/test_framework.o
-MAIN_DEPS := $(patsubst $(OBJ_DIR)/%.o, $(DEP_DIR)/%.d, $(OBJ_DIR)/main.o $(COMMON_OBJS))
-TEST_DEPS := $(patsubst $(OBJ_DIR)/tests/%.o, $(DEP_DIR)/tests/%.d, $(TEST_OBJS)) $(patsubst $(OBJ_DIR)/%.o, $(DEP_DIR)/%.d, $(COMMON_OBJS))
+
+USE_X11 ?= 0
+ifeq ($(USE_X11), 1)
+	LDFLAGS += -lX11
+else
+	COMMON_OBJS += $(OBJ_DIR)/window/x11_stub.o
+endif
 
 X11_EXTRACTED_DIR = $(SRC_DIR)/elibs/X11
 X11_MARKER = $(SRC_DIR)/elibs/X11/.x11_extracted
@@ -34,6 +39,10 @@ $(X11_MARKER): $(ELIBS_DIR)/x11_headers.tar.gz
 	rm -rf $(X11_EXTRACTED_DIR)
 	tar -xzvf $< -C $(SRC_DIR)/elibs
 	touch $@
+
+MAIN_DEPS := $(patsubst $(OBJ_DIR)/%.o, $(DEP_DIR)/%.d, $(OBJ_DIR)/main.o $(COMMON_OBJS))
+TEST_DEPS := $(patsubst $(OBJ_DIR)/tests/%.o, $(DEP_DIR)/tests/%.d, $(TEST_OBJS)) $(patsubst $(OBJ_DIR)/%.o, $(DEP_DIR)/%.d, $(COMMON_OBJS))
+
 
 # Dependency generation rule
 $(DEP_DIR)/%.d: $(SRC_DIR)/%.c
