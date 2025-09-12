@@ -30,6 +30,7 @@ X11_MARKER = $(SRC_DIR)/elibs/X11/.x11_extracted
 
 $(X11_MARKER): $(ELIBS_DIR)/x11_headers.tar.gz
 	echo "Extracting $< into $(SRC_DIR)/elibs/..."
+	mkdir -p $(SRC_DIR)/elibs
 	rm -rf $(X11_EXTRACTED_DIR)
 	tar -xzvf $< -C $(SRC_DIR)/elibs
 	touch $@
