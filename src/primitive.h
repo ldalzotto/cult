@@ -29,7 +29,7 @@ typedef unsigned long long   u64;
 STATIC_ASSERT(sizeof(i8) == 1);
 STATIC_ASSERT(sizeof(i16) == 2);
 STATIC_ASSERT(sizeof(i32) == 4);
-STATIC_ASSERT(sizeof(uptr) == sizeof(void*));
+STATIC_ASSERT(sizeof(iptr) == sizeof(void*));
 STATIC_ASSERT(sizeof(i64) == 8);
 STATIC_ASSERT(sizeof(u8) == 1);
 STATIC_ASSERT(sizeof(u16) == 2);
