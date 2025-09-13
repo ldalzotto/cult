@@ -23,7 +23,9 @@ TEST_TARGET=test_runner
 COMMON_OBJS=$(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o $(OBJ_DIR)/assert.o $(OBJ_DIR)/window/win_x11.o $(OBJ_DIR)/window/win_headless.o
 TEST_OBJS=$(OBJ_DIR)/tests/all_tests.o $(OBJ_DIR)/tests/test_mem.o $(OBJ_DIR)/tests/test_stack_alloc.o $(OBJ_DIR)/tests/test_win_x11.o $(OBJ_DIR)/tests/test_win_headless.o $(OBJ_DIR)/tests/test_framework.o
 
-USE_X11 ?= 0
+# We may want to cache this
+USE_X11 := $(shell pkg-config --exists x11 && echo 1 || echo 0)
+
 ifeq ($(USE_X11), 1)
 	LDFLAGS += -lX11
 else
