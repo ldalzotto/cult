@@ -41,7 +41,7 @@ void sa_free(stack_alloc* alloc, void* pointer) {
 void sa_move_tail(stack_alloc* alloc, void* from, void* to) {
     debug_assert(from >= alloc->begin && from <= alloc->cursor);
     uptr len = bytesize(from, alloc->cursor);
-    debug_assert(to >= alloc->begin && byteoffset(to, len) <= (u8*)alloc->end);
+    debug_assert(to >= alloc->begin && byteoffset(to, len) <= alloc->end);
     memmove(to, from, len);
     alloc->cursor = byteoffset(to, len);
 }
