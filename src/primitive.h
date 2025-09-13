@@ -43,6 +43,6 @@ STATIC_ASSERT(sizeof(u64) == 8);
 // Generic macro for byte size calculation (ptr2 - ptr1)
 #define bytesize(from, to) ((uptr)((u8*)(to) - (u8*)(from)))
 
-#define bytecmp(left, sign, right) (void*)(left) sign (void*)(right)
+#define unused(variable) (void)variable
 
 #endif /* PRIMITIVE_H */
