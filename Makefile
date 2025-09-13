@@ -64,6 +64,10 @@ $(OBJ_DIR)/window/win_x11.o: $(SRC_DIR)/window/win_x11.c $(X11_MARKER)
 	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -I$(SRC_DIR)/elibs -c $< -o $@
 
+$(OBJ_DIR)/window/x11_stub.o: $(SRC_DIR)/window/x11_stub.c $(X11_MARKER)
+	mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -I$(SRC_DIR)/elibs -c $< -o $@
+
 $(OBJ_DIR)/tests/%.o: tests/%.c
 	mkdir -p $(OBJ_DIR)/tests
 	$(CC) $(CFLAGS) -c $< -o $@ -I src
