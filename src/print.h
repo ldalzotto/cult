@@ -2,6 +2,7 @@
 #define PRINT_H
 
 #include "./primitive.h"
+#include "./litteral.h"
 #include "file.h"
 
 // Forward declaration
@@ -18,17 +19,17 @@ typedef struct field_descriptor field_descriptor;
 
 // Meta structure for describing how to print any type
 struct print_meta {
-    const char* type_name;        // e.g., "i32", "my_struct"
-    u32 is_array;                 // 1 if this is an array type
-    uptr type_size;               // size of the type in bytes
-    primitive_type pt;            // primitive type enum
+    string_span type_name;         // e.g., "i32", "my_struct"
+    u32 is_array;                  // 1 if this is an array type
+    uptr type_size;                // size of the type in bytes
+    primitive_type pt;             // primitive type enum
     const field_descriptor* fields_begin; // pointer to first field descriptor
     const field_descriptor* fields_end; // pointer to after last field descriptor
 };
 
 // Field descriptor structure
 struct field_descriptor {
-    const char* field_name;
+    string_span field_name;
     uptr offset;              // byte offset in struct
     const print_meta* field_meta;   // recursive meta for nested types
 };
@@ -44,8 +45,9 @@ void print_generic(const print_meta* meta, void* data, file_t file, u32 indent_l
 void print_array_generic(const print_meta* element_meta, void* begin, void* end, file_t file, u32 indent_level);
 
 // File-based print functions using file.h
+void print_string(const char* str, file_t file);
 static const print_meta i8_meta = {
-    .type_name = "i8",
+    .type_name = STATIC_STRING("i8"),
     .is_array = 0,
     .type_size = sizeof(i8),
     .pt = PT_I8,
@@ -54,7 +56,7 @@ static const print_meta i8_meta = {
 };
 
 static const print_meta u8_meta = {
-    .type_name = "u8",
+    .type_name = STATIC_STRING("u8"),
     .is_array = 0,
     .type_size = sizeof(u8),
     .pt = PT_U8,
@@ -63,7 +65,7 @@ static const print_meta u8_meta = {
 };
 
 static const print_meta i16_meta = {
-    .type_name = "i16",
+    .type_name = STATIC_STRING("i16"),
     .is_array = 0,
     .type_size = sizeof(i16),
     .pt = PT_I16,
@@ -72,7 +74,7 @@ static const print_meta i16_meta = {
 };
 
 static const print_meta u16_meta = {
-    .type_name = "u16",
+    .type_name = STATIC_STRING("u16"),
     .is_array = 0,
     .type_size = sizeof(u16),
     .pt = PT_U16,
@@ -81,7 +83,7 @@ static const print_meta u16_meta = {
 };
 
 static const print_meta i32_meta = {
-    .type_name = "i32",
+    .type_name = STATIC_STRING("i32"),
     .is_array = 0,
     .type_size = sizeof(i32),
     .pt = PT_I32,
@@ -90,7 +92,7 @@ static const print_meta i32_meta = {
 };
 
 static const print_meta u32_meta = {
-    .type_name = "u32",
+    .type_name = STATIC_STRING("u32"),
     .is_array = 0,
     .type_size = sizeof(u32),
     .pt = PT_U32,
@@ -99,7 +101,7 @@ static const print_meta u32_meta = {
 };
 
 static const print_meta i64_meta = {
-    .type_name = "i64",
+    .type_name = STATIC_STRING("i64"),
     .is_array = 0,
     .type_size = sizeof(i64),
     .pt = PT_I64,
@@ -108,7 +110,7 @@ static const print_meta i64_meta = {
 };
 
 static const print_meta u64_meta = {
-    .type_name = "u64",
+    .type_name = STATIC_STRING("u64"),
     .is_array = 0,
     .type_size = sizeof(u64),
     .pt = PT_U64,
@@ -117,7 +119,7 @@ static const print_meta u64_meta = {
 };
 
 static const print_meta iptr_meta = {
-    .type_name = "iptr",
+    .type_name = STATIC_STRING("iptr"),
     .is_array = 0,
     .type_size = sizeof(iptr),
     .pt = PT_IPTR,
@@ -126,7 +128,7 @@ static const print_meta iptr_meta = {
 };
 
 static const print_meta uptr_meta = {
-    .type_name = "uptr",
+    .type_name = STATIC_STRING("uptr"),
     .is_array = 0,
     .type_size = sizeof(uptr),
     .pt = PT_UPTR,

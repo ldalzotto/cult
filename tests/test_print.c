@@ -25,13 +25,13 @@ typedef struct {
 
 // Fields for test_point_t
 field_descriptor test_point_fields[] = {
-    {"x", offsetof(test_point_t, x), &i32_meta},
-    {"y", offsetof(test_point_t, y), &i32_meta}
+    {STATIC_STRING("x"), offsetof(test_point_t, x), &i32_meta},
+    {STATIC_STRING("y"), offsetof(test_point_t, y), &i32_meta}
 };
 
 // Meta for test_point_t
 print_meta test_point_meta = {
-    .type_name = "test_point_t",
+    .type_name = STATIC_STRING("test_point_t"),
     .is_array = 0,
     .type_size = sizeof(test_point_t),
     .pt = PT_NONE,
@@ -41,13 +41,13 @@ print_meta test_point_meta = {
 
 // Fields for complex_t
 field_descriptor complex_fields[] = {
-    {"pos", offsetof(complex_t, pos), &test_point_meta},
-    {"id", offsetof(complex_t, id), &i32_meta}
+    {STATIC_STRING("pos"), offsetof(complex_t, pos), &test_point_meta},
+    {STATIC_STRING("id"), offsetof(complex_t, id), &i32_meta}
 };
 
 // Meta for complex_t
 print_meta complex_meta = {
-    .type_name = "complex_t",
+    .type_name = STATIC_STRING("complex_t"),
     .is_array = 0,
     .type_size = sizeof(complex_t),
     .pt = PT_NONE,

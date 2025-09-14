@@ -24,8 +24,8 @@ void print_generic(const print_meta* meta, void* data, file_t file, u32 indent_l
         file_write(file, buf, len);
     } else {
         // Struct
-        len = sprintf(buf, "%s {\n", meta->type_name);
-        file_write(file, buf, len);
+        file_write(file, meta->type_name.begin, bytesize(meta->type_name.begin, meta->type_name.end));
+        file_write(file, " {\n", 3);
         field_descriptor* field = (field_descriptor*)meta->fields_begin;
         field_descriptor* field_end = (field_descriptor*)meta->fields_end;
         for (; field < field_end; ++field) {
@@ -33,8 +33,8 @@ void print_generic(const print_meta* meta, void* data, file_t file, u32 indent_l
             for (u32 i = 0; i < indent_level + 1; ++i) {
                 file_write(file, "  ", 2);
             }
-            len = sprintf(buf, "%s: ", field->field_name);
-            file_write(file, buf, len);
+            file_write(file, field->field_name.begin, bytesize(field->field_name.begin, field->field_name.end));
+            file_write(file, ": ", 2);
             void* field_data = byteoffset(data, field->offset);
             print_generic(field->field_meta, field_data, file, indent_level + 1);
             file_write(file, "\n", 1);
@@ -61,4 +61,13 @@ void print_array_generic(const print_meta* element_meta, void* begin, void* end,
         }
     }
     file_write(file, "]", 1);
+}
+
+// Print a plain string to file
+void print_string(const char* str, file_t file) {
+    if (str) {
+        uptr len = 0;
+        while (str[len] != '\0') ++len;
+        file_write(file, str, len);
+    }
 }
