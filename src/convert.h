@@ -14,5 +14,6 @@ void convert_i64_to_string(i64 value, char* buffer, uptr* length);
 void convert_u64_to_string(u64 value, char* buffer, uptr* length);
 void convert_iptr_to_string(iptr value, char* buffer, uptr* length);
 void convert_uptr_to_string(uptr value, char* buffer, uptr* length);
+void convert_pointer_to_string(void* ptr, char* buffer, uptr* length);
 
 #endif /* CONVERT_H */

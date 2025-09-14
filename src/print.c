@@ -75,126 +75,158 @@ void print_string(file_t file, const char* str) {
     file_write(file, str, len);
 }
 
-// Structure to hold output context for file output
+// Format segment types
+typedef enum {
+    FORMAT_SEGMENT_LITERAL,    // Literal text
+    FORMAT_SEGMENT_SPECIFIER,  // Format specifier (%d, %s, etc.)
+    FORMAT_SEGMENT_END         // End of format string
+} format_segment_type;
+
+// Format iterator structure
 typedef struct {
-    file_t file;
-} file_output_context;
+    const char* format;        // Original format string
+    const char* current;       // Current position in format string
+    const char* segment_start; // Start of current segment
+    const char* segment_end;   // End of current segment
+    format_segment_type type;  // Type of current segment
+    char specifier;            // Format specifier character (for FORMAT_SEGMENT_SPECIFIER)
+} format_iterator;
 
-// Structure to hold output context for buffer output
-typedef struct {
-    stack_alloc* alloc;
-} buffer_output_context;
+// Initialize format iterator
+static void format_iterator_init(format_iterator* iter, const char* format) {
+    iter->format = format;
+    iter->current = format;
+    iter->segment_start = format;
+    iter->segment_end = format;
+    iter->type = FORMAT_SEGMENT_LITERAL;
+    iter->specifier = '\0';
+}
 
-// Function pointer type for output handlers
-typedef void (*output_handler_func)(void* context, const char* data, uptr len);
+// Advance iterator to next segment
+static void format_iterator_next(format_iterator* iter) {
+    if (*iter->current == '\0') {
+        iter->type = FORMAT_SEGMENT_END;
+        return;
+    }
 
-// Common format processing function
-static void process_format(const char* format, va_list args, void* context, output_handler_func handler) {
-    
-    const char* current = format;
-    const char* start = format;
-    
-    while (*current != '\0') {
-        if (*current == '%') {
-            // Output the accumulated string before the format specifier
-            if (current > start) {
-                handler(context, start, current - start);
-            }
-            
-            // Move past the '%'
-            current++;
-            
-            // Handle the format specifier
-            switch (*current) {
-                case 'd': {
-                    // Handle signed integer
-                    i32 value = va_arg(args, i32);
-                    
-                    // Convert integer to string using our helper function
-                    char int_buf[32];
-                    uptr len;
-                    convert_i32_to_string(value, int_buf, &len);
-                    handler(context, int_buf, len);
-                    break;
-                }
-                case 'u': {
-                    // Handle unsigned integer
-                    u32 value = va_arg(args, u32);
-                    
-                    // Convert unsigned integer to string using our helper function
-                    char uint_buf[32];
-                    uptr len;
-                    convert_u32_to_string(value, uint_buf, &len);
-                    handler(context, uint_buf, len);
-                    break;
-                }
-                case 's': {
-                    // Handle string
-                    const char* str = va_arg(args, const char*);
-                    if (str) {
-                        uptr len = 0;
-                        while (str[len] != '\0') ++len;
-                        handler(context, str, len);
-                    } else {
-                        handler(context, "(null)", 6);
-                    }
-                    break;
-                }
-                case 'c': {
-                    // Handle character
-                    char c = (char)va_arg(args, int);  // char is promoted to int
-                    handler(context, &c, 1);
-                    break;
-                }
-                default:
-                    // Handle unknown format specifier by just outputting it
-                    handler(context, "%", 1);
-                    if (*current) {
-                        handler(context, current, 1);
-                    }
-                    break;
-            }
-            
-            // Move past the format specifier
-            if (*current) {
-                current++;
-            }
-            start = current;
-        } else {
-            // Regular character, move to next
-            current++;
+    if (*iter->current == '%') {
+        // Handle format specifier
+        iter->segment_start = iter->current;
+        iter->current++; // Skip '%'
+
+        if (*iter->current == '\0') {
+            // Trailing '%' at end of string
+            iter->segment_end = iter->current;
+            iter->type = FORMAT_SEGMENT_LITERAL;
+            return;
         }
-    }
-    
-    // Output any remaining string after the last format specifier
-    if (current > start) {
-        handler(context, start, current - start);
+
+        iter->specifier = *iter->current;
+        iter->segment_end = iter->current + 1;
+        iter->current++; // Skip specifier
+        iter->type = FORMAT_SEGMENT_SPECIFIER;
+    } else {
+        // Handle literal text
+        iter->segment_start = iter->current;
+        iter->type = FORMAT_SEGMENT_LITERAL;
+
+        // Find next '%' or end of string
+        while (*iter->current != '\0' && *iter->current != '%') {
+            iter->current++;
+        }
+        iter->segment_end = iter->current;
     }
 }
 
-// Output handler for file output
-static void file_output_handler(void* context, const char* data, uptr len) {
-    file_output_context* file_ctx = (file_output_context*)context;
-    file_write(file_ctx->file, data, len);
+// Get segment text and length
+static void format_iterator_get_segment(const format_iterator* iter, const char** text, uptr* length) {
+    *text = iter->segment_start;
+    *length = iter->segment_end - iter->segment_start;
 }
 
-// Output handler for buffer output
-static void buffer_output_handler(void* context, const char* data, uptr len) {
-    buffer_output_context* buffer_ctx = (buffer_output_context*)context;
-    void* dest = sa_alloc(buffer_ctx->alloc, len);
-    memcpy(dest, data, len);
+// Process a format specifier and get the result
+static void process_format_specifier(char specifier, va_list args, char* buffer, uptr* length) {
+    switch (specifier) {
+        case 'd': {
+            // Handle signed integer
+            i32 value = va_arg(args, i32);
+            convert_i32_to_string(value, buffer, length);
+            break;
+        }
+        case 'u': {
+            // Handle unsigned integer
+            u32 value = va_arg(args, u32);
+            convert_u32_to_string(value, buffer, length);
+            break;
+        }
+        case 's': {
+            // Handle string
+            const char* str = va_arg(args, const char*);
+            if (str) {
+                *length = 0;
+                while (str[*length] != '\0') ++(*length);
+                // Copy string to buffer
+                for (uptr i = 0; i < *length; i++) {
+                    buffer[i] = str[i];
+                }
+            } else {
+                // Copy "(null)" to buffer
+                const char* null_str = "(null)";
+                *length = 6;
+                for (uptr i = 0; i < *length; i++) {
+                    buffer[i] = null_str[i];
+                }
+            }
+            break;
+        }
+        case 'c': {
+            // Handle character
+            char c = (char)va_arg(args, int);  // char is promoted to int
+            buffer[0] = c;
+            *length = 1;
+            break;
+        }
+        case 'p': {
+            // Handle pointer
+            void* ptr = va_arg(args, void*);
+            convert_pointer_to_string(ptr, buffer, length);
+            break;
+        }
+        default:
+            // Handle unknown format specifier
+            buffer[0] = '%';
+            buffer[1] = specifier;
+            *length = 2;
+            break;
+    }
 }
 
 // Print a formatted string with arguments to file
 void print_format(file_t file, const char* format, ...) {
     debug_assert(format != 0);
-    
+
     va_list args;
     va_start(args, format);
-    
-    file_output_context context = {file};
-    process_format(format, args, &context, file_output_handler);
-    
+
+    format_iterator iter;
+    format_iterator_init(&iter, format);
+
+    while (iter.type != FORMAT_SEGMENT_END) {
+        format_iterator_next(&iter);
+
+        if (iter.type == FORMAT_SEGMENT_LITERAL) {
+            const char* text;
+            uptr length;
+            format_iterator_get_segment(&iter, &text, &length);
+            file_write(file, text, length);
+        } else if (iter.type == FORMAT_SEGMENT_SPECIFIER) {
+            char buffer[256];
+            uptr length;
+            process_format_specifier(iter.specifier, args, buffer, &length);
+            file_write(file, buffer, length);
+        }
+    }
+
     va_end(args);
 }
 
@@ -207,10 +239,28 @@ void* print_format_to_buffer(stack_alloc* alloc, const char* format, ...) {
 
     va_list args;
     va_start(args, format);
-    
-    buffer_output_context context = {alloc};
-    process_format(format, args, &context, buffer_output_handler);
-    
+
+    format_iterator iter;
+    format_iterator_init(&iter, format);
+
+    while (iter.type != FORMAT_SEGMENT_END) {
+        format_iterator_next(&iter);
+
+        if (iter.type == FORMAT_SEGMENT_LITERAL) {
+            const char* text;
+            uptr length;
+            format_iterator_get_segment(&iter, &text, &length);
+            void* dest = sa_alloc(alloc, length);
+            memcpy(dest, text, length);
+        } else if (iter.type == FORMAT_SEGMENT_SPECIFIER) {
+            char buffer[256];
+            uptr length;
+            process_format_specifier(iter.specifier, args, buffer, &length);
+            void* dest = sa_alloc(alloc, length);
+            memcpy(dest, buffer, length);
+        }
+    }
+
     va_end(args);
 
     return start;

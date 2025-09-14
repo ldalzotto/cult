@@ -23,10 +23,9 @@ void print_backtrace(void) {
 
     for (i32 i = 0; i < nptrs; i++) {
         u8 cmd[2048];
-        // TODO: remove that
-        snprintf((char*)cmd, sizeof(cmd),
-                 "addr2line -e %s -f -C -i %p",
-                 exe_path, buffer[i]);
+        stack_alloc alloc;
+        sa_init(&alloc, cmd, byteoffset(cmd, sizeof(cmd)));
+        print_format_to_buffer(&alloc, "addr2line -e %s -f -C -i %p", exe_path, buffer[i]);
 
         FILE *fp = popen((char*)cmd, "r");
         if (fp) {
@@ -38,5 +37,7 @@ void print_backtrace(void) {
         } else {
             print_format(file_stdout(), "  [%d] %p\n", i, buffer[i]);
         }
+
+        sa_deinit(&alloc);
     }
 }

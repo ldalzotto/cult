@@ -315,14 +315,14 @@ void convert_iptr_to_string(iptr value, char* buffer, uptr* length) {
 // Helper function to convert uptr to string
 void convert_uptr_to_string(uptr value, char* buffer, uptr* length) {
     int idx = 0;
-    
+
     // Handle special case of 0
     if (value == 0) {
         buffer[idx++] = '0';
         *length = idx;
         return;
     }
-    
+
     // Convert digits
     char temp_buf[64];
     int temp_idx = 0;
@@ -331,11 +331,50 @@ void convert_uptr_to_string(uptr value, char* buffer, uptr* length) {
         temp_buf[temp_idx++] = '0' + (temp % 10);
         temp /= 10;
     }
-    
+
     // Reverse the digits
     for (int i = temp_idx - 1; i >= 0; i--) {
         buffer[idx++] = temp_buf[i];
     }
-    
+
+    *length = idx;
+}
+
+// Helper function to convert pointer to string
+void convert_pointer_to_string(void* ptr, char* buffer, uptr* length) {
+    // Convert pointer to hexadecimal string
+    uptr value = (uptr)ptr;
+    buffer[0] = '0';
+    buffer[1] = 'x';
+
+    // Handle special case of NULL pointer
+    if (value == 0) {
+        buffer[2] = '0';
+        *length = 3;
+        return;
+    }
+
+    // Convert to hexadecimal (at least 8 digits for consistency)
+    int idx = 2;
+    char temp_buf[32];
+    int temp_idx = 0;
+
+    // Convert digits
+    while (value > 0) {
+        int digit = value % 16;
+        temp_buf[temp_idx++] = (digit < 10) ? ('0' + digit) : ('a' + digit - 10);
+        value /= 16;
+    }
+
+    // Ensure at least 8 digits (pad with zeros if needed)
+    while (temp_idx < 8) {
+        temp_buf[temp_idx++] = '0';
+    }
+
+    // Reverse the digits
+    for (int i = temp_idx - 1; i >= 0; i--) {
+        buffer[idx++] = temp_buf[i];
+    }
+
     *length = idx;
 }
