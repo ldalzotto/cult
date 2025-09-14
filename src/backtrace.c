@@ -23,6 +23,7 @@ void print_backtrace(void) {
 
     for (i32 i = 0; i < nptrs; i++) {
         u8 cmd[2048];
+        // TODO: remove that
         snprintf((char*)cmd, sizeof(cmd),
                  "addr2line -e %s -f -C -i %p",
                  exe_path, buffer[i]);
@@ -31,11 +32,11 @@ void print_backtrace(void) {
         if (fp) {
             u8 line[1024];
             while (fgets((char*)line, sizeof(line), fp)) {
-                printf("  [%d] %s", i, line);
+                print_format(file_get_stdout(), "  [%d] %s", i, line);
             }
             pclose(fp);
         } else {
-            printf("  [%d] %p\n", i, buffer[i]);
+            print_format(file_get_stdout(), "  [%d] %p\n", i, buffer[i]);
         }
     }
 }

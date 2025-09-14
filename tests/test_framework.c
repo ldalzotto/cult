@@ -1,7 +1,6 @@
 #include "test_framework.h"
 #include "../src/print.h"
 #include "../src/file.h"
-#include <stdio.h>
 
 void test_reset_context(test_context* t) {
     t->passed = 0;
@@ -10,7 +9,7 @@ void test_reset_context(test_context* t) {
 
 void test_report_context(test_context* t) {
     print_string("Test Results:\n", file_get_stdout());
-    printf("  Passed: %u\n", t->passed);
-    printf("  Failed: %u\n", t->failed);
-    printf("  Total: %u\n", t->passed + t->failed);
+    print_format(file_get_stdout(), "  Passed: %u\n", t->passed);
+    print_format(file_get_stdout(), "  Failed: %u\n", t->failed);
+    print_format(file_get_stdout(), "  Total: %u\n", t->passed + t->failed);
 }

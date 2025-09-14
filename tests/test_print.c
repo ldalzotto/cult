@@ -6,7 +6,6 @@
 #include "../src/mem.h"
 #include "../src/file.h"
 #include <stddef.h>
-#include <stdio.h>
 #include <string.h>
 
 // Path definitions using STATIC_STRING
@@ -58,11 +57,11 @@ print_meta complex_meta = {
 void test_print_primitives(test_context* t) {
     // Test printing primitives
     i32 val_i32 = 42;
-    print_generic(&i32_meta, &val_i32, stdout, 0);
+    print_generic(&i32_meta, &val_i32, file_get_stdout(), 0);
     print_string("\n", file_get_stdout());
 
     u64 val_u64 = 1234567890123456789ULL;
-    print_generic(&u64_meta, &val_u64, stdout, 0);
+    print_generic(&u64_meta, &val_u64, file_get_stdout(), 0);
     print_string("\n", file_get_stdout());
 
     // Since we can't easily test output, just ensure no crash
@@ -71,7 +70,7 @@ void test_print_primitives(test_context* t) {
 
 void test_print_struct(test_context* t) {
     test_point_t point = {10, 20};
-    print_generic(&test_point_meta, &point, stdout, 0);
+    print_generic(&test_point_meta, &point, file_get_stdout(), 0);
     print_string("\n", file_get_stdout());
 
     TEST_ASSERT_TRUE(t, 1);
@@ -79,7 +78,7 @@ void test_print_struct(test_context* t) {
 
 void test_print_array(test_context* t) {
     i32 arr[5] = {1, 2, 3, 4, 5};
-    print_array_generic(&i32_meta, arr, arr + 5, stdout, 0);
+    print_array_generic(&i32_meta, arr, arr + 5, file_get_stdout(), 0);
     print_string("\n", file_get_stdout());
 
     TEST_ASSERT_TRUE(t, 1);
@@ -165,6 +164,43 @@ void test_print_nested_to_file(test_context* t) {
     TEST_ASSERT_TRUE(t, 1);
 }
 
+void test_print_format_function(test_context* t) {
+    // Allocate memory using mem_map
+    const uptr stack_size = 1024;
+    void* memory = mem_map(stack_size);
+    stack_alloc alloc;
+    sa_init(&alloc, memory, byteoffset(memory, stack_size));
+
+    // Open file for writing
+    file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
+    TEST_ASSERT_NOT_NULL(t, file);
+
+    // Test print_format function
+    print_format(file, "Hello, World! Value: %d", 42);
+    file_close(file);
+
+    // Open file for reading
+    file_t read_file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_READ);
+    TEST_ASSERT_NOT_NULL(t, read_file);
+
+    // Read content
+    void* buffer;
+    uptr size = file_read_all(read_file, &buffer, &alloc);
+    TEST_ASSERT_TRUE(t, size > 0);
+
+    // Check content
+    const char* expected = "Hello, World! Value: 42";
+    TEST_ASSERT_TRUE(t, strncmp((char*)buffer, expected, strlen(expected)) == 0);
+
+    sa_free(&alloc, buffer);
+    file_close(read_file);
+
+    sa_deinit(&alloc);
+    mem_unmap(memory, stack_size);
+
+    TEST_ASSERT_TRUE(t, 1);
+}
+
 void test_print_module(test_context* t) {
     setup_test_temp_dir();
     test_print_primitives(t);
@@ -172,5 +208,6 @@ void test_print_module(test_context* t) {
     test_print_array(t);
     test_print_to_file(t);
     test_print_nested_to_file(t);
+    test_print_format_function(t);
     cleanup_test_temp_dir();
 }
