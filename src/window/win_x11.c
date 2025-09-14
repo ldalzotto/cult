@@ -53,7 +53,7 @@ win_x11* win_x11_init(stack_alloc* alloc) {
     // Open connection to X server
     win->display = XOpenDisplay(NULL);
     if (!win->display) {
-        print_string("win_x11: Cannot open display\n", file_get_stderr());
+        print_string(file_get_stderr(), "win_x11: Cannot open display\n");
         sa_free(alloc, win);
         return alloc->cursor;
     }
@@ -135,7 +135,7 @@ i32 win_x11_open_window(win_x11* win, const char* title, i32 width, i32 height, 
                                      WhitePixel(win->display, win->screen_num));
 
     if (!win->window) {
-        print_string("win_x11: Cannot create window\n", file_get_stderr());
+        print_string(file_get_stderr(), "win_x11: Cannot create window\n");
         return 0;  // false
     }
 
@@ -166,7 +166,7 @@ i32 win_x11_open_window(win_x11* win, const char* title, i32 width, i32 height, 
     win->pixel_buffer_img = XCreateImage(win->display, visual, 24, ZPixmap, 0,
                                         (char*)win->pixel_buffer, width, height, 32, 0);
     if (!win->pixel_buffer_img) {
-        print_string("win_x11: Cannot create XImage\n", file_get_stderr());
+        print_string(file_get_stderr(), "win_x11: Cannot create XImage\n");
         sa_free(alloc, win->pixel_buffer);
         win->pixel_buffer = NULL;
         XDestroyWindow(win->display, win->window);

@@ -268,7 +268,7 @@ static void test_sa_copy(test_context* t) {
 }
 
 void test_sa_module(test_context* t) {
-    print_string("Running Stack Allocator Module Tests...\n", file_get_stdout());
+    print_string(file_get_stdout(), "Running Stack Allocator Module Tests...\n");
     test_sa_basic_alloc(t);
     test_sa_reuse_space(t);
     test_sa_move_tail(t);

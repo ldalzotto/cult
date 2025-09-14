@@ -19,7 +19,7 @@ void print_backtrace(void) {
     }
     exe_path[len] = '\0';
 
-    print_string("Backtrace (most recent call last):\n", file_get_stderr());
+    print_string(file_get_stderr(), "Backtrace (most recent call last):\n");
 
     for (i32 i = 0; i < nptrs; i++) {
         u8 cmd[2048];

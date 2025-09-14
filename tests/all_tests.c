@@ -13,7 +13,7 @@ int main() {
     // Reset test counters before running tests
     test_reset_context(&ctx);
 
-    print_string("Test Suite Starting...\n", file_get_stdout());
+    print_string(file_get_stdout(), "Test Suite Starting...\n");
 
     // Run all module tests
     test_mem_module(&ctx);

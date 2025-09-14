@@ -45,7 +45,7 @@ void print_generic(const print_meta* meta, void* data, file_t file, u32 indent_l
 void print_array_generic(const print_meta* element_meta, void* begin, void* end, file_t file, u32 indent_level);
 
 // File-based print functions using file.h
-void print_string(const char* str, file_t file);
+void print_string(file_t file, const char* str);
 void print_format(file_t file, const char* format, ...);
 
 static const print_meta i8_meta = {

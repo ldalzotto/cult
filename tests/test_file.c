@@ -127,7 +127,7 @@ static void test_file_size(test_context* t) {
 }
 
 void test_file_module(test_context* t) {
-    print_string("Running File Module Tests...\n", file_get_stdout());
+    print_string(file_get_stdout(), "Running File Module Tests...\n");
 
     // Set up temporary directory for tests
     setup_test_temp_dir();

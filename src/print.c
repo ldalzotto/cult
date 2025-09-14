@@ -408,7 +408,7 @@ void print_array_generic(const print_meta* element_meta, void* begin, void* end,
 }
 
 // Print a plain string to file
-void print_string(const char* str, file_t file) {
+void print_string(file_t file, const char* str) {
     if (str) {
         uptr len = 0;
         while (str[len] != '\0') ++len;

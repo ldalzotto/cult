@@ -36,7 +36,7 @@ static void test_mem_map_large_block(test_context* t) {
 }
 
 void test_mem_module(test_context* t) {
-    print_string("Running Memory Module Tests...\n", file_get_stdout());
+    print_string(file_get_stdout(), "Running Memory Module Tests...\n");
     test_mem_map_small_block(t);
     test_mem_map_large_block(t);
 }
