@@ -3,6 +3,7 @@
 #include "test_stack_alloc.h"
 #include "test_win_x11.h"
 #include "test_file.h"
+#include "test_print.h"
 #include <stdio.h>
 
 int main() {
@@ -18,6 +19,7 @@ int main() {
     test_sa_module(&ctx);
     test_win_x11_module(&ctx);
     test_file_module(&ctx);
+    test_print_module(&ctx);
 
     // Report results
     test_report_context(&ctx);
