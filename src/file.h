@@ -5,7 +5,8 @@
 #include "stack_alloc.h"
 
 // File handle
-typedef void* file_t;
+typedef i32 file_t;
+file_t file_invalid(void);
 
 // File open modes
 typedef enum {

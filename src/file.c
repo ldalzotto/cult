@@ -8,10 +8,12 @@
 #include <dirent.h>
 #include <stdio.h>
 
+file_t file_invalid(void) {
+    return -1;
+}
+
 // Open a file with the specified mode using stack_alloc
 file_t file_open(stack_alloc* alloc, const u8* path_begin, const u8* path_end, file_mode_t mode) {
-    if (!alloc || path_begin == path_end) return NULL;
-
     int flags = 0;
     switch (mode) {
         case FILE_MODE_READ:
@@ -24,7 +26,7 @@ file_t file_open(stack_alloc* alloc, const u8* path_begin, const u8* path_end, f
             flags = O_RDWR | O_CREAT;
             break;
         default:
-            return NULL;
+            return file_invalid();
     }
 
     // Calculate path length
@@ -37,16 +39,16 @@ file_t file_open(stack_alloc* alloc, const u8* path_begin, const u8* path_end, f
 
     int fd = open((void*)path, flags, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-    if (fd == -1) {
+    if (fd == file_invalid()) {
         // Optional: rollback allocation if open fails
         sa_free(alloc, path);
-        return NULL;
+        return fd;
     }
 
     // Free path buffer after use since open() doesn't need it after call
     sa_free(alloc, path);
 
-    return (file_t)(uptr)fd;
+    return fd;
 }
 
 // Close a file
@@ -54,7 +56,7 @@ void file_close(file_t file) {
     debug_assert(file != file_stderr());
     debug_assert(file != file_stdout());
     if (file) {
-        close((int)(uptr)file);
+        close(file);
     }
 }
 
@@ -64,11 +66,9 @@ uptr file_read_all(file_t file, void** buffer, stack_alloc* alloc) {
         return 0;
     }
 
-    int fd = (int)(uptr)file;
-
     // Get file size
-    off_t file_size = lseek(fd, 0, SEEK_END);
-    lseek(fd, 0, SEEK_SET);
+    off_t file_size = lseek(file, 0, SEEK_END);
+    lseek(file, 0, SEEK_SET);
 
     if (file_size <= 0) {
         return 0;
@@ -81,8 +81,8 @@ uptr file_read_all(file_t file, void** buffer, stack_alloc* alloc) {
     }
 
     // Read entire file
-    ssize_t bytes_read = read(fd, *buffer, (size_t)file_size);
-    if (bytes_read == -1) {
+    ssize_t bytes_read = read(file, *buffer, (size_t)file_size);
+    if (bytes_read == file_invalid()) {
         return 0;
     }
     debug_assert(file_size == bytes_read);
@@ -91,17 +91,8 @@ uptr file_read_all(file_t file, void** buffer, stack_alloc* alloc) {
 
 // Write data to file
 uptr file_write(file_t file, const void* buffer, uptr size) {
-    if (file == file_stdout()) {
-        return fwrite(buffer, 1, size, stdout);
-    } else if (file == file_stderr()) {
-        return fwrite(buffer, 1, size, stderr);
-    } else if (!file) {
-        return 0;
-    }
-
-    int fd = (int)(uptr)file;
-    ssize_t bytes_written = write(fd, buffer, (size_t)size);
-    if (bytes_written == -1) {
+    ssize_t bytes_written = write(file, buffer, (size_t)size);
+    if (bytes_written == file_invalid()) {
         return 0;
     }
     return (uptr)bytes_written;
@@ -109,20 +100,14 @@ uptr file_write(file_t file, const void* buffer, uptr size) {
 
 // Get file size
 uptr file_size(file_t file) {
-    if (!file) {
-        return 0;
-    }
-
-    int fd = (int)(uptr)file;
-
     // Save current position
-    off_t current_pos = lseek(fd, 0, SEEK_CUR);
+    off_t current_pos = lseek(file, 0, SEEK_CUR);
 
     // Get file size
-    off_t size = lseek(fd, 0, SEEK_END);
+    off_t size = lseek(file, 0, SEEK_END);
 
     // Restore position
-    lseek(fd, current_pos, SEEK_SET);
+    lseek(file, current_pos, SEEK_SET);
 
     if (size == -1) {
         return 0;
@@ -132,7 +117,6 @@ uptr file_size(file_t file) {
 
 // Create directory recursively (like mkdir -p)
 i32 directory_create(stack_alloc* alloc, const u8* path_begin, const u8* path_end, dir_mode_t mode) {
-    if (!alloc || path_begin == path_end) return -1;
 
     // Allocate contiguous buffer for path
     uptr path_len = bytesize(path_begin, path_end);
@@ -184,7 +168,6 @@ typedef struct {
 
 // Remove directory recursively using a custom stack (no recursion)
 i32 directory_remove(stack_alloc* alloc, const u8* path_begin, const u8* path_end) {
-    if (!alloc || path_begin == path_end) return -1;
 
     // Allocate initial stack for one entry
     dir_node_t** stack_begin = sa_alloc(alloc, sizeof(dir_node_t*));
@@ -280,9 +263,9 @@ i32 directory_remove(stack_alloc* alloc, const u8* path_begin, const u8* path_en
 
 // Get console file handles
 file_t file_stdout(void) {
-    return stdout;
+    return STDOUT_FILENO;
 }
 
 file_t file_stderr(void) {
-    return stderr;
+    return STDERR_FILENO;
 }

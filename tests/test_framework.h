@@ -28,5 +28,6 @@ void test_report_context(test_context* t);
 #define TEST_ASSERT_NULL(ctx, ptr) TEST_ASSERT(ctx, (ptr) == NULL, "Expected null: " #ptr)
 #define TEST_ASSERT_NOT_NULL(ctx, ptr) TEST_ASSERT(ctx, (ptr) != NULL, "Expected not null: " #ptr)
 #define TEST_ASSERT_EQUAL(ctx, a, b) TEST_ASSERT(ctx, (a) == (b), "Expected equal: " #a " == " #b)
+#define TEST_ASSERT_NOT_EQUAL(ctx, a, b) TEST_ASSERT(ctx, (a) != (b), "Expected not equal: " #a " != " #b)
 
 #endif /* TEST_FRAMEWORK_H */

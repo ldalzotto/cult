@@ -38,6 +38,7 @@ void print_backtrace(void) {
             print_format(file_stdout(), "  [%d] %p\n", i, buffer[i]);
         }
 
+        sa_free(&alloc, cmd);
         sa_deinit(&alloc);
     }
 }

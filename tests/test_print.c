@@ -97,7 +97,7 @@ void test_print_to_file(test_context* t) {
 
     // Open file for writing
     file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
-    TEST_ASSERT_NOT_NULL(t, file);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     // Print to file using file_t version
     print_generic(&test_point_meta, &point, file, 0);
@@ -105,7 +105,7 @@ void test_print_to_file(test_context* t) {
 
     // Open file for reading
     file_t read_file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_READ);
-    TEST_ASSERT_NOT_NULL(t, read_file);
+    TEST_ASSERT_NOT_EQUAL(t, read_file, file_invalid());
 
     // Read content
     void* buffer;
@@ -137,7 +137,7 @@ void test_print_nested_to_file(test_context* t) {
 
     // Open file for writing
     file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
-    TEST_ASSERT_NOT_NULL(t, file);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     // Print to file using file_t version
     print_generic(&complex_meta, &obj, file, 0);
@@ -145,7 +145,7 @@ void test_print_nested_to_file(test_context* t) {
 
     // Open file for reading
     file_t read_file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_READ);
-    TEST_ASSERT_NOT_NULL(t, read_file);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     // Read content
     void* buffer;
@@ -173,7 +173,7 @@ void test_print_format_function(test_context* t) {
 
     // Open file for writing
     file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
-    TEST_ASSERT_NOT_NULL(t, file);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     // Test print_format function
     print_format(file, "Hello, World! Value: %d", 42);
@@ -181,7 +181,7 @@ void test_print_format_function(test_context* t) {
 
     // Open file for reading
     file_t read_file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_READ);
-    TEST_ASSERT_NOT_NULL(t, read_file);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     // Read content
     void* buffer;

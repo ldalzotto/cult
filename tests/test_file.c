@@ -23,11 +23,11 @@ static void test_file_open_close(test_context* t) {
 
     // Test opening a non-existent file for reading (should fail)
     file_t file = file_open(&alloc, path_non_existent.begin, path_non_existent.end, FILE_MODE_READ);
-    TEST_ASSERT_NULL(t, file);
+    TEST_ASSERT_EQUAL(t, file, file_invalid());
 
     // Test opening a file for writing (should succeed)
     file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
-    TEST_ASSERT_NOT_NULL(t, file);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     // Test closing the file
     file_close(file);
@@ -47,7 +47,7 @@ static void test_file_write_read(test_context* t) {
 
     // Write to file
     file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
-    TEST_ASSERT_NOT_NULL(t, file);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     uptr bytes_written = file_write(file, test_data, data_size);
     TEST_ASSERT_EQUAL(t, bytes_written, data_size);
@@ -55,7 +55,7 @@ static void test_file_write_read(test_context* t) {
 
     // Read from file
     file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_READ);
-    TEST_ASSERT_NOT_NULL(t, file);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     void* buffer;
     uptr bytes_read = file_read_all(file, &buffer, &alloc);
@@ -79,13 +79,13 @@ static void test_file_read_all(test_context* t) {
 
     // Write test data to file
     file_t file = file_open(&alloc, path_test_read_all.begin, path_test_read_all.end, FILE_MODE_WRITE);
-    TEST_ASSERT_NOT_NULL(t, file);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
     file_write(file, test_data, data_size);
     file_close(file);
 
     // Read entire file using stack allocator
     file = file_open(&alloc, path_test_read_all.begin, path_test_read_all.end, FILE_MODE_READ);
-    TEST_ASSERT_NOT_NULL(t, file);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     void* buffer = NULL;
     uptr bytes_read = file_read_all(file, &buffer, &alloc);
@@ -110,13 +110,13 @@ static void test_file_size(test_context* t) {
 
     // Write test data
     file_t file = file_open(&alloc, path_test_size.begin, path_test_size.end, FILE_MODE_WRITE);
-    TEST_ASSERT_NOT_NULL(t, file);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
     file_write(file, test_data, data_size);
     file_close(file);
 
     // Check file size
     file = file_open(&alloc, path_test_size.begin, path_test_size.end, FILE_MODE_READ);
-    TEST_ASSERT_NOT_NULL(t, file);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     uptr size = file_size(file);
     TEST_ASSERT_EQUAL(t, size, data_size);
