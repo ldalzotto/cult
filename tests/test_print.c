@@ -193,6 +193,87 @@ static void test_print_format_function(test_context* t) {
     TEST_ASSERT_TRUE(t, 1);
 }
 
+static void test_print_format_meta_specifier(test_context* t) {
+    // Allocate memory using mem_map
+    const uptr stack_size = 1024;
+    void* memory = mem_map(stack_size);
+    stack_alloc alloc;
+    sa_init(&alloc, memory, byteoffset(memory, stack_size));
+
+    // Define test data
+    test_point_t point = {10, 20};
+    const char expected[] = "Point: test_point_t {x: 10, y: 20}";
+
+    // Open file for writing
+    file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
+
+    // Test print_format with %m specifier
+    print_format(file, "Point: %m", &test_point_meta, &point);
+    file_close(file);
+
+    // Open file for reading
+    file_t read_file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_READ);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
+
+    // Read content
+    void* buffer;
+    uptr size = file_read_all(read_file, &buffer, &alloc);
+    TEST_ASSERT_TRUE(t, size > 0);
+
+    // Check content
+    TEST_ASSERT_TRUE(t, memcmp((char*)buffer, expected, sizeof(expected)) == 0);
+
+    sa_free(&alloc, buffer);
+    file_close(read_file);
+
+    sa_deinit(&alloc);
+    mem_unmap(memory, stack_size);
+
+    TEST_ASSERT_TRUE(t, 1);
+}
+
+static void test_print_format_multiple_meta(test_context* t) {
+    // Allocate memory using mem_map
+    const uptr stack_size = 1024;
+    void* memory = mem_map(stack_size);
+    stack_alloc alloc;
+    sa_init(&alloc, memory, byteoffset(memory, stack_size));
+
+    // Define test data
+    test_point_t point = {10, 20};
+    complex_t obj = {{10, 20}, 42};
+    const char expected[] = "Simple: test_point_t {x: 10, y: 20} Complex: complex_t {pos: test_point_t {x: 10, y: 20}, id: 42}";
+
+    // Open file for writing
+    file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
+
+    // Test print_format with multiple %m specifiers
+    print_format(file, "Simple: %m Complex: %m", &test_point_meta, &point, &complex_meta, &obj);
+    file_close(file);
+
+    // Open file for reading
+    file_t read_file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_READ);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
+
+    // Read content
+    void* buffer;
+    uptr size = file_read_all(read_file, &buffer, &alloc);
+    TEST_ASSERT_TRUE(t, size > 0);
+
+    // Check content
+    TEST_ASSERT_TRUE(t, memcmp((char*)buffer, expected, sizeof(expected)) == 0);
+
+    sa_free(&alloc, buffer);
+    file_close(read_file);
+
+    sa_deinit(&alloc);
+    mem_unmap(memory, stack_size);
+
+    TEST_ASSERT_TRUE(t, 1);
+}
+
 void test_print_module(test_context* t) {
     setup_test_temp_dir();
     test_print_primitives(t);
@@ -200,5 +281,7 @@ void test_print_module(test_context* t) {
     test_print_to_file(t);
     test_print_nested_to_file(t);
     test_print_format_function(t);
+    test_print_format_meta_specifier(t);
+    test_print_format_multiple_meta(t);
     cleanup_test_temp_dir();
 }

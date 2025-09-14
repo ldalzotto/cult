@@ -61,6 +61,11 @@ void print_string(file_t file, const char* str) {
     file_write(file, str, len);
 }
 
+// Structure to hold output context for buffer output
+typedef struct {
+    stack_alloc* alloc;
+} buffer_output_context;
+
 // Format segment types
 typedef enum {
     FORMAT_SEGMENT_LITERAL,    // Literal text
@@ -128,6 +133,62 @@ static void format_iterator_next(format_iterator* iter) {
 static void format_iterator_get_segment(const format_iterator* iter, const char** text, uptr* length) {
     *text = iter->segment_start;
     *length = iter->segment_end - iter->segment_start;
+}
+
+// Helper function to print meta/data to output (either file or buffer)
+static void print_meta_to_output(const print_meta* meta, void* data, void* context, void (*output_func)(void* context, const char* data, uptr len)) {
+    if (meta->pt != PT_NONE) {
+        // Primitive
+        char buf[256];
+        uptr len;
+        switch (meta->pt) {
+            case PT_I8: convert_i8_to_string(*(i8*)data, buf, &len); break;
+            case PT_U8: convert_u8_to_string(*(u8*)data, buf, &len); break;
+            case PT_I16: convert_i16_to_string(*(i16*)data, buf, &len); break;
+            case PT_U16: convert_u16_to_string(*(u16*)data, buf, &len); break;
+            case PT_I32: convert_i32_to_string(*(i32*)data, buf, &len); break;
+            case PT_U32: convert_u32_to_string(*(u32*)data, buf, &len); break;
+            case PT_I64: convert_i64_to_string(*(i64*)data, buf, &len); break;
+            case PT_U64: convert_u64_to_string(*(u64*)data, buf, &len); break;
+            case PT_IPTR: convert_iptr_to_string(*(iptr*)data, buf, &len); break;
+            case PT_UPTR: convert_uptr_to_string(*(uptr*)data, buf, &len); break;
+            default:
+                len = 18;
+                for (uptr i = 0; i < len; i++) buf[i] = "<unknown primitive>"[i];
+                break;
+        }
+        output_func(context, buf, len);
+    } else {
+        // Struct
+        output_func(context, meta->type_name.begin, bytesize(meta->type_name.begin, meta->type_name.end));
+        output_func(context, " {", 2);
+        field_descriptor* field = (field_descriptor*)meta->fields_begin;
+        field_descriptor* field_end = (field_descriptor*)meta->fields_end;
+        for (; field < field_end; ++field) {
+            // Indentation
+            output_func(context, field->field_name.begin, bytesize(field->field_name.begin, field->field_name.end));
+            output_func(context, ": ", 2);
+            void* field_data = byteoffset(data, field->offset);
+            print_meta_to_output(field->field_meta, field_data, context, output_func);
+            if (field != field_end - 1) {
+                output_func(context, ", ", 2);
+            }
+        }
+        output_func(context, "}", 1);
+    }
+}
+
+// Output handler for file output (used by print_meta_to_output)
+static void file_output_handler_for_meta(void* context, const char* data, uptr len) {
+    file_t* file = (file_t*)context;
+    file_write(*file, data, len);
+}
+
+// Output handler for buffer output (used by print_meta_to_output)
+static void buffer_output_handler_for_meta(void* context, const char* data, uptr len) {
+    buffer_output_context* buffer_ctx = (buffer_output_context*)context;
+    void* dest = sa_alloc(buffer_ctx->alloc, len);
+    memcpy(dest, data, len);
 }
 
 // Process a format specifier and get the result
@@ -206,10 +267,17 @@ void print_format(file_t file, const char* format, ...) {
             format_iterator_get_segment(&iter, &text, &length);
             file_write(file, text, length);
         } else if (iter.type == FORMAT_SEGMENT_SPECIFIER) {
-            char buffer[256];
-            uptr length;
-            process_format_specifier(iter.specifier, args, buffer, &length);
-            file_write(file, buffer, length);
+            if (iter.specifier == 'm') {
+                // Handle meta/data pair
+                const print_meta* meta = va_arg(args, const print_meta*);
+                void* data = va_arg(args, void*);
+                print_meta_to_output(meta, data, &file, file_output_handler_for_meta);
+            } else {
+                char buffer[256];
+                uptr length;
+                process_format_specifier(iter.specifier, args, buffer, &length);
+                file_write(file, buffer, length);
+            }
         }
     }
 
@@ -239,11 +307,19 @@ void* print_format_to_buffer(stack_alloc* alloc, const char* format, ...) {
             void* dest = sa_alloc(alloc, length);
             memcpy(dest, text, length);
         } else if (iter.type == FORMAT_SEGMENT_SPECIFIER) {
-            char buffer[256];
-            uptr length;
-            process_format_specifier(iter.specifier, args, buffer, &length);
-            void* dest = sa_alloc(alloc, length);
-            memcpy(dest, buffer, length);
+            if (iter.specifier == 'm') {
+                // Handle meta/data pair
+                const print_meta* meta = va_arg(args, const print_meta*);
+                void* data = va_arg(args, void*);
+                buffer_output_context buffer_ctx = {alloc};
+                print_meta_to_output(meta, data, &buffer_ctx, buffer_output_handler_for_meta);
+            } else {
+                char buffer[256];
+                uptr length;
+                process_format_specifier(iter.specifier, args, buffer, &length);
+                void* dest = sa_alloc(alloc, length);
+                memcpy(dest, buffer, length);
+            }
         }
     }
 
