@@ -11,7 +11,7 @@
 
 int main(int argc, char* argv[]) {
     // Global memory pointer
-    uptr size = 1024*1024;
+    uptr size = 1024*2;
     void* pointer = mem_map(size);
 
     // Initialize the allocator
@@ -24,16 +24,8 @@ int main(int argc, char* argv[]) {
     // Parse command line arguments
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--filter") == 0 && i + 1 < argc) {
-            const char* filter_pattern_cursor = argv[i + 1];
-            while (*filter_pattern_cursor != '\0') {
-                *(u8*)sa_alloc(&alloc, 1) = *filter_pattern_cursor;
-                ++filter_pattern_cursor;
-            }
-            *(u8*)sa_alloc(&alloc, 1) = '\0';
-            ++filter_pattern_cursor;
-            ctx->entries = alloc.cursor;
+            ctx->filter_pattern = argv[i + 1];
             i++; // Skip the next argument
-            ctx->filter_pattern_enabled = 1;
         } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
             print_string(file_stdout(), "Usage: all_tests [--filter <pattern>]\n");
             print_string(file_stdout(), "  --filter <pattern>: Run only tests matching the pattern (supports * wildcards)\n");
@@ -43,7 +35,7 @@ int main(int argc, char* argv[]) {
     }
 
     print_string(file_stdout(), "Test Suite Starting...\n");
-    if (ctx->filter_pattern_enabled) {
+    if (ctx->filter_pattern) {
         print_format(file_stdout(), "Filter: %s\n", ctx->filter_pattern);
     }
 

@@ -9,8 +9,7 @@ typedef struct test_context test_context;
 
 typedef struct test_context_entry {
     void (*func)(struct test_context* t);
-    char* name_begin;
-    char* name_end;
+    char* name;
 } test_context_entry;
 
 struct test_context {
@@ -18,7 +17,6 @@ struct test_context {
     u32 passed;
     u32 failed;
     u32 test_count;
-    u8 filter_pattern_enabled;
     char* filter_pattern;
     test_context_entry* entries;
 };
