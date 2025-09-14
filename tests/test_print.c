@@ -1,4 +1,5 @@
 #include "test_print.h"
+#include "test_temp_dir.h"
 #include "../src/print.h"
 #include "../src/litteral.h"
 #include "../src/stack_alloc.h"
@@ -9,34 +10,7 @@
 #include <string.h>
 
 // Path definitions using STATIC_STRING
-static const string_span test_temp_dir = STATIC_STRING("test_temp");
 static const string_span path_test_output = STATIC_STRING("test_temp/print_test_output.txt");
-
-// Shared stack memory size for tests
-#define TEST_STACK_SIZE 1024
-
-static void cleanup_test_temp_dir(void) {
-    void* pointer = mem_map(TEST_STACK_SIZE);
-    stack_alloc tmp;
-    sa_init(&tmp, pointer, byteoffset(pointer, TEST_STACK_SIZE));
-    directory_remove(&tmp, test_temp_dir.begin, test_temp_dir.end);
-    sa_deinit(&tmp);
-    mem_unmap(pointer, TEST_STACK_SIZE);
-}
-
-static void setup_test_temp_dir(void) {
-    cleanup_test_temp_dir();
-
-    void* pointer = mem_map(TEST_STACK_SIZE);
-    stack_alloc tmp;
-    sa_init(&tmp, pointer, byteoffset(pointer, TEST_STACK_SIZE));
-
-    // Create test_temp directory if it doesn't exist
-    directory_create(&tmp, test_temp_dir.begin, test_temp_dir.end, DIR_MODE_DEFAULT);
-
-    sa_deinit(&tmp);
-    mem_unmap(pointer, TEST_STACK_SIZE);
-}
 
 // Define a test struct
 typedef struct {
@@ -92,9 +66,10 @@ void test_print_array(test_context* t) {
 
 void test_print_to_file(test_context* t) {
     // Allocate memory using mem_map
-    void* memory = mem_map(TEST_STACK_SIZE);
+    const uptr stack_size = 1024;
+    void* memory = mem_map(stack_size);
     stack_alloc alloc;
-    sa_init(&alloc, memory, byteoffset(memory, TEST_STACK_SIZE));
+    sa_init(&alloc, memory, byteoffset(memory, stack_size));
 
     // Define test data
     test_point_t point = {10, 20};
@@ -124,7 +99,7 @@ void test_print_to_file(test_context* t) {
     file_close(read_file);
 
     sa_deinit(&alloc);
-    mem_unmap(memory, TEST_STACK_SIZE);
+    mem_unmap(memory, stack_size);
 
     TEST_ASSERT_TRUE(t, 1);
 }

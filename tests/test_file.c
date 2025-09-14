@@ -1,4 +1,5 @@
 #include "test_file.h"
+#include "test_temp_dir.h"
 #include "../src/file.h"
 #include "../src/primitive.h"
 #include "../src/mem.h"
@@ -8,42 +9,16 @@
 #include <string.h>
 
 // Path definitions using STATIC_STRING
-static const string_span test_temp_dir      = STATIC_STRING("test_temp");
 static const string_span path_non_existent  = STATIC_STRING("test_temp/non_existent_file.txt");
 static const string_span path_test_output   = STATIC_STRING("test_temp/test_output.txt");
 static const string_span path_test_read_all = STATIC_STRING("test_temp/test_read_all.txt");
 static const string_span path_test_size     = STATIC_STRING("test_temp/test_size.txt");
 
-// Shared stack memory size for all tests
-#define TEST_STACK_SIZE 1024
-
-static void cleanup_test_temp_dir(void) {
-    void* pointer = mem_map(TEST_STACK_SIZE);
-    stack_alloc tmp;
-    sa_init(&tmp, pointer, byteoffset(pointer, TEST_STACK_SIZE));
-    directory_remove(&tmp, test_temp_dir.begin, test_temp_dir.end);
-    sa_deinit(&tmp);
-    mem_unmap(pointer, TEST_STACK_SIZE);
-}
-
-static void setup_test_temp_dir(void) {
-    cleanup_test_temp_dir();
-
-    void* pointer = mem_map(TEST_STACK_SIZE);
-    stack_alloc tmp;
-    sa_init(&tmp, pointer, byteoffset(pointer, TEST_STACK_SIZE));
-
-    // Create test_temp directory if it doesn't exist
-    directory_create(&tmp, test_temp_dir.begin, test_temp_dir.end, DIR_MODE_DEFAULT);
-
-    sa_deinit(&tmp);
-    mem_unmap(pointer, TEST_STACK_SIZE);
-}
-
 static void test_file_open_close(test_context* t) {
-    void* memory = mem_map(TEST_STACK_SIZE);
+    const uptr stack_size = 1024;
+    void* memory = mem_map(stack_size);
     stack_alloc alloc;
-    sa_init(&alloc, memory, byteoffset(memory, TEST_STACK_SIZE));
+    sa_init(&alloc, memory, byteoffset(memory, stack_size));
 
     // Test opening a non-existent file for reading (should fail)
     file_t file = file_open(&alloc, path_non_existent.begin, path_non_existent.end, FILE_MODE_READ);
@@ -57,13 +32,14 @@ static void test_file_open_close(test_context* t) {
     file_close(file);
 
     sa_deinit(&alloc);
-    mem_unmap(memory, TEST_STACK_SIZE);
+    mem_unmap(memory, stack_size);
 }
 
 static void test_file_write_read(test_context* t) {
-    void* memory = mem_map(TEST_STACK_SIZE);
+    const uptr stack_size = 1024;
+    void* memory = mem_map(stack_size);
     stack_alloc alloc;
-    sa_init(&alloc, memory, byteoffset(memory, TEST_STACK_SIZE));
+    sa_init(&alloc, memory, byteoffset(memory, stack_size));
 
     const char* test_data = "Hello, World!";
     uptr data_size = sizeof("Hello, World!") - 1;  // exclude null terminator
@@ -88,16 +64,17 @@ static void test_file_write_read(test_context* t) {
     sa_free(&alloc, buffer);
     file_close(file);
     sa_deinit(&alloc);
-    mem_unmap(memory, TEST_STACK_SIZE);
+    mem_unmap(memory, stack_size);
 }
 
 static void test_file_read_all(test_context* t) {
     const char* test_data = "This is a test file content.";
     uptr data_size = sizeof("This is a test file content.") - 1;
 
-    void* memory = mem_map(TEST_STACK_SIZE);
+    const uptr stack_size = 1024;
+    void* memory = mem_map(stack_size);
     stack_alloc alloc;
-    sa_init(&alloc, memory, byteoffset(memory, TEST_STACK_SIZE));
+    sa_init(&alloc, memory, byteoffset(memory, stack_size));
 
     // Write test data to file
     file_t file = file_open(&alloc, path_test_read_all.begin, path_test_read_all.end, FILE_MODE_WRITE);
@@ -118,16 +95,17 @@ static void test_file_read_all(test_context* t) {
     file_close(file);
     sa_free(&alloc, buffer);
     sa_deinit(&alloc);
-    mem_unmap(memory, TEST_STACK_SIZE);
+    mem_unmap(memory, stack_size);
 }
 
 static void test_file_size(test_context* t) {
     const char* test_data = "Size test data";
     uptr data_size = sizeof("Size test data") - 1;
 
-    void* memory = mem_map(TEST_STACK_SIZE);
+    const uptr stack_size = 1024;
+    void* memory = mem_map(stack_size);
     stack_alloc alloc;
-    sa_init(&alloc, memory, byteoffset(memory, TEST_STACK_SIZE));
+    sa_init(&alloc, memory, byteoffset(memory, stack_size));
 
     // Write test data
     file_t file = file_open(&alloc, path_test_size.begin, path_test_size.end, FILE_MODE_WRITE);
@@ -144,7 +122,7 @@ static void test_file_size(test_context* t) {
 
     file_close(file);
     sa_deinit(&alloc);
-    mem_unmap(memory, TEST_STACK_SIZE);
+    mem_unmap(memory, stack_size);
 }
 
 void test_file_module(test_context* t) {
