@@ -6,54 +6,6 @@
 #include <stdarg.h>  // for variadic functions
 #include <string.h>  // for memcpy
 
-// Generic print function
-void print_generic(const print_meta* meta, void* data, file_t file, u32 indent_level) {
-    if (meta->pt != PT_NONE) {
-        // Primitive
-        char buf[256];
-        uptr len;
-        switch (meta->pt) {
-            case PT_I8: convert_i8_to_string(*(i8*)data, buf, &len); break;
-            case PT_U8: convert_u8_to_string(*(u8*)data, buf, &len); break;
-            case PT_I16: convert_i16_to_string(*(i16*)data, buf, &len); break;
-            case PT_U16: convert_u16_to_string(*(u16*)data, buf, &len); break;
-            case PT_I32: convert_i32_to_string(*(i32*)data, buf, &len); break;
-            case PT_U32: convert_u32_to_string(*(u32*)data, buf, &len); break;
-            case PT_I64: convert_i64_to_string(*(i64*)data, buf, &len); break;
-            case PT_U64: convert_u64_to_string(*(u64*)data, buf, &len); break;
-            case PT_IPTR: convert_iptr_to_string(*(iptr*)data, buf, &len); break;
-            case PT_UPTR: convert_uptr_to_string(*(uptr*)data, buf, &len); break;
-            default: 
-                len = 18;
-                for (uptr i = 0; i < len; i++) buf[i] = "<unknown primitive>"[i];
-                break;
-        }
-        file_write(file, buf, len);
-    } else {
-        // Struct
-        file_write(file, meta->type_name.begin, bytesize(meta->type_name.begin, meta->type_name.end));
-        file_write(file, " {\n", 3);
-        field_descriptor* field = (field_descriptor*)meta->fields_begin;
-        field_descriptor* field_end = (field_descriptor*)meta->fields_end;
-        for (; field < field_end; ++field) {
-            // Indentation
-            for (u32 i = 0; i < indent_level + 1; ++i) {
-                file_write(file, "  ", 2);
-            }
-            file_write(file, field->field_name.begin, bytesize(field->field_name.begin, field->field_name.end));
-            file_write(file, ": ", 2);
-            void* field_data = byteoffset(data, field->offset);
-            print_generic(field->field_meta, field_data, file, indent_level + 1);
-            file_write(file, "\n", 1);
-        }
-        // Closing brace with indentation
-        for (u32 i = 0; i < indent_level; ++i) {
-            file_write(file, "  ", 2);
-        }
-        file_write(file, "}", 1);
-    }
-}
-
 // Print a plain string to file
 void print_string(file_t file, const char* str) {
     uptr len = 0;

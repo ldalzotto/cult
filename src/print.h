@@ -34,12 +34,6 @@ struct field_descriptor {
     const print_meta* field_meta;   // recursive meta for nested types
 };
 
-// Generic print function
-// For non-arrays: prints the struct/object
-// For arrays: assumes data points to begin of contiguous array, but needs end pointer
-// For arrays, use print_array_generic instead
-void print_generic(const print_meta* meta, void* data, file_t file, u32 indent_level);
-
 // File-based print functions using file.h
 void print_string(file_t file, const char* str);
 void print_format(file_t file, const char* format, ...);

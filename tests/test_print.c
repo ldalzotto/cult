@@ -57,12 +57,10 @@ print_meta complex_meta = {
 static void test_print_primitives(test_context* t) {
     // Test printing primitives
     i32 val_i32 = 42;
-    print_generic(&i32_meta, &val_i32, file_stdout(), 0);
-    print_string(file_stdout(), "\n");
+    print_format(file_stdout(), "%m\n", &i32_meta, &val_i32);
 
     u64 val_u64 = 1234567890123456789ULL;
-    print_generic(&u64_meta, &val_u64, file_stdout(), 0);
-    print_string(file_stdout(), "\n");
+    print_format(file_stdout(), "%m\n", &u64_meta, &val_u64);
 
     // Since we can't easily test output, just ensure no crash
     TEST_ASSERT_TRUE(t, 1);
@@ -70,8 +68,7 @@ static void test_print_primitives(test_context* t) {
 
 static void test_print_struct(test_context* t) {
     test_point_t point = {10, 20};
-    print_generic(&test_point_meta, &point, file_stdout(), 0);
-    print_string(file_stdout(), "\n");
+    print_format(file_stdout(), "%m\n", &test_point_meta, &point);
 
     TEST_ASSERT_TRUE(t, 1);
 }
@@ -85,14 +82,14 @@ static void test_print_to_file(test_context* t) {
 
     // Define test data
     test_point_t point = {10, 20};
-    const char* expected = "test_point_t {\n  x: 10\n  y: 20\n}";
+    const char* expected = "test_point_t {x: 10, y: 20}";
 
     // Open file for writing
     file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
     TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     // Print to file using file_t version
-    print_generic(&test_point_meta, &point, file, 0);
+    print_format(file, "%m", &test_point_meta, &point);
     file_close(file);
 
     // Open file for reading
@@ -125,14 +122,14 @@ static void test_print_nested_to_file(test_context* t) {
 
     // Define test data
     complex_t obj = {{10, 20}, 42};
-    const char* expected = "complex_t {\n  pos: test_point_t {\n    x: 10\n    y: 20\n  }\n  id: 42\n}";
+    const char* expected = "complex_t {pos: test_point_t {x: 10, y: 20}, id: 42}";
 
     // Open file for writing
     file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
     TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     // Print to file using file_t version
-    print_generic(&complex_meta, &obj, file, 0);
+    print_format(file, "%m", &complex_meta, &obj);
     file_close(file);
 
     // Open file for reading
