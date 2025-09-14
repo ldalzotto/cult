@@ -74,6 +74,8 @@ static void test_print_struct(test_context* t) {
 }
 
 static void test_print_to_file(test_context* t) {
+    setup_test_temp_dir();
+    
     // Allocate memory using mem_map
     const uptr stack_size = 1024;
     void* memory = mem_map(stack_size);
@@ -110,10 +112,14 @@ static void test_print_to_file(test_context* t) {
     sa_deinit(&alloc);
     mem_unmap(memory, stack_size);
 
+    cleanup_test_temp_dir();
+
     TEST_ASSERT_TRUE(t, 1);
 }
 
 static void test_print_nested_to_file(test_context* t) {
+    setup_test_temp_dir();
+
     // Allocate memory using mem_map
     const uptr stack_size = 1024;
     void* memory = mem_map(stack_size);
@@ -150,10 +156,14 @@ static void test_print_nested_to_file(test_context* t) {
     sa_deinit(&alloc);
     mem_unmap(memory, stack_size);
 
+    cleanup_test_temp_dir();
+
     TEST_ASSERT_TRUE(t, 1);
 }
 
 static void test_print_format_function(test_context* t) {
+    setup_test_temp_dir();
+
     // Allocate memory using mem_map
     const uptr stack_size = 1024;
     void* memory = mem_map(stack_size);
@@ -187,10 +197,14 @@ static void test_print_format_function(test_context* t) {
     sa_deinit(&alloc);
     mem_unmap(memory, stack_size);
 
+    cleanup_test_temp_dir();
+
     TEST_ASSERT_TRUE(t, 1);
 }
 
 static void test_print_format_meta_specifier(test_context* t) {
+    setup_test_temp_dir();
+
     // Allocate memory using mem_map
     const uptr stack_size = 1024;
     void* memory = mem_map(stack_size);
@@ -227,10 +241,14 @@ static void test_print_format_meta_specifier(test_context* t) {
     sa_deinit(&alloc);
     mem_unmap(memory, stack_size);
 
+    cleanup_test_temp_dir();
+
     TEST_ASSERT_TRUE(t, 1);
 }
 
 static void test_print_format_multiple_meta(test_context* t) {
+    setup_test_temp_dir();
+    
     // Allocate memory using mem_map
     const uptr stack_size = 1024;
     void* memory = mem_map(stack_size);
@@ -268,17 +286,17 @@ static void test_print_format_multiple_meta(test_context* t) {
     sa_deinit(&alloc);
     mem_unmap(memory, stack_size);
 
+    cleanup_test_temp_dir();
+
     TEST_ASSERT_TRUE(t, 1);
 }
 
 void test_print_module(test_context* t) {
-    setup_test_temp_dir();
-    test_print_primitives(t);
-    test_print_struct(t);
-    test_print_to_file(t);
-    test_print_nested_to_file(t);
-    test_print_format_function(t);
-    test_print_format_meta_specifier(t);
-    test_print_format_multiple_meta(t);
-    cleanup_test_temp_dir();
+    REGISTER_TEST(t, "print_primitives", test_print_primitives);
+    REGISTER_TEST(t, "print_struct", test_print_struct);
+    REGISTER_TEST(t, "print_to_file", test_print_to_file);
+    REGISTER_TEST(t, "print_nested_to_file", test_print_nested_to_file);
+    REGISTER_TEST(t, "print_format_function", test_print_format_function);
+    REGISTER_TEST(t, "print_format_meta_specifier", test_print_format_meta_specifier);
+    REGISTER_TEST(t, "print_format_multiple_meta", test_print_format_multiple_meta);
 }

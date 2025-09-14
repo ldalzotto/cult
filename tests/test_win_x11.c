@@ -116,9 +116,8 @@ static void test_win_x11_pixel_buffer_access(test_context* t) {
 }
 
 void test_win_x11_module(test_context* t) {
-    print_string(file_stdout(), "Running win_x11 Module Tests...\n");
-    test_win_x11_basic_init_deinit(t);
-    test_win_x11_window_lifecycle(t);
-    test_win_x11_pixel_buffer_access(t);
-    print_string(file_stdout(), "win_x11 tests completed\n");
+    print_string(file_stdout(), "Registering win_x11 Module Tests...\n");
+    REGISTER_TEST(t, "win_x11_basic_init_deinit", test_win_x11_basic_init_deinit);
+    REGISTER_TEST(t, "win_x11_window_lifecycle", test_win_x11_window_lifecycle);
+    REGISTER_TEST(t, "win_x11_pixel_buffer_access", test_win_x11_pixel_buffer_access);
 }

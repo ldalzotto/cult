@@ -16,6 +16,9 @@ static const string_span path_test_read_all = STATIC_STRING("test_temp/test_read
 static const string_span path_test_size     = STATIC_STRING("test_temp/test_size.txt");
 
 static void test_file_open_close(test_context* t) {
+    // Set up temporary directory for tests
+    setup_test_temp_dir();
+
     const uptr stack_size = 1024;
     void* memory = mem_map(stack_size);
     stack_alloc alloc;
@@ -34,9 +37,15 @@ static void test_file_open_close(test_context* t) {
 
     sa_deinit(&alloc);
     mem_unmap(memory, stack_size);
+
+    // Clean up temporary directory
+    cleanup_test_temp_dir();
 }
 
 static void test_file_write_read(test_context* t) {
+    // Set up temporary directory for tests
+    setup_test_temp_dir();
+
     const uptr stack_size = 1024;
     void* memory = mem_map(stack_size);
     stack_alloc alloc;
@@ -66,9 +75,15 @@ static void test_file_write_read(test_context* t) {
     file_close(file);
     sa_deinit(&alloc);
     mem_unmap(memory, stack_size);
+
+    // Clean up temporary directory
+    cleanup_test_temp_dir();
 }
 
 static void test_file_read_all(test_context* t) {
+    // Set up temporary directory for tests
+    setup_test_temp_dir();
+
     const char* test_data = "This is a test file content.";
     uptr data_size = sizeof("This is a test file content.") - 1;
 
@@ -97,9 +112,15 @@ static void test_file_read_all(test_context* t) {
     sa_free(&alloc, buffer);
     sa_deinit(&alloc);
     mem_unmap(memory, stack_size);
+
+    // Clean up temporary directory
+    cleanup_test_temp_dir();
 }
 
 static void test_file_size(test_context* t) {
+    // Set up temporary directory for tests
+    setup_test_temp_dir();
+
     const char* test_data = "Size test data";
     uptr data_size = sizeof("Size test data") - 1;
 
@@ -124,19 +145,16 @@ static void test_file_size(test_context* t) {
     file_close(file);
     sa_deinit(&alloc);
     mem_unmap(memory, stack_size);
-}
-
-void test_file_module(test_context* t) {
-    print_string(file_stdout(), "Running File Module Tests...\n");
-
-    // Set up temporary directory for tests
-    setup_test_temp_dir();
-
-    test_file_open_close(t);
-    test_file_write_read(t);
-    test_file_read_all(t);
-    test_file_size(t);
 
     // Clean up temporary directory
     cleanup_test_temp_dir();
+}
+
+void test_file_module(test_context* t) {
+    print_string(file_stdout(), "Registering File Module Tests...\n");
+
+    REGISTER_TEST(t, "file_open_close", test_file_open_close);
+    REGISTER_TEST(t, "file_write_read", test_file_write_read);
+    REGISTER_TEST(t, "file_read_all", test_file_read_all);
+    REGISTER_TEST(t, "file_size", test_file_size);
 }
