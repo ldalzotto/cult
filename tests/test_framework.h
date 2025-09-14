@@ -3,24 +3,28 @@
 
 #include "../src/primitive.h"
 #include "../src/backtrace.h"
+#include "../src/stack_alloc.h"
 
-// TODO: remove this and use the stack_alloc instead
-#define MAX_TEST_NAME_LEN 64
-#define MAX_TESTS 256
+typedef struct test_context test_context;
 
-typedef struct test_context {
+typedef struct test_context_entry {
+    void (*func)(struct test_context* t);
+    char* name_begin;
+    char* name_end;
+} test_context_entry;
+
+struct test_context {
+    stack_alloc* alloc;
     u32 passed;
     u32 failed;
-    char filter_pattern[MAX_TEST_NAME_LEN];
     u32 test_count;
-    struct {
-        char name[MAX_TEST_NAME_LEN];
-        void (*func)(struct test_context* t);
-    } tests[MAX_TESTS];
-} test_context;
+    u8 filter_pattern_enabled;
+    char* filter_pattern;
+    test_context_entry* entries;
+};
 
 // Function declarations
-void test_reset_context(test_context* t);
+test_context* test_context_init(stack_alloc* alloc);
 void test_report_context(test_context* t);
 void test_register(test_context* t, const char* name, void (*func)(test_context* t));
 void test_run_filtered(test_context* t);
