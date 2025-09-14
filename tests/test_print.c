@@ -54,7 +54,7 @@ print_meta complex_meta = {
     .fields_end = complex_fields + (sizeof(complex_fields) / sizeof(field_descriptor))
 };
 
-void test_print_primitives(test_context* t) {
+static void test_print_primitives(test_context* t) {
     // Test printing primitives
     i32 val_i32 = 42;
     print_generic(&i32_meta, &val_i32, file_stdout(), 0);
@@ -68,7 +68,7 @@ void test_print_primitives(test_context* t) {
     TEST_ASSERT_TRUE(t, 1);
 }
 
-void test_print_struct(test_context* t) {
+static void test_print_struct(test_context* t) {
     test_point_t point = {10, 20};
     print_generic(&test_point_meta, &point, file_stdout(), 0);
     print_string(file_stdout(), "\n");
@@ -76,15 +76,7 @@ void test_print_struct(test_context* t) {
     TEST_ASSERT_TRUE(t, 1);
 }
 
-void test_print_array(test_context* t) {
-    i32 arr[5] = {1, 2, 3, 4, 5};
-    print_array_generic(&i32_meta, arr, arr + 5, file_stdout(), 0);
-    print_string(file_stdout(), "\n");
-
-    TEST_ASSERT_TRUE(t, 1);
-}
-
-void test_print_to_file(test_context* t) {
+static void test_print_to_file(test_context* t) {
     // Allocate memory using mem_map
     const uptr stack_size = 1024;
     void* memory = mem_map(stack_size);
@@ -124,7 +116,7 @@ void test_print_to_file(test_context* t) {
     TEST_ASSERT_TRUE(t, 1);
 }
 
-void test_print_nested_to_file(test_context* t) {
+static void test_print_nested_to_file(test_context* t) {
     // Allocate memory using mem_map
     const uptr stack_size = 1024;
     void* memory = mem_map(stack_size);
@@ -164,7 +156,7 @@ void test_print_nested_to_file(test_context* t) {
     TEST_ASSERT_TRUE(t, 1);
 }
 
-void test_print_format_function(test_context* t) {
+static void test_print_format_function(test_context* t) {
     // Allocate memory using mem_map
     const uptr stack_size = 1024;
     void* memory = mem_map(stack_size);
@@ -205,7 +197,6 @@ void test_print_module(test_context* t) {
     setup_test_temp_dir();
     test_print_primitives(t);
     test_print_struct(t);
-    test_print_array(t);
     test_print_to_file(t);
     test_print_nested_to_file(t);
     test_print_format_function(t);

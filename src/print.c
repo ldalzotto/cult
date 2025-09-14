@@ -54,20 +54,6 @@ void print_generic(const print_meta* meta, void* data, file_t file, u32 indent_l
     }
 }
 
-// Specialized function for printing arrays
-void print_array_generic(const print_meta* element_meta, void* begin, void* end, file_t file, u32 indent_level) {
-    file_write(file, "[", 1);
-    void* current = begin;
-    print_generic(element_meta, current, file, indent_level);
-    current = byteoffset(current, element_meta->type_size);
-    while (current < end) {
-        file_write(file, ", ", 2);
-        print_generic(element_meta, current, file, indent_level);
-        current = byteoffset(current, element_meta->type_size);
-    }
-    file_write(file, "]", 1);
-}
-
 // Print a plain string to file
 void print_string(file_t file, const char* str) {
     uptr len = 0;

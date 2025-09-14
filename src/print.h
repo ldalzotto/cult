@@ -40,10 +40,6 @@ struct field_descriptor {
 // For arrays, use print_array_generic instead
 void print_generic(const print_meta* meta, void* data, file_t file, u32 indent_level);
 
-// Specialized function for printing arrays using the stack allocator pattern
-// begin and end define the contiguous range
-void print_array_generic(const print_meta* element_meta, void* begin, void* end, file_t file, u32 indent_level);
-
 // File-based print functions using file.h
 void print_string(file_t file, const char* str);
 void print_format(file_t file, const char* format, ...);
