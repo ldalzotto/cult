@@ -20,7 +20,7 @@ endif
 
 TARGET=myapp
 TEST_TARGET=test_runner
-COMMON_OBJS=$(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o $(OBJ_DIR)/assert.o $(OBJ_DIR)/file.o $(OBJ_DIR)/print.o $(OBJ_DIR)/window/win_x11.o
+COMMON_OBJS=$(OBJ_DIR)/mem.o $(OBJ_DIR)/stack_alloc.o $(OBJ_DIR)/backtrace.o $(OBJ_DIR)/assert.o $(OBJ_DIR)/file.o $(OBJ_DIR)/print.o $(OBJ_DIR)/convert.o $(OBJ_DIR)/window/win_x11.o
 TEST_OBJS=$(OBJ_DIR)/tests/all_tests.o $(OBJ_DIR)/tests/test_mem.o $(OBJ_DIR)/tests/test_stack_alloc.o $(OBJ_DIR)/tests/test_win_x11.o $(OBJ_DIR)/tests/test_file.o $(OBJ_DIR)/tests/test_print.o $(OBJ_DIR)/tests/test_temp_dir.o $(OBJ_DIR)/tests/test_framework.o
 
 # We may want to cache this

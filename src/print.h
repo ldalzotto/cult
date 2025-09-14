@@ -48,6 +48,9 @@ void print_array_generic(const print_meta* element_meta, void* begin, void* end,
 void print_string(file_t file, const char* str);
 void print_format(file_t file, const char* format, ...);
 
+// Stack allocator-based print functions
+void* print_format_to_buffer(stack_alloc* alloc, const char* format, ...);
+
 static const print_meta i8_meta = {
     .type_name = STATIC_STRING("i8"),
     .is_array = 0,
