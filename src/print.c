@@ -75,13 +75,6 @@ void print_string(file_t file, const char* str) {
     file_write(file, str, len);
 }
 
-// Structure to hold the state of format string iteration
-typedef struct {
-    const char* current;  // Current position in the format string
-    const char* start;    // Start of the current segment
-    va_list args;         // Variable arguments list
-} format_iterator;
-
 // Structure to hold output context for file output
 typedef struct {
     file_t file;
@@ -98,26 +91,24 @@ typedef void (*output_handler_func)(void* context, const char* data, uptr len);
 // Common format processing function
 static void process_format(const char* format, va_list args, void* context, output_handler_func handler) {
     
-    format_iterator iter;
-    iter.current = format;
-    iter.start = format;
-    va_copy(iter.args, args);
+    const char* current = format;
+    const char* start = format;
     
-    while (*iter.current != '\0') {
-        if (*iter.current == '%') {
+    while (*current != '\0') {
+        if (*current == '%') {
             // Output the accumulated string before the format specifier
-            if (iter.current > iter.start) {
-                handler(context, iter.start, iter.current - iter.start);
+            if (current > start) {
+                handler(context, start, current - start);
             }
             
             // Move past the '%'
-            iter.current++;
+            current++;
             
             // Handle the format specifier
-            switch (*iter.current) {
+            switch (*current) {
                 case 'd': {
                     // Handle signed integer
-                    i32 value = va_arg(iter.args, i32);
+                    i32 value = va_arg(args, i32);
                     
                     // Convert integer to string using our helper function
                     char int_buf[32];
@@ -128,7 +119,7 @@ static void process_format(const char* format, va_list args, void* context, outp
                 }
                 case 'u': {
                     // Handle unsigned integer
-                    u32 value = va_arg(iter.args, u32);
+                    u32 value = va_arg(args, u32);
                     
                     // Convert unsigned integer to string using our helper function
                     char uint_buf[32];
@@ -139,7 +130,7 @@ static void process_format(const char* format, va_list args, void* context, outp
                 }
                 case 's': {
                     // Handle string
-                    const char* str = va_arg(iter.args, const char*);
+                    const char* str = va_arg(args, const char*);
                     if (str) {
                         uptr len = 0;
                         while (str[len] != '\0') ++len;
@@ -151,36 +142,34 @@ static void process_format(const char* format, va_list args, void* context, outp
                 }
                 case 'c': {
                     // Handle character
-                    char c = (char)va_arg(iter.args, int);  // char is promoted to int
+                    char c = (char)va_arg(args, int);  // char is promoted to int
                     handler(context, &c, 1);
                     break;
                 }
                 default:
                     // Handle unknown format specifier by just outputting it
                     handler(context, "%", 1);
-                    if (*iter.current) {
-                        handler(context, iter.current, 1);
+                    if (*current) {
+                        handler(context, current, 1);
                     }
                     break;
             }
             
             // Move past the format specifier
-            if (*iter.current) {
-                iter.current++;
+            if (*current) {
+                current++;
             }
-            iter.start = iter.current;
+            start = current;
         } else {
             // Regular character, move to next
-            iter.current++;
+            current++;
         }
     }
     
     // Output any remaining string after the last format specifier
-    if (iter.current > iter.start) {
-        handler(context, iter.start, iter.current - iter.start);
+    if (current > start) {
+        handler(context, start, current - start);
     }
-    
-    va_end(iter.args);
 }
 
 // Output handler for file output
