@@ -40,16 +40,23 @@ static void setup_test_temp_dir(void) {
 }
 
 static void test_file_open_close(test_context* t) {
+    void* memory = mem_map(1024);
+    stack_alloc alloc;
+    sa_init(&alloc, memory, byteoffset(memory, 1024));
+
     // Test opening a non-existent file for reading (should fail)
-    file_t file = file_open(path_non_existent.begin, path_non_existent.end, FILE_MODE_READ);
+    file_t file = file_open(&alloc, path_non_existent.begin, path_non_existent.end, FILE_MODE_READ);
     TEST_ASSERT_NULL(t, file);
 
     // Test opening a file for writing (should succeed)
-    file = file_open(path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
+    file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
     TEST_ASSERT_NOT_NULL(t, file);
 
     // Test closing the file
     file_close(file);
+
+    sa_deinit(&alloc);
+    mem_unmap(memory, 1024);
 }
 
 static void test_file_write_read(test_context* t) {
@@ -61,7 +68,7 @@ static void test_file_write_read(test_context* t) {
     uptr data_size = sizeof("Hello, World!") - 1;  // -1 to exclude null terminator
 
     // Write to file
-    file_t file = file_open(path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
+    file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
     TEST_ASSERT_NOT_NULL(t, file);
 
     uptr bytes_written = file_write(file, test_data, data_size);
@@ -69,42 +76,44 @@ static void test_file_write_read(test_context* t) {
     file_close(file);
 
     // Read from file
-    file = file_open(path_test_output.begin, path_test_output.end, FILE_MODE_READ);
+    file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_READ);
     TEST_ASSERT_NOT_NULL(t, file);
 
     void* buffer;
     uptr bytes_read = file_read_all(file, &buffer, &alloc);
     TEST_ASSERT_EQUAL(t, bytes_read, data_size);
-    TEST_ASSERT_EQUAL(t, strcmp(buffer, test_data), 0);
+    TEST_ASSERT_EQUAL(t, memcmp(buffer, test_data, data_size), 0);
 
     sa_free(&alloc, buffer);
     file_close(file);
     sa_deinit(&alloc);
+    mem_unmap(memory, 1024);
 }
 
 static void test_file_read_all(test_context* t) {
     const char* test_data = "This is a test file content.";
     uptr data_size = sizeof("This is a test file content.") - 1;  // -1 to exclude null terminator
 
+    void* memory = mem_map(1024);
+    stack_alloc alloc;
+    sa_init(&alloc, memory, byteoffset(memory, 1024));
+
     // Write test data to file
-    file_t file = file_open(path_test_read_all.begin, path_test_read_all.end, FILE_MODE_WRITE);
+    file_t file = file_open(&alloc, path_test_read_all.begin, path_test_read_all.end, FILE_MODE_WRITE);
     TEST_ASSERT_NOT_NULL(t, file);
     file_write(file, test_data, data_size);
     file_close(file);
 
     // Read entire file using stack allocator
-    void* memory = mem_map(1024);
-    stack_alloc alloc;
-    sa_init(&alloc, memory, byteoffset(memory, 1024));
-
-    file = file_open(path_test_read_all.begin, path_test_read_all.end, FILE_MODE_READ);
+    
+    file = file_open(&alloc, path_test_read_all.begin, path_test_read_all.end, FILE_MODE_READ);
     TEST_ASSERT_NOT_NULL(t, file);
 
     void* buffer = NULL;
     uptr bytes_read = file_read_all(file, &buffer, &alloc);
     TEST_ASSERT_EQUAL(t, bytes_read, data_size);
     TEST_ASSERT_NOT_NULL(t, buffer);
-    TEST_ASSERT_EQUAL(t, strcmp((char*)buffer, test_data), 0);
+    TEST_ASSERT_EQUAL(t, memcmp(buffer, test_data, data_size), 0);
 
     file_close(file);
     sa_free(&alloc, buffer);
@@ -116,20 +125,26 @@ static void test_file_size(test_context* t) {
     const char* test_data = "Size test data";
     uptr data_size = sizeof("Size test data") - 1;  // -1 to exclude null terminator
 
+    void* memory = mem_map(1024);
+    stack_alloc alloc;
+    sa_init(&alloc, memory, byteoffset(memory, 1024));
+
     // Write test data
-    file_t file = file_open(path_test_size.begin, path_test_size.end, FILE_MODE_WRITE);
+    file_t file = file_open(&alloc, path_test_size.begin, path_test_size.end, FILE_MODE_WRITE);
     TEST_ASSERT_NOT_NULL(t, file);
     file_write(file, test_data, data_size);
     file_close(file);
 
     // Check file size
-    file = file_open(path_test_size.begin, path_test_size.end, FILE_MODE_READ);
+    file = file_open(&alloc, path_test_size.begin, path_test_size.end, FILE_MODE_READ);
     TEST_ASSERT_NOT_NULL(t, file);
 
     uptr size = file_size(file);
     TEST_ASSERT_EQUAL(t, size, data_size);
 
     file_close(file);
+    sa_deinit(&alloc);
+    mem_unmap(memory, 1024);
 }
 
 void test_file_module(test_context* t) {

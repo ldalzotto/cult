@@ -15,7 +15,7 @@ typedef enum {
 } file_mode_t;
 
 // File operations
-file_t file_open(const u8* path_begin, const u8* path_end, file_mode_t mode);
+file_t file_open(stack_alloc* alloc, const u8* path_begin, const u8* path_end, file_mode_t mode);
 void file_close(file_t file);
 
 // Read operations

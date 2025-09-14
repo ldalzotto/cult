@@ -1,14 +1,16 @@
 #include "file.h"
+#include "./assert.h"
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
-#include <alloca.h>
 #include <dirent.h>
 
-// Open a file with the specified mode
-file_t file_open(const u8* path_begin, const u8* path_end, file_mode_t mode) {
+// Open a file with the specified mode using stack_alloc
+file_t file_open(stack_alloc* alloc, const u8* path_begin, const u8* path_end, file_mode_t mode) {
+    if (!alloc || path_begin == path_end) return NULL;
+
     int flags = 0;
     switch (mode) {
         case FILE_MODE_READ:
@@ -25,21 +27,24 @@ file_t file_open(const u8* path_begin, const u8* path_end, file_mode_t mode) {
     }
 
     // Calculate path length
-    uptr path_len = (uptr)(path_end - path_begin);
-    if (path_len == 0) {
-        return NULL;
-    }
+    uptr path_len = bytesize(path_begin, path_end);
 
-    // Use alloca to allocate memory on the stack
-    u8* path = (u8*)alloca(path_len + 1);
+    // Allocate path buffer from stack allocator
+    u8* path = sa_alloc(alloc, path_len + 1);
     memcpy(path, path_begin, path_len);
     path[path_len] = '\0';
 
     int fd = open((void*)path, flags, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
     if (fd == -1) {
+        // Optional: rollback allocation if open fails
+        sa_free(alloc, path);
         return NULL;
     }
+
+    // Free path buffer after use since open() doesn't need it after call
+    sa_free(alloc, path);
+
     return (file_t)(uptr)fd;
 }
 
@@ -77,6 +82,7 @@ uptr file_read_all(file_t file, void** buffer, stack_alloc* alloc) {
     if (bytes_read == -1) {
         return 0;
     }
+    debug_assert(file_size == bytes_read);
     return (uptr)bytes_read;
 }
 
