@@ -59,11 +59,11 @@ void test_print_primitives(test_context* t) {
     // Test printing primitives
     i32 val_i32 = 42;
     print_generic(&i32_meta, &val_i32, stdout, 0);
-    printf("\n");
+    print_string("\n", file_get_stdout());
 
     u64 val_u64 = 1234567890123456789ULL;
     print_generic(&u64_meta, &val_u64, stdout, 0);
-    printf("\n");
+    print_string("\n", file_get_stdout());
 
     // Since we can't easily test output, just ensure no crash
     TEST_ASSERT_TRUE(t, 1);
@@ -72,7 +72,7 @@ void test_print_primitives(test_context* t) {
 void test_print_struct(test_context* t) {
     test_point_t point = {10, 20};
     print_generic(&test_point_meta, &point, stdout, 0);
-    printf("\n");
+    print_string("\n", file_get_stdout());
 
     TEST_ASSERT_TRUE(t, 1);
 }
@@ -80,7 +80,7 @@ void test_print_struct(test_context* t) {
 void test_print_array(test_context* t) {
     i32 arr[5] = {1, 2, 3, 4, 5};
     print_array_generic(&i32_meta, arr, arr + 5, stdout, 0);
-    printf("\n");
+    print_string("\n", file_get_stdout());
 
     TEST_ASSERT_TRUE(t, 1);
 }

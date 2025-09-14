@@ -15,10 +15,11 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
-#include <stdio.h>
 #include "../assert.h"
 #include "../stack_alloc.h"
 #include "../primitive.h"
+#include "../print.h"
+#include "../file.h"
 #include "win_x11.h"
 
 /**
@@ -52,7 +53,7 @@ win_x11* win_x11_init(stack_alloc* alloc) {
     // Open connection to X server
     win->display = XOpenDisplay(NULL);
     if (!win->display) {
-        printf("win_x11: Cannot open display\n");
+        print_string("win_x11: Cannot open display\n", file_get_stderr());
         sa_free(alloc, win);
         return alloc->cursor;
     }
@@ -134,7 +135,7 @@ i32 win_x11_open_window(win_x11* win, const char* title, i32 width, i32 height, 
                                      WhitePixel(win->display, win->screen_num));
 
     if (!win->window) {
-        printf("win_x11: Cannot create window\n");
+        print_string("win_x11: Cannot create window\n", file_get_stderr());
         return 0;  // false
     }
 
@@ -165,7 +166,7 @@ i32 win_x11_open_window(win_x11* win, const char* title, i32 width, i32 height, 
     win->pixel_buffer_img = XCreateImage(win->display, visual, 24, ZPixmap, 0,
                                         (char*)win->pixel_buffer, width, height, 32, 0);
     if (!win->pixel_buffer_img) {
-        printf("win_x11: Cannot create XImage\n");
+        print_string("win_x11: Cannot create XImage\n", file_get_stderr());
         sa_free(alloc, win->pixel_buffer);
         win->pixel_buffer = NULL;
         XDestroyWindow(win->display, win->window);

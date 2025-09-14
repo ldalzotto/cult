@@ -4,6 +4,8 @@
 #include "./stack_alloc.h"
 #include "./window/win_x11.h"
 #include "./assert.h"
+#include "./print.h"
+#include "./file.h"
 
 i32 main() {
     // Example usage of win_x11.h
@@ -17,7 +19,7 @@ i32 main() {
     // Initialize X11 window context
     win_x11* win_ctx = win_x11_init(&win_alloc);
     if (win_ctx == NULL) {
-        printf("Failed to initialize X11 window context\n");
+        print_string("Failed to initialize X11 window context\n", file_get_stderr());
         mem_unmap(win_mem, win_mem_size);
         return 1;
     }
@@ -25,13 +27,13 @@ i32 main() {
     // Open a window
     i32 window_created = win_x11_open_window(win_ctx, "X11 Window Example", 200, 200, &win_alloc);
     if (window_created == 0) {
-        printf("Failed to create window\n");
+        print_string("Failed to create window\n", file_get_stderr());
         win_x11_deinit(&win_alloc, win_ctx);
         mem_unmap(win_mem, win_mem_size);
         return 1;
     }
 
-    printf("Window created successfully. Press Ctrl+C to exit.\n");
+    print_string("Window created successfully. Press Ctrl+C to exit.\n", file_get_stdout());
 
     // Simple event polling loop
     // In a real application, you'd have proper event handling

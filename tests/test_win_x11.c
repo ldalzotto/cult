@@ -5,10 +5,12 @@
 #include "../src/stack_alloc.h"
 #include "../src/mem.h"
 #include "../src/primitive.h"
+#include "../src/print.h"
+#include "../src/file.h"
 #include <stdio.h>
 
 static void test_win_x11_basic_init_deinit(test_context* t) {
-    printf("Testing basic win_x11 init/deinit...\n");
+    print_string("Testing basic win_x11 init/deinit...\n", file_get_stdout());
 
     uptr size = 64 * 1024; // 64KB should be sufficient for basic operations
     void* mem = mem_map(size);
@@ -25,11 +27,11 @@ static void test_win_x11_basic_init_deinit(test_context* t) {
     // Test completes without crash - this is the main objective
 
     mem_unmap(mem, size);
-    printf("Basic init/deinit test passed\n");
+    print_string("Basic init/deinit test passed\n", file_get_stdout());
 }
 
 static void test_win_x11_window_lifecycle(test_context* t) {
-    printf("Testing win_x11 window lifecycle...\n");
+    print_string("Testing win_x11 window lifecycle...\n", file_get_stdout());
 
     uptr size = 1024 * 1024; // 1MB for window and buffer
     void* mem = mem_map(size);
@@ -72,11 +74,11 @@ static void test_win_x11_window_lifecycle(test_context* t) {
     win_x11_deinit(&alloc, win);
     mem_unmap(mem, size);
 
-    printf("Window lifecycle test passed\n");
+    print_string("Window lifecycle test passed\n", file_get_stdout());
 }
 
 static void test_win_x11_pixel_buffer_access(test_context* t) {
-    printf("Testing pixel buffer access...\n");
+    print_string("Testing pixel buffer access...\n", file_get_stdout());
 
     uptr size = 1024 * 1024; // 1MB for testing
     void* mem = mem_map(size);
@@ -110,13 +112,13 @@ static void test_win_x11_pixel_buffer_access(test_context* t) {
     win_x11_deinit(&alloc, win);
     mem_unmap(mem, size);
 
-    printf("Pixel buffer access test passed\n");
+    print_string("Pixel buffer access test passed\n", file_get_stdout());
 }
 
 void test_win_x11_module(test_context* t) {
-    printf("Running win_x11 Module Tests...\n");
+    print_string("Running win_x11 Module Tests...\n", file_get_stdout());
     test_win_x11_basic_init_deinit(t);
     test_win_x11_window_lifecycle(t);
     test_win_x11_pixel_buffer_access(t);
-    printf("win_x11 tests completed\n");
+    print_string("win_x11 tests completed\n", file_get_stdout());
 }

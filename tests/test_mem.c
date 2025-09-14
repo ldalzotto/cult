@@ -2,6 +2,8 @@
 #include "test_framework.h"
 #include "../src/mem.h"
 #include "../src/assert.h"
+#include "../src/print.h"
+#include "../src/file.h"
 #include <stdio.h>
 
 static void test_mem_map_small_block(test_context* t) {
@@ -34,7 +36,7 @@ static void test_mem_map_large_block(test_context* t) {
 }
 
 void test_mem_module(test_context* t) {
-    printf("Running Memory Module Tests...\n");
+    print_string("Running Memory Module Tests...\n", file_get_stdout());
     test_mem_map_small_block(t);
     test_mem_map_large_block(t);
 }

@@ -5,6 +5,7 @@
 #include "../src/mem.h"
 #include "../src/litteral.h"
 #include "../src/stack_alloc.h"
+#include "../src/print.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -126,7 +127,7 @@ static void test_file_size(test_context* t) {
 }
 
 void test_file_module(test_context* t) {
-    printf("Running File Module Tests...\n");
+    print_string("Running File Module Tests...\n", file_get_stdout());
 
     // Set up temporary directory for tests
     setup_test_temp_dir();

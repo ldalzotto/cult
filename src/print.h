@@ -46,6 +46,7 @@ void print_array_generic(const print_meta* element_meta, void* begin, void* end,
 
 // File-based print functions using file.h
 void print_string(const char* str, file_t file);
+
 static const print_meta i8_meta = {
     .type_name = STATIC_STRING("i8"),
     .is_array = 0,

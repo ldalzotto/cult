@@ -3,6 +3,8 @@
 #include "../src/mem.h"
 #include "../src/stack_alloc.h"
 #include "../src/primitive.h"
+#include "../src/print.h"
+#include "../src/file.h"
 #include <stdio.h>
 
 static void test_sa_basic_alloc(test_context* t) {
@@ -266,7 +268,7 @@ static void test_sa_copy(test_context* t) {
 }
 
 void test_sa_module(test_context* t) {
-    printf("Running Stack Allocator Module Tests...\n");
+    print_string("Running Stack Allocator Module Tests...\n", file_get_stdout());
     test_sa_basic_alloc(t);
     test_sa_reuse_space(t);
     test_sa_move_tail(t);

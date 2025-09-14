@@ -1,5 +1,7 @@
 #include "./backtrace.h"
 #include "./primitive.h"
+#include "./print.h"
+#include "./file.h"
 
 #include <execinfo.h>
 #include <stdio.h>
@@ -17,7 +19,7 @@ void print_backtrace(void) {
     }
     exe_path[len] = '\0';
 
-    printf("Backtrace (most recent call last):\n");
+    print_string("Backtrace (most recent call last):\n", file_get_stderr());
 
     for (i32 i = 0; i < nptrs; i++) {
         u8 cmd[2048];

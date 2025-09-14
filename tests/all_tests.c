@@ -4,7 +4,8 @@
 #include "test_win_x11.h"
 #include "test_file.h"
 #include "test_print.h"
-#include <stdio.h>
+#include "../src/print.h"
+#include "../src/file.h"
 
 int main() {
     test_context ctx;
@@ -12,7 +13,7 @@ int main() {
     // Reset test counters before running tests
     test_reset_context(&ctx);
 
-    printf("Test Suite Starting...\n");
+    print_string("Test Suite Starting...\n", file_get_stdout());
 
     // Run all module tests
     test_mem_module(&ctx);
