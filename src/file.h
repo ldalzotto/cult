@@ -15,7 +15,7 @@ typedef enum {
 } file_mode_t;
 
 // File operations
-file_t file_open(const char* path, file_mode_t mode);
+file_t file_open(const u8* path_begin, const u8* path_end, file_mode_t mode);
 void file_close(file_t file);
 
 // Read operations
@@ -26,5 +26,14 @@ uptr file_write(file_t file, const void* buffer, uptr size);
 
 // Utility functions
 uptr file_size(file_t file);
+
+typedef enum {
+    DIR_MODE_DEFAULT, // typical user-accessible
+    DIR_MODE_PRIVATE, // only owner
+    DIR_MODE_PUBLIC   // world-accessible
+} dir_mode_t;
+
+i32 directory_create(stack_alloc* alloc, const u8* path_begin, const u8* path_end, dir_mode_t mode);
+i32 directory_remove(stack_alloc* alloc, const u8* path_begin, const u8* path_end);
 
 #endif /* FILE_H */

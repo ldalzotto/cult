@@ -8,12 +8,8 @@ All memory operations returning collections MUST return contiguous ranges using 
 
 ### REQUIRED Pattern:
 1. **Return the start pointer** to the allocated range (not a wrapper struct)
-2. **Calculate count via cursor arithmetic**:
-   ```c
-   element_count = ((u8*)alloc->cursor - (u8*)start_pointer) / sizeof(element_t)
-   ```
-3. **NO separate count returns or wrapper structures** - let math determine boundaries
-4. **Iterate linearly** through contiguous memory
+2. **NO separate count returns or wrapper structures** - let math determine boundaries
+3. **Iterate linearly** through contiguous memory
 
 ### Prohibited Alternatives:
 - ❌ Returning wrapper structs with separate `count` fields
