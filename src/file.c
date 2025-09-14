@@ -51,8 +51,8 @@ file_t file_open(stack_alloc* alloc, const u8* path_begin, const u8* path_end, f
 
 // Close a file
 void file_close(file_t file) {
-    debug_assert(file != file_get_stderr());
-    debug_assert(file != file_get_stdout());
+    debug_assert(file != file_stderr());
+    debug_assert(file != file_stdout());
     if (file) {
         close((int)(uptr)file);
     }
@@ -91,9 +91,9 @@ uptr file_read_all(file_t file, void** buffer, stack_alloc* alloc) {
 
 // Write data to file
 uptr file_write(file_t file, const void* buffer, uptr size) {
-    if (file == file_get_stdout()) {
+    if (file == file_stdout()) {
         return fwrite(buffer, 1, size, stdout);
-    } else if (file == file_get_stderr()) {
+    } else if (file == file_stderr()) {
         return fwrite(buffer, 1, size, stderr);
     } else if (!file) {
         return 0;
@@ -279,10 +279,10 @@ i32 directory_remove(stack_alloc* alloc, const u8* path_begin, const u8* path_en
 }
 
 // Get console file handles
-file_t file_get_stdout(void) {
+file_t file_stdout(void) {
     return stdout;
 }
 
-file_t file_get_stderr(void) {
+file_t file_stderr(void) {
     return stderr;
 }

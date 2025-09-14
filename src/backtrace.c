@@ -19,7 +19,7 @@ void print_backtrace(void) {
     }
     exe_path[len] = '\0';
 
-    print_string(file_get_stderr(), "Backtrace (most recent call last):\n");
+    print_string(file_stderr(), "Backtrace (most recent call last):\n");
 
     for (i32 i = 0; i < nptrs; i++) {
         u8 cmd[2048];
@@ -32,11 +32,11 @@ void print_backtrace(void) {
         if (fp) {
             u8 line[1024];
             while (fgets((char*)line, sizeof(line), fp)) {
-                print_format(file_get_stdout(), "  [%d] %s", i, line);
+                print_format(file_stdout(), "  [%d] %s", i, line);
             }
             pclose(fp);
         } else {
-            print_format(file_get_stdout(), "  [%d] %p\n", i, buffer[i]);
+            print_format(file_stdout(), "  [%d] %p\n", i, buffer[i]);
         }
     }
 }

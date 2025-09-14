@@ -18,7 +18,7 @@ void test_report_context(test_context* t);
     if ((cond)) { \
         (ctx)->passed++; \
     } else { \
-        print_format(file_get_stdout(), "TEST FAILED: %s at %s:%d\n", msg, __FILE__, __LINE__); \
+        print_format(file_stdout(), "TEST FAILED: %s at %s:%d\n", msg, __FILE__, __LINE__); \
         print_backtrace(); \
         (ctx)->failed++; \
     }
