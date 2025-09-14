@@ -2,7 +2,7 @@
 #define PRINT_H
 
 #include "./primitive.h"
-#include <stdio.h>
+#include "file.h"
 
 // Forward declaration
 typedef struct print_meta print_meta;
@@ -22,35 +22,35 @@ struct print_meta {
     u32 is_array;                 // 1 if this is an array type
     uptr type_size;               // size of the type in bytes
     primitive_type pt;            // primitive type enum
-    field_descriptor* fields_begin; // pointer to first field descriptor
-    field_descriptor* fields_end; // pointer to after last field descriptor
+    const field_descriptor* fields_begin; // pointer to first field descriptor
+    const field_descriptor* fields_end; // pointer to after last field descriptor
 };
 
 // Field descriptor structure
 struct field_descriptor {
     const char* field_name;
     uptr offset;              // byte offset in struct
-    print_meta* field_meta;   // recursive meta for nested types
+    const print_meta* field_meta;   // recursive meta for nested types
 };
 
 // Generic print function
 // For non-arrays: prints the struct/object
 // For arrays: assumes data points to begin of contiguous array, but needs end pointer
 // For arrays, use print_array_generic instead
-void print_generic(const print_meta* meta, void* data, FILE* stream, u32 indent_level);
+void print_generic(const print_meta* meta, void* data, file_t file, u32 indent_level);
 
 // Specialized function for printing arrays using the stack allocator pattern
 // begin and end define the contiguous range
-void print_array_generic(const print_meta* element_meta, void* begin, void* end, FILE* stream, u32 indent_level);
+void print_array_generic(const print_meta* element_meta, void* begin, void* end, file_t file, u32 indent_level);
 
-// Predefined metas for primitives
+// File-based print functions using file.h
 static const print_meta i8_meta = {
     .type_name = "i8",
     .is_array = 0,
     .type_size = sizeof(i8),
     .pt = PT_I8,
-    .fields_begin = NULL,
-    .fields_end = NULL
+    .fields_begin = 0,
+    .fields_end = 0
 };
 
 static const print_meta u8_meta = {
@@ -58,8 +58,8 @@ static const print_meta u8_meta = {
     .is_array = 0,
     .type_size = sizeof(u8),
     .pt = PT_U8,
-    .fields_begin = NULL,
-    .fields_end = NULL
+    .fields_begin = 0,
+    .fields_end = 0
 };
 
 static const print_meta i16_meta = {
@@ -67,8 +67,8 @@ static const print_meta i16_meta = {
     .is_array = 0,
     .type_size = sizeof(i16),
     .pt = PT_I16,
-    .fields_begin = NULL,
-    .fields_end = NULL
+    .fields_begin = 0,
+    .fields_end = 0
 };
 
 static const print_meta u16_meta = {
@@ -76,8 +76,8 @@ static const print_meta u16_meta = {
     .is_array = 0,
     .type_size = sizeof(u16),
     .pt = PT_U16,
-    .fields_begin = NULL,
-    .fields_end = NULL
+    .fields_begin = 0,
+    .fields_end = 0
 };
 
 static const print_meta i32_meta = {
@@ -85,8 +85,8 @@ static const print_meta i32_meta = {
     .is_array = 0,
     .type_size = sizeof(i32),
     .pt = PT_I32,
-    .fields_begin = NULL,
-    .fields_end = NULL
+    .fields_begin = 0,
+    .fields_end = 0
 };
 
 static const print_meta u32_meta = {
@@ -94,8 +94,8 @@ static const print_meta u32_meta = {
     .is_array = 0,
     .type_size = sizeof(u32),
     .pt = PT_U32,
-    .fields_begin = NULL,
-    .fields_end = NULL
+    .fields_begin = 0,
+    .fields_end = 0
 };
 
 static const print_meta i64_meta = {
@@ -103,8 +103,8 @@ static const print_meta i64_meta = {
     .is_array = 0,
     .type_size = sizeof(i64),
     .pt = PT_I64,
-    .fields_begin = NULL,
-    .fields_end = NULL
+    .fields_begin = 0,
+    .fields_end = 0
 };
 
 static const print_meta u64_meta = {
@@ -112,8 +112,8 @@ static const print_meta u64_meta = {
     .is_array = 0,
     .type_size = sizeof(u64),
     .pt = PT_U64,
-    .fields_begin = NULL,
-    .fields_end = NULL
+    .fields_begin = 0,
+    .fields_end = 0
 };
 
 static const print_meta iptr_meta = {
@@ -121,8 +121,8 @@ static const print_meta iptr_meta = {
     .is_array = 0,
     .type_size = sizeof(iptr),
     .pt = PT_IPTR,
-    .fields_begin = NULL,
-    .fields_end = NULL
+    .fields_begin = 0,
+    .fields_end = 0
 };
 
 static const print_meta uptr_meta = {
@@ -130,8 +130,8 @@ static const print_meta uptr_meta = {
     .is_array = 0,
     .type_size = sizeof(uptr),
     .pt = PT_UPTR,
-    .fields_begin = NULL,
-    .fields_end = NULL
+    .fields_begin = 0,
+    .fields_end = 0
 };
 
 #endif /* PRINT_H */

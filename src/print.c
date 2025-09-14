@@ -1,60 +1,64 @@
 #include "print.h"
 #include <stddef.h>  // for NULL
-
-
-// Helper function to print indentation
-static void print_indent(FILE* stream, u32 indent_level) {
-    for (u32 i = 0; i < indent_level; ++i) {
-        fprintf(stream, "  ");
-    }
-}
+#include <stdio.h>   // for sprintf
 
 // Generic print function
-void print_generic(const print_meta* meta, void* data, FILE* stream, u32 indent_level) {
+void print_generic(const print_meta* meta, void* data, file_t file, u32 indent_level) {
+    char buf[256];
+    uptr len;
     if (meta->pt != PT_NONE) {
         // Primitive
         switch (meta->pt) {
-            case PT_I8: fprintf(stream, "%d", *(i8*)data); break;
-            case PT_U8: fprintf(stream, "%u", *(u8*)data); break;
-            case PT_I16: fprintf(stream, "%d", *(i16*)data); break;
-            case PT_U16: fprintf(stream, "%u", *(u16*)data); break;
-            case PT_I32: fprintf(stream, "%d", *(i32*)data); break;
-            case PT_U32: fprintf(stream, "%u", *(u32*)data); break;
-            case PT_I64: fprintf(stream, "%lld", *(i64*)data); break;
-            case PT_U64: fprintf(stream, "%llu", *(u64*)data); break;
-            case PT_IPTR: fprintf(stream, "%ld", *(iptr*)data); break;
-            case PT_UPTR: fprintf(stream, "%lu", *(uptr*)data); break;
-            default: fprintf(stream, "<unknown primitive>"); break;
+            case PT_I8: len = sprintf(buf, "%d", *(i8*)data); break;
+            case PT_U8: len = sprintf(buf, "%u", *(u8*)data); break;
+            case PT_I16: len = sprintf(buf, "%d", *(i16*)data); break;
+            case PT_U16: len = sprintf(buf, "%u", *(u16*)data); break;
+            case PT_I32: len = sprintf(buf, "%d", *(i32*)data); break;
+            case PT_U32: len = sprintf(buf, "%u", *(u32*)data); break;
+            case PT_I64: len = sprintf(buf, "%lld", *(i64*)data); break;
+            case PT_U64: len = sprintf(buf, "%llu", *(u64*)data); break;
+            case PT_IPTR: len = sprintf(buf, "%ld", *(iptr*)data); break;
+            case PT_UPTR: len = sprintf(buf, "%lu", *(uptr*)data); break;
+            default: len = sprintf(buf, "<unknown primitive>"); break;
         }
+        file_write(file, buf, len);
     } else {
         // Struct
-        fprintf(stream, "%s {\n", meta->type_name);
+        len = sprintf(buf, "%s {\n", meta->type_name);
+        file_write(file, buf, len);
         field_descriptor* field = (field_descriptor*)meta->fields_begin;
         field_descriptor* field_end = (field_descriptor*)meta->fields_end;
         for (; field < field_end; ++field) {
-            print_indent(stream, indent_level + 1);
-            fprintf(stream, "%s: ", field->field_name);
+            // Indentation
+            for (u32 i = 0; i < indent_level + 1; ++i) {
+                file_write(file, "  ", 2);
+            }
+            len = sprintf(buf, "%s: ", field->field_name);
+            file_write(file, buf, len);
             void* field_data = byteoffset(data, field->offset);
-            print_generic(field->field_meta, field_data, stream, indent_level + 1);
-            fprintf(stream, "\n");
+            print_generic(field->field_meta, field_data, file, indent_level + 1);
+            file_write(file, "\n", 1);
         }
-        print_indent(stream, indent_level);
-        fprintf(stream, "}");
+        // Closing brace with indentation
+        for (u32 i = 0; i < indent_level; ++i) {
+            file_write(file, "  ", 2);
+        }
+        file_write(file, "}", 1);
     }
 }
 
 // Specialized function for printing arrays
-void print_array_generic(const print_meta* element_meta, void* begin, void* end, FILE* stream, u32 indent_level) {
-    fprintf(stream, "[");
+void print_array_generic(const print_meta* element_meta, void* begin, void* end, file_t file, u32 indent_level) {
+    file_write(file, "[", 1);
     if (begin < end) {
         void* current = begin;
-        print_generic(element_meta, current, stream, indent_level);
+        print_generic(element_meta, current, file, indent_level);
         current = byteoffset(current, element_meta->type_size);
         while (current < end) {
-            fprintf(stream, ", ");
-            print_generic(element_meta, current, stream, indent_level);
+            file_write(file, ", ", 2);
+            print_generic(element_meta, current, file, indent_level);
             current = byteoffset(current, element_meta->type_size);
         }
     }
-    fprintf(stream, "]");
+    file_write(file, "]", 1);
 }

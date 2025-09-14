@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <string.h>
 #include <dirent.h>
+#include <stdio.h>
 
 // Open a file with the specified mode using stack_alloc
 file_t file_open(stack_alloc* alloc, const u8* path_begin, const u8* path_end, file_mode_t mode) {
@@ -50,6 +51,8 @@ file_t file_open(stack_alloc* alloc, const u8* path_begin, const u8* path_end, f
 
 // Close a file
 void file_close(file_t file) {
+    debug_assert(file != file_get_stderr());
+    debug_assert(file != file_get_stdout());
     if (file) {
         close((int)(uptr)file);
     }
@@ -88,7 +91,11 @@ uptr file_read_all(file_t file, void** buffer, stack_alloc* alloc) {
 
 // Write data to file
 uptr file_write(file_t file, const void* buffer, uptr size) {
-    if (!file || !buffer) {
+    if (file == file_get_stdout()) {
+        return fwrite(buffer, 1, size, stdout);
+    } else if (file == file_get_stderr()) {
+        return fwrite(buffer, 1, size, stderr);
+    } else if (!file) {
         return 0;
     }
 
@@ -269,4 +276,13 @@ i32 directory_remove(stack_alloc* alloc, const u8* path_begin, const u8* path_en
     sa_free(alloc, stack_begin); // free stack array
 
     return 0;
+}
+
+// Get console file handles
+file_t file_get_stdout(void) {
+    return stdout;
+}
+
+file_t file_get_stderr(void) {
+    return stderr;
 }

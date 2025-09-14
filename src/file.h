@@ -18,6 +18,10 @@ typedef enum {
 file_t file_open(stack_alloc* alloc, const u8* path_begin, const u8* path_end, file_mode_t mode);
 void file_close(file_t file);
 
+// Console file handles
+file_t file_get_stdout(void);
+file_t file_get_stderr(void);
+
 // Read operations
 uptr file_read_all(file_t file, void** buffer, stack_alloc* alloc);
 
