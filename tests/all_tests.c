@@ -2,6 +2,7 @@
 #include "test_mem.h"
 #include "test_stack_alloc.h"
 #include "test_win_x11.h"
+#include "test_file.h"
 #include <stdio.h>
 
 int main() {
@@ -16,6 +17,7 @@ int main() {
     test_mem_module(&ctx);
     test_sa_module(&ctx);
     test_win_x11_module(&ctx);
+    test_file_module(&ctx);
 
     // Report results
     test_report_context(&ctx);
