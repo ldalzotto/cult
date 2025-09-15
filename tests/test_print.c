@@ -5,6 +5,7 @@
 #include "../src/stack_alloc.h"
 #include "../src/mem.h"
 #include "../src/file.h"
+#include "../src/print_meta_iterator.h"
 #include <stddef.h>
 #include <string.h>
 
@@ -130,6 +131,8 @@ static void test_print_nested_to_file(test_context* t) {
     complex_t obj = {{10, 20}, 42};
     const char* expected = "complex_t {pos: test_point_t {x: 10, y: 20}, id: 42}";
 
+    print_format(file_stdout(), "%m\n", &complex_meta, &obj);
+    
     // Open file for writing
     file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
     TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
@@ -291,6 +294,62 @@ static void test_print_format_multiple_meta(test_context* t) {
     TEST_ASSERT_TRUE(t, 1);
 }
 
+static void test_print_meta_iterator(test_context* t) {
+    setup_test_temp_dir();
+
+    // Allocate memory using mem_map
+    const uptr stack_size = 1024;
+    void* memory = mem_map(stack_size);
+    stack_alloc alloc;
+    sa_init(&alloc, memory, byteoffset(memory, stack_size));
+
+    // Define expected output
+    const char expected[] = "complex_t\nBegin\ntest_point_t\nBegin\ni32\nBegin\ntest_point_t\nMiddle\ni32\nBegin\ntest_point_t\nEnd\ncomplex_t\nMiddle\ni32\nBegin\ncomplex_t\nEnd\n";
+
+    // Open file for writing
+    file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
+
+    print_meta_iterator* it = print_meta_iterator_init(&alloc, &complex_meta);
+
+    while (1) {
+        print_meta_iteration iteration = print_meta_iterator_next(it);
+        if (!iteration.meta) {break;}
+
+        print_format(file, "%s\n", iteration.meta->type_name);
+        if (iteration.fields_current == iteration.meta->fields_begin) {
+            print_format(file, "%s\n", "Begin");
+        } else if (iteration.fields_current == iteration.meta->fields_end) {
+            print_format(file, "%s\n", "End");
+        } else {
+            print_format(file, "%s\n", "Middle");
+        }
+    }
+    print_meta_iterator_deinit(&alloc, it);
+
+    file_close(file);
+
+    // Open file for reading
+    file_t read_file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_READ);
+    TEST_ASSERT_NOT_EQUAL(t, read_file, file_invalid());
+
+    // Read content
+    void* buffer;
+    uptr size = file_read_all(read_file, &buffer, &alloc);
+    TEST_ASSERT_TRUE(t, size > 0);
+
+    // Check content
+    TEST_ASSERT_TRUE(t, memcmp((char*)buffer, expected, sizeof(expected)) == 0);
+
+    sa_free(&alloc, buffer);
+    file_close(read_file);
+
+    sa_deinit(&alloc);
+    mem_unmap(memory, stack_size);
+
+    cleanup_test_temp_dir();
+}
+
 void test_print_module(test_context* t) {
     REGISTER_TEST(t, "print_primitives", test_print_primitives);
     REGISTER_TEST(t, "print_struct", test_print_struct);
@@ -299,4 +358,5 @@ void test_print_module(test_context* t) {
     REGISTER_TEST(t, "print_format_function", test_print_format_function);
     REGISTER_TEST(t, "print_format_meta_specifier", test_print_format_meta_specifier);
     REGISTER_TEST(t, "print_format_multiple_meta", test_print_format_multiple_meta);
+    REGISTER_TEST(t, "print_meta_iterator", test_print_meta_iterator);
 }

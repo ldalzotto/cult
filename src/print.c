@@ -1,6 +1,7 @@
 #include "print.h"
 #include "convert.h"
 #include "./assert.h"
+#include "./print_meta_iterator.h"
 #include <stddef.h>  // for NULL
 #include <stdio.h>   // for sprintf
 #include <stdarg.h>  // for variadic functions
@@ -89,44 +90,57 @@ static void format_iterator_get_segment(const format_iterator* iter, const char*
 
 // Helper function to print meta/data to output (either file or buffer)
 static void print_meta_to_output(const print_meta* meta, void* data, void* context, void (*output_func)(void* context, const char* data, uptr len)) {
-    if (meta->pt != PT_NONE) {
-        // Primitive
-        char buf[256];
-        uptr len;
-        switch (meta->pt) {
-            case PT_I8: convert_i8_to_string(*(i8*)data, buf, &len); break;
-            case PT_U8: convert_u8_to_string(*(u8*)data, buf, &len); break;
-            case PT_I16: convert_i16_to_string(*(i16*)data, buf, &len); break;
-            case PT_U16: convert_u16_to_string(*(u16*)data, buf, &len); break;
-            case PT_I32: convert_i32_to_string(*(i32*)data, buf, &len); break;
-            case PT_U32: convert_u32_to_string(*(u32*)data, buf, &len); break;
-            case PT_I64: convert_i64_to_string(*(i64*)data, buf, &len); break;
-            case PT_U64: convert_u64_to_string(*(u64*)data, buf, &len); break;
-            case PT_IPTR: convert_iptr_to_string(*(iptr*)data, buf, &len); break;
-            case PT_UPTR: convert_uptr_to_string(*(uptr*)data, buf, &len); break;
-            default:
-                len = 18;
-                for (uptr i = 0; i < len; i++) buf[i] = "<unknown primitive>"[i];
-                break;
-        }
-        output_func(context, buf, len);
-    } else {
-        // Struct
-        output_func(context, meta->type_name.begin, bytesize(meta->type_name.begin, meta->type_name.end));
-        output_func(context, " {", 2);
-        field_descriptor* field = (field_descriptor*)meta->fields_begin;
-        field_descriptor* field_end = (field_descriptor*)meta->fields_end;
-        for (; field < field_end; ++field) {
-            // Indentation
-            output_func(context, field->field_name.begin, bytesize(field->field_name.begin, field->field_name.end));
-            output_func(context, ": ", 2);
-            void* field_data = byteoffset(data, field->offset);
-            print_meta_to_output(field->field_meta, field_data, context, output_func);
-            if (field != field_end - 1) {
-                output_func(context, ", ", 2);
+
+    u8 stack[1024];
+    stack_alloc alloc;
+    sa_init(&alloc, stack, byteoffset(stack, sizeof(stack)));
+
+    uptr offset = 0;
+
+    print_meta_iterator* iterator = print_meta_iterator_init(&alloc, meta);
+    while (1) {
+        print_meta_iteration result = print_meta_iterator_next(iterator);
+        if (!result.meta) {break;}
+        const print_meta* current = result.meta;
+        if (current->pt != PT_NONE) {
+            // Primitive
+            char buf[256];
+            uptr len;
+            void* data_offset = byteoffset(data, offset);
+            switch (current->pt) {
+                case PT_I8: convert_i8_to_string(*(i8*)data_offset, buf, &len); break;
+                case PT_U8: convert_u8_to_string(*(u8*)data_offset, buf, &len); break;
+                case PT_I16: convert_i16_to_string(*(i16*)data_offset, buf, &len); break;
+                case PT_U16: convert_u16_to_string(*(u16*)data_offset, buf, &len); break;
+                case PT_I32: convert_i32_to_string(*(i32*)data_offset, buf, &len); break;
+                case PT_U32: convert_u32_to_string(*(u32*)data_offset, buf, &len); break;
+                case PT_I64: convert_i64_to_string(*(i64*)data_offset, buf, &len); break;
+                case PT_U64: convert_u64_to_string(*(u64*)data_offset, buf, &len); break;
+                case PT_IPTR: convert_iptr_to_string(*(iptr*)data_offset, buf, &len); break;
+                case PT_UPTR: convert_uptr_to_string(*(uptr*)data_offset, buf, &len); break;
+                default:
+                    len = 18;
+                    for (uptr i = 0; i < len; i++) buf[i] = "<unknown primitive>"[i];
+                    break;
             }
+            output_func(context, buf, len);
+        } 
+        // Struct
+        else if (result.fields_current == result.meta->fields_begin) {
+            output_func(context, current->type_name.begin, bytesize(current->type_name.begin, current->type_name.end));
+            output_func(context, " {", 2);
+            output_func(context, result.fields_current->field_name.begin, bytesize(result.fields_current->field_name.begin, result.fields_current->field_name.end));
+            output_func(context, ": ", 2);
+            offset += result.fields_current->offset;
+        } else if (result.fields_current == result.meta->fields_end) {
+            output_func(context, "}", 1);
+            offset -= (result.meta->fields_end - 1)->offset;
+        } else {
+            output_func(context, ", ", 2);
+            output_func(context, result.fields_current->field_name.begin, bytesize(result.fields_current->field_name.begin, result.fields_current->field_name.end));
+            output_func(context, ": ", 2);
+            offset += result.fields_current->offset;
         }
-        output_func(context, "}", 1);
     }
 }
 

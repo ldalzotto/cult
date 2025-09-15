@@ -7,6 +7,7 @@
 
 // Forward declaration
 typedef struct print_meta print_meta;
+typedef struct field_descriptor field_descriptor;
 
 // Enum for primitive types
 typedef enum {
@@ -15,7 +16,6 @@ typedef enum {
     PT_I32, PT_U32, PT_I64, PT_U64,
     PT_IPTR, PT_UPTR
 } primitive_type;
-typedef struct field_descriptor field_descriptor;
 
 // Meta structure for describing how to print any type
 struct print_meta {
