@@ -1,10 +1,66 @@
 #include "format_iterator.h"
 #include "convert.h"
-#include "./assert.h"
 #include "./print_meta_iterator.h"
 #include <stddef.h>
 #include <string.h>
 #include <stdarg.h>
+
+// Process a format specifier and get the result
+static void process_format_specifier(char specifier, va_list args, char* buffer, uptr* length) {
+    switch (specifier) {
+        case 'd': {
+            // Handle signed integer
+            i32 value = va_arg(args, i32);
+            convert_i32_to_string(value, buffer, length);
+            break;
+        }
+        case 'u': {
+            // Handle unsigned integer
+            u32 value = va_arg(args, u32);
+            convert_u32_to_string(value, buffer, length);
+            break;
+        }
+        case 's': {
+            // Handle string
+            const char* str = va_arg(args, const char*);
+            if (str) {
+                *length = 0;
+                while (str[*length] != '\0') ++(*length);
+                // Copy string to buffer
+                for (uptr i = 0; i < *length; i++) {
+                    buffer[i] = str[i];
+                }
+            } else {
+                // Copy "(null)" to buffer
+                const char* null_str = "(null)";
+                *length = 6;
+                for (uptr i = 0; i < *length; i++) {
+                    buffer[i] = null_str[i];
+                }
+            }
+            break;
+        }
+        case 'c': {
+            // Handle character
+            char c = (char)va_arg(args, int);  // char is promoted to int
+            buffer[0] = c;
+            *length = 1;
+            break;
+        }
+        case 'p': {
+            // Handle pointer
+            void* ptr = va_arg(args, void*);
+            convert_pointer_to_string(ptr, buffer, length);
+            break;
+        }
+        default:
+            // Handle unknown format specifier
+            buffer[0] = '%';
+            buffer[1] = specifier;
+            *length = 2;
+            break;
+    }
+}
 
 struct format_iterator {
     const char* format;
@@ -78,7 +134,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
                     break;
             }
             memcpy(iter->buffer, buf, len);
-            return (format_iteration){FORMAT_ITERATION_LITERAL, iter->buffer, len, '\0'};
+            return (format_iteration){FORMAT_ITERATION_LITERAL, iter->buffer, len};
         } else {
             // Struct
             uptr pos = 0;
@@ -108,11 +164,11 @@ format_iteration format_iterator_next(format_iterator* iter) {
                 pos += 2;
                 iter->offset += result.fields_current->offset;
             }
-            return (format_iteration){FORMAT_ITERATION_LITERAL, iter->buffer, pos, '\0'};
+            return (format_iteration){FORMAT_ITERATION_LITERAL, iter->buffer, pos};
         }
     } else {
         if (*iter->current == '\0') {
-            return (format_iteration){FORMAT_ITERATION_END, NULL, 0, '\0'};
+            return (format_iteration){FORMAT_ITERATION_END, NULL, 0};
         }
         if (*iter->current == '%') {
             iter->segment_start = iter->current;
@@ -120,7 +176,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
             if (*iter->current == '\0') {
                 iter->segment_end = iter->current;
                 iter->current++;
-                return (format_iteration){FORMAT_ITERATION_LITERAL, iter->segment_start, iter->segment_end - iter->segment_start, '\0'};
+                return (format_iteration){FORMAT_ITERATION_LITERAL, iter->segment_start, iter->segment_end - iter->segment_start};
             }
             iter->specifier = *iter->current;
             iter->segment_end = iter->current + 1;
@@ -133,7 +189,10 @@ format_iteration format_iterator_next(format_iterator* iter) {
                 iter->meta_iter = print_meta_iterator_init(iter->alloc, iter->meta);
                 return format_iterator_next(iter);
             } else {
-                return (format_iteration){FORMAT_ITERATION_SPECIFIER, iter->segment_start, iter->segment_end - iter->segment_start, iter->specifier};
+                // Process the specifier
+                uptr length;
+                process_format_specifier(iter->specifier, iter->args, iter->buffer, &length);
+                return (format_iteration){FORMAT_ITERATION_LITERAL, iter->buffer, length};
             }
         } else {
             iter->segment_start = iter->current;
@@ -141,7 +200,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
                 iter->current++;
             }
             iter->segment_end = iter->current;
-            return (format_iteration){FORMAT_ITERATION_LITERAL, iter->segment_start, iter->segment_end - iter->segment_start, '\0'};
+            return (format_iteration){FORMAT_ITERATION_LITERAL, iter->segment_start, iter->segment_end - iter->segment_start};
         }
     }
 }
