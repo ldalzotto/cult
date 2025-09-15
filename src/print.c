@@ -2,8 +2,6 @@
 #include "convert.h"
 #include "./assert.h"
 #include "./print_meta_iterator.h"
-#include <stddef.h>  // for NULL
-#include <stdio.h>   // for sprintf
 #include <stdarg.h>  // for variadic functions
 #include <string.h>  // for memcpy
 
@@ -34,6 +32,13 @@ typedef struct {
     const char* segment_end;   // End of current segment
     format_segment_type type;  // Type of current segment
     char specifier;            // Format specifier character (for FORMAT_SEGMENT_SPECIFIER)
+    u8 in_meta;
+    const print_meta* meta;
+    void* data;
+    print_meta_iterator* meta_iter;
+    stack_alloc* alloc;
+    uptr offset;
+    char buffer[1024];
 } format_iterator;
 
 // Initialize format iterator
@@ -44,10 +49,16 @@ static void format_iterator_init(format_iterator* iter, const char* format) {
     iter->segment_end = format;
     iter->type = FORMAT_SEGMENT_LITERAL;
     iter->specifier = '\0';
+    iter->in_meta = 0;
+    iter->meta = NULL;
+    iter->data = NULL;
+    iter->meta_iter = NULL;
+    iter->alloc = NULL;
+    iter->offset = 0;
 }
 
-// Advance iterator to next segment
-static void format_iterator_next(format_iterator* iter) {
+// Advance iterator to next format segment
+static void format_iterator_advance(format_iterator* iter) {
     if (*iter->current == '\0') {
         iter->type = FORMAT_SEGMENT_END;
         return;
@@ -82,31 +93,25 @@ static void format_iterator_next(format_iterator* iter) {
     }
 }
 
-// Get segment text and length
-static void format_iterator_get_segment(const format_iterator* iter, const char** text, uptr* length) {
-    *text = iter->segment_start;
-    *length = iter->segment_end - iter->segment_start;
-}
-
-// Helper function to print meta/data to output (either file or buffer)
-static void print_meta_to_output(const print_meta* meta, void* data, void* context, void (*output_func)(void* context, const char* data, uptr len)) {
-
-    u8 stack[1024];
-    stack_alloc alloc;
-    sa_init(&alloc, stack, byteoffset(stack, sizeof(stack)));
-
-    uptr offset = 0;
-
-    print_meta_iterator* iterator = print_meta_iterator_init(&alloc, meta);
-    while (1) {
-        print_meta_iteration result = print_meta_iterator_next(iterator);
-        if (!result.meta) {break;}
+// Advance iterator to next segment
+static void format_iterator_next(format_iterator* iter) {
+    if (iter->in_meta) {
+        print_meta_iteration result = print_meta_iterator_next(iter->meta_iter);
+        if (!result.meta) {
+            iter->in_meta = 0;
+            print_meta_iterator_deinit(iter->alloc, iter->meta_iter);
+            iter->meta_iter = NULL;
+            // then advance format
+            format_iterator_advance(iter);
+            return;
+        }
         const print_meta* current = result.meta;
+        iter->type = FORMAT_SEGMENT_LITERAL;
         if (current->pt != PT_NONE) {
             // Primitive
             char buf[256];
             uptr len;
-            void* data_offset = byteoffset(data, offset);
+            void* data_offset = byteoffset(iter->data, iter->offset);
             switch (current->pt) {
                 case PT_I8: convert_i8_to_string(*(i8*)data_offset, buf, &len); break;
                 case PT_U8: convert_u8_to_string(*(u8*)data_offset, buf, &len); break;
@@ -120,42 +125,56 @@ static void print_meta_to_output(const print_meta* meta, void* data, void* conte
                 case PT_UPTR: convert_uptr_to_string(*(uptr*)data_offset, buf, &len); break;
                 default:
                     len = 18;
-                    for (uptr i = 0; i < len; i++) buf[i] = "<unknown primitive>"[i];
+                    memcpy(buf, "<unknown primitive>", len);
                     break;
             }
-            output_func(context, buf, len);
-        } 
-        // Struct
-        else if (result.fields_current == result.meta->fields_begin) {
-            output_func(context, current->type_name.begin, bytesize(current->type_name.begin, current->type_name.end));
-            output_func(context, " {", 2);
-            output_func(context, result.fields_current->field_name.begin, bytesize(result.fields_current->field_name.begin, result.fields_current->field_name.end));
-            output_func(context, ": ", 2);
-            offset += result.fields_current->offset;
-        } else if (result.fields_current == result.meta->fields_end) {
-            output_func(context, "}", 1);
-            offset -= (result.meta->fields_end - 1)->offset;
+            memcpy(iter->buffer, buf, len);
+            iter->segment_start = iter->buffer;
+            iter->segment_end = iter->buffer + len;
         } else {
-            output_func(context, ", ", 2);
-            output_func(context, result.fields_current->field_name.begin, bytesize(result.fields_current->field_name.begin, result.fields_current->field_name.end));
-            output_func(context, ": ", 2);
-            offset += result.fields_current->offset;
+            // Struct
+            uptr pos = 0;
+            if (result.fields_current == result.meta->fields_begin) {
+                uptr name_len = bytesize(current->type_name.begin, current->type_name.end);
+                memcpy(iter->buffer + pos, current->type_name.begin, name_len);
+                pos += name_len;
+                memcpy(iter->buffer + pos, " {", 2);
+                pos += 2;
+                uptr field_len = bytesize(result.fields_current->field_name.begin, result.fields_current->field_name.end);
+                memcpy(iter->buffer + pos, result.fields_current->field_name.begin, field_len);
+                pos += field_len;
+                memcpy(iter->buffer + pos, ": ", 2);
+                pos += 2;
+                iter->offset += result.fields_current->offset;
+            } else if (result.fields_current == result.meta->fields_end) {
+                memcpy(iter->buffer + pos, "}", 1);
+                pos += 1;
+                iter->offset -= (result.meta->fields_end - 1)->offset;
+            } else {
+                memcpy(iter->buffer + pos, ", ", 2);
+                pos += 2;
+                uptr field_len = bytesize(result.fields_current->field_name.begin, result.fields_current->field_name.end);
+                memcpy(iter->buffer + pos, result.fields_current->field_name.begin, field_len);
+                pos += field_len;
+                memcpy(iter->buffer + pos, ": ", 2);
+                pos += 2;
+                iter->offset += result.fields_current->offset;
+            }
+            iter->segment_start = iter->buffer;
+            iter->segment_end = iter->buffer + pos;
         }
+    } else {
+        format_iterator_advance(iter);
     }
 }
 
-// Output handler for file output (used by print_meta_to_output)
-static void file_output_handler_for_meta(void* context, const char* data, uptr len) {
-    file_t* file = (file_t*)context;
-    file_write(*file, data, len);
+// Get segment text and length
+static void format_iterator_get_segment(const format_iterator* iter, const char** text, uptr* length) {
+    *text = iter->segment_start;
+    *length = iter->segment_end - iter->segment_start;
 }
 
-// Output handler for buffer output (used by print_meta_to_output)
-static void buffer_output_handler_for_meta(void* context, const char* data, uptr len) {
-    buffer_output_context* buffer_ctx = (buffer_output_context*)context;
-    void* dest = sa_alloc(buffer_ctx->alloc, len);
-    memcpy(dest, data, len);
-}
+
 
 // Process a format specifier and get the result
 static void process_format_specifier(char specifier, va_list args, char* buffer, uptr* length) {
@@ -218,6 +237,10 @@ static void process_format_specifier(char specifier, va_list args, char* buffer,
 void print_format(file_t file, const char* format, ...) {
     debug_assert(format != 0);
 
+    u8 stack[1024];
+    stack_alloc alloc;
+    sa_init(&alloc, stack, byteoffset(stack, sizeof(stack)));
+
     va_list args;
     va_start(args, format);
 
@@ -237,7 +260,12 @@ void print_format(file_t file, const char* format, ...) {
                 // Handle meta/data pair
                 const print_meta* meta = va_arg(args, const print_meta*);
                 void* data = va_arg(args, void*);
-                print_meta_to_output(meta, data, &file, file_output_handler_for_meta);
+                iter.in_meta = 1;
+                iter.meta = meta;
+                iter.data = data;
+                iter.alloc = &alloc;
+                iter.offset = 0;
+                iter.meta_iter = print_meta_iterator_init(&alloc, meta);
             } else {
                 char buffer[256];
                 uptr length;
@@ -277,8 +305,12 @@ void* print_format_to_buffer(stack_alloc* alloc, const char* format, ...) {
                 // Handle meta/data pair
                 const print_meta* meta = va_arg(args, const print_meta*);
                 void* data = va_arg(args, void*);
-                buffer_output_context buffer_ctx = {alloc};
-                print_meta_to_output(meta, data, &buffer_ctx, buffer_output_handler_for_meta);
+                iter.in_meta = 1;
+                iter.meta = meta;
+                iter.data = data;
+                iter.alloc = alloc;
+                iter.offset = 0;
+                iter.meta_iter = print_meta_iterator_init(alloc, meta);
             } else {
                 char buffer[256];
                 uptr length;
