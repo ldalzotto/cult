@@ -138,7 +138,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
         } else {
             // Struct
             uptr pos = 0;
-            if (result.fields_current == result.meta->fields_begin) {
+            if (result.fields_current == result.meta->fields.begin) {
                 uptr name_len = bytesize(current->type_name.begin, current->type_name.end);
                 memcpy(iter->buffer + pos, current->type_name.begin, name_len);
                 pos += name_len;
@@ -150,10 +150,10 @@ format_iteration format_iterator_next(format_iterator* iter) {
                 memcpy(iter->buffer + pos, ": ", 2);
                 pos += 2;
                 iter->offset += result.fields_current->offset;
-            } else if (result.fields_current == result.meta->fields_end) {
+            } else if (result.fields_current == result.meta->fields.end) {
                 memcpy(iter->buffer + pos, "}", 1);
                 pos = 1;
-                iter->offset -= (result.meta->fields_end - 1)->offset;
+                iter->offset -= (result.meta->fields.end - 1)->offset;
             } else {
                 memcpy(iter->buffer + pos, ", ", 2);
                 pos += 2;

@@ -22,8 +22,10 @@ struct meta {
     u32 is_array;                  // 1 if this is an array type
     uptr type_size;                // size of the type in bytes
     primitive_type pt;             // primitive type enum
-    const field_descriptor* fields_begin; // pointer to first field descriptor
-    const field_descriptor* fields_end; // pointer to after last field descriptor
+    struct {
+        const field_descriptor* begin; // pointer to first field descriptor
+        const field_descriptor* end; // pointer to after last field descriptor
+    } fields;
 };
 
 // Field descriptor structure
@@ -39,8 +41,7 @@ static const meta i8_meta = {
     .is_array = 0,
     .type_size = sizeof(i8),
     .pt = PT_I8,
-    .fields_begin = 0,
-    .fields_end = 0
+    .fields = {0,0},
 };
 
 static const meta u8_meta = {
@@ -48,8 +49,7 @@ static const meta u8_meta = {
     .is_array = 0,
     .type_size = sizeof(u8),
     .pt = PT_U8,
-    .fields_begin = 0,
-    .fields_end = 0
+    .fields = {0,0},
 };
 
 static const meta i16_meta = {
@@ -57,8 +57,7 @@ static const meta i16_meta = {
     .is_array = 0,
     .type_size = sizeof(i16),
     .pt = PT_I16,
-    .fields_begin = 0,
-    .fields_end = 0
+    .fields = {0,0},
 };
 
 static const meta u16_meta = {
@@ -66,8 +65,7 @@ static const meta u16_meta = {
     .is_array = 0,
     .type_size = sizeof(u16),
     .pt = PT_U16,
-    .fields_begin = 0,
-    .fields_end = 0
+    .fields = {0,0},
 };
 
 static const meta i32_meta = {
@@ -75,8 +73,7 @@ static const meta i32_meta = {
     .is_array = 0,
     .type_size = sizeof(i32),
     .pt = PT_I32,
-    .fields_begin = 0,
-    .fields_end = 0
+    .fields = {0,0},
 };
 
 static const meta u32_meta = {
@@ -84,8 +81,7 @@ static const meta u32_meta = {
     .is_array = 0,
     .type_size = sizeof(u32),
     .pt = PT_U32,
-    .fields_begin = 0,
-    .fields_end = 0
+    .fields = {0,0},
 };
 
 static const meta i64_meta = {
@@ -93,8 +89,7 @@ static const meta i64_meta = {
     .is_array = 0,
     .type_size = sizeof(i64),
     .pt = PT_I64,
-    .fields_begin = 0,
-    .fields_end = 0
+    .fields = {0,0},
 };
 
 static const meta u64_meta = {
@@ -102,8 +97,7 @@ static const meta u64_meta = {
     .is_array = 0,
     .type_size = sizeof(u64),
     .pt = PT_U64,
-    .fields_begin = 0,
-    .fields_end = 0
+    .fields = {0,0},
 };
 
 static const meta iptr_meta = {
@@ -111,8 +105,7 @@ static const meta iptr_meta = {
     .is_array = 0,
     .type_size = sizeof(iptr),
     .pt = PT_IPTR,
-    .fields_begin = 0,
-    .fields_end = 0
+    .fields = {0,0},
 };
 
 static const meta uptr_meta = {
@@ -120,8 +113,7 @@ static const meta uptr_meta = {
     .is_array = 0,
     .type_size = sizeof(uptr),
     .pt = PT_UPTR,
-    .fields_begin = 0,
-    .fields_end = 0
+    .fields = {0,0},
 };
 
 #endif /* META_H */

@@ -24,35 +24,37 @@ typedef struct {
 } complex_t;
 
 // Fields for test_point_t
-field_descriptor test_point_fields[] = {
+const field_descriptor test_point_fields[] = {
     {STATIC_STRING("x"), offsetof(test_point_t, x), &i32_meta},
     {STATIC_STRING("y"), offsetof(test_point_t, y), &i32_meta}
 };
 
 // Meta for test_point_t
-meta test_point_meta = {
+const meta test_point_meta = {
     .type_name = STATIC_STRING("test_point_t"),
     .is_array = 0,
     .type_size = sizeof(test_point_t),
     .pt = PT_NONE,
-    .fields_begin = test_point_fields,
-    .fields_end = test_point_fields + (sizeof(test_point_fields) / sizeof(field_descriptor))
+    .fields = {
+        ARRAY_RANGE(test_point_fields)
+    },
 };
 
 // Fields for complex_t
-field_descriptor complex_fields[] = {
+const field_descriptor complex_fields[] = {
     {STATIC_STRING("pos"), offsetof(complex_t, pos), &test_point_meta},
     {STATIC_STRING("id"), offsetof(complex_t, id), &i32_meta}
 };
 
 // Meta for complex_t
-meta complex_meta = {
+const meta complex_meta = {
     .type_name = STATIC_STRING("complex_t"),
     .is_array = 0,
     .type_size = sizeof(complex_t),
     .pt = PT_NONE,
-    .fields_begin = complex_fields,
-    .fields_end = complex_fields + (sizeof(complex_fields) / sizeof(field_descriptor))
+    .fields = {
+        ARRAY_RANGE(complex_fields)
+    }
 };
 
 static void test_print_primitives(test_context* t) {
@@ -317,9 +319,9 @@ static void test_print_meta_iterator(test_context* t) {
         if (!iteration.meta) {break;}
 
         print_format(file, "%s\n", iteration.meta->type_name);
-        if (iteration.fields_current == iteration.meta->fields_begin) {
+        if (iteration.fields_current == iteration.meta->fields.begin) {
             print_format(file, "%s\n", "Begin");
-        } else if (iteration.fields_current == iteration.meta->fields_end) {
+        } else if (iteration.fields_current == iteration.meta->fields.end) {
             print_format(file, "%s\n", "End");
         } else {
             print_format(file, "%s\n", "Middle");

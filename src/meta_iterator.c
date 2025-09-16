@@ -38,7 +38,7 @@ static uptr iterator_max_depth(stack_alloc* alloc, const meta* meta) {
         sa_free(alloc, stack_cursor);
         stack_cursor -= 1;
 
-        for (const field_descriptor* field = meta->fields_begin; field < meta->fields_end; ++field) {
+        for (const field_descriptor* field = meta->fields.begin; field < meta->fields.end; ++field) {
             stack_cursor = sa_alloc(alloc, sizeof(*stack_cursor));
             stack_cursor->meta = field->field_meta;
             stack_cursor->depth = depth_current + 1;
@@ -62,7 +62,7 @@ static iterator* iterator_init(stack_alloc* alloc, const meta* start) {
 
     it->current = it->stack_begin;
     it->current->meta = start;
-    it->current->field_cursor = start->fields_begin;
+    it->current->field_cursor = start->fields.begin;
     return it;
 }
 
@@ -83,13 +83,13 @@ static print_meta_iteration iterator_next(iterator* iterator) {
 
     iteration.fields_current = result->field_cursor;
 
-    if (result->field_cursor != result->meta->fields_end) {
+    if (result->field_cursor != result->meta->fields.end) {
         const meta* meta_push = result->field_cursor->field_meta;
         result->field_cursor = byteoffset(result->field_cursor, sizeof(*result->field_cursor));
         iterator->current = byteoffset(iterator->current, sizeof(*iterator->current));
         stack_entry* entry_next = iterator->current;
         entry_next->meta = meta_push;
-        entry_next->field_cursor = meta_push->fields_begin;
+        entry_next->field_cursor = meta_push->fields.begin;
     } else {
         iterator->current -= 1;
     }
