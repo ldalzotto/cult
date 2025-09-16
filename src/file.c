@@ -6,7 +6,6 @@
 #include <errno.h>
 #include <string.h>
 #include <dirent.h>
-#include <stdio.h>
 
 file_t file_invalid(void) {
     return -1;
