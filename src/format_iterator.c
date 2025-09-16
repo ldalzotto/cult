@@ -1,6 +1,6 @@
 #include "format_iterator.h"
 #include "convert.h"
-#include "./print_meta_iterator.h"
+#include "./meta_iterator.h"
 #include <stddef.h>
 #include <string.h>
 #include <stdarg.h>
@@ -69,7 +69,7 @@ struct format_iterator {
     const char* segment_end;
     char specifier;
     u8 in_meta;
-    const print_meta* meta;
+    const meta* meta;
     void* data;
     print_meta_iterator* meta_iter;
     stack_alloc* alloc;
@@ -111,7 +111,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
             // Continue with format
             return format_iterator_next(iter);
         }
-        const print_meta* current = result.meta;
+        const meta* current = result.meta;
         if (current->pt != PT_NONE) {
             // Primitive
             char buf[256];
@@ -182,7 +182,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
             iter->segment_end = iter->current + 1;
             iter->current++;
             if (iter->specifier == 'm') {
-                iter->meta = va_arg(iter->args, const print_meta*);
+                iter->meta = va_arg(iter->args, const meta*);
                 iter->data = va_arg(iter->args, void*);
                 iter->in_meta = 1;
                 iter->offset = 0;

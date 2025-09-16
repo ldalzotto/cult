@@ -5,7 +5,7 @@
 #include "../src/stack_alloc.h"
 #include "../src/mem.h"
 #include "../src/file.h"
-#include "../src/print_meta_iterator.h"
+#include "../src/meta_iterator.h"
 #include <stddef.h>
 #include <string.h>
 
@@ -30,7 +30,7 @@ field_descriptor test_point_fields[] = {
 };
 
 // Meta for test_point_t
-print_meta test_point_meta = {
+meta test_point_meta = {
     .type_name = STATIC_STRING("test_point_t"),
     .is_array = 0,
     .type_size = sizeof(test_point_t),
@@ -46,7 +46,7 @@ field_descriptor complex_fields[] = {
 };
 
 // Meta for complex_t
-print_meta complex_meta = {
+meta complex_meta = {
     .type_name = STATIC_STRING("complex_t"),
     .is_array = 0,
     .type_size = sizeof(complex_t),

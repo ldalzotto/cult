@@ -1,10 +1,9 @@
-#include "./print_meta_iterator.h"
+#include "./meta_iterator.h"
 
-#include "./print.h"
 #include "./assert.h"
 
 typedef struct {
-    const print_meta* meta;
+    const meta* meta;
     const field_descriptor* field_cursor;
 } stack_entry;
 
@@ -16,11 +15,11 @@ struct print_meta_iterator {
     stack_entry* current;
 };
 
-static uptr iterator_max_depth(stack_alloc* alloc, const print_meta* meta) {
+static uptr iterator_max_depth(stack_alloc* alloc, const meta* meta) {
     void* begin = alloc->cursor;
     uptr depth_max = 0;
     typedef struct {
-        const print_meta* meta;
+        const struct meta* meta;
         uptr depth;
     } entry;
     entry* start = sa_alloc(alloc, sizeof(*start));
@@ -34,7 +33,7 @@ static uptr iterator_max_depth(stack_alloc* alloc, const print_meta* meta) {
             depth_max = stack_cursor->depth;
             
         }
-        const print_meta* meta = stack_cursor->meta;
+        const struct meta* meta = stack_cursor->meta;
 
         sa_free(alloc, stack_cursor);
         stack_cursor -= 1;
@@ -51,7 +50,7 @@ static uptr iterator_max_depth(stack_alloc* alloc, const print_meta* meta) {
     return depth_max;
 }
 
-static iterator* iterator_init(stack_alloc* alloc, const print_meta* start) {
+static iterator* iterator_init(stack_alloc* alloc, const meta* start) {
     iterator* it = sa_alloc(alloc, sizeof(iterator));
 
     uptr depth_max = iterator_max_depth(alloc, start);
@@ -85,7 +84,7 @@ static print_meta_iteration iterator_next(iterator* iterator) {
     iteration.fields_current = result->field_cursor;
 
     if (result->field_cursor != result->meta->fields_end) {
-        const print_meta* meta_push = result->field_cursor->field_meta;
+        const meta* meta_push = result->field_cursor->field_meta;
         result->field_cursor = byteoffset(result->field_cursor, sizeof(*result->field_cursor));
         iterator->current = byteoffset(iterator->current, sizeof(*iterator->current));
         stack_entry* entry_next = iterator->current;
@@ -101,7 +100,7 @@ static print_meta_iteration iterator_next(iterator* iterator) {
 
 /////////////////////////
 
-print_meta_iterator* print_meta_iterator_init(stack_alloc* alloc, const print_meta* start) {
+print_meta_iterator* print_meta_iterator_init(stack_alloc* alloc, const meta* start) {
     return iterator_init(alloc, start);
 }
 
