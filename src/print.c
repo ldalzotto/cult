@@ -8,7 +8,7 @@
 void print_string(file_t file, const char* str) {
     uptr len = 0;
     while (str[len] != '\0') ++len;
-    file_write(file, str, len);
+    file_write(file, str, byteoffset(str, len));
 }
 
 // Print a formatted string with arguments to file
@@ -28,7 +28,7 @@ void print_format(file_t file, const char* format, ...) {
         format_iteration fi = format_iterator_next(iter);
         if (fi.type == FORMAT_ITERATION_END) break;
 
-        file_write(file, fi.text, fi.length);
+        file_write(file, fi.text, byteoffset(fi.text, fi.length));
     }
 
     format_iterator_deinit(&alloc, iter);

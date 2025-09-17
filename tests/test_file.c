@@ -51,14 +51,14 @@ static void test_file_write_read(test_context* t) {
     stack_alloc alloc;
     sa_init(&alloc, memory, byteoffset(memory, stack_size));
 
-    const char* test_data = "Hello, World!";
-    uptr data_size = sizeof("Hello, World!") - 1;  // exclude null terminator
+    const string_span test_data = STATIC_STRING("Hello, World!");
+    uptr data_size = bytesize(test_data.begin, test_data.end);
 
     // Write to file
     file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
     TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
-    uptr bytes_written = file_write(file, test_data, data_size);
+    uptr bytes_written = file_write(file, test_data.begin, test_data.end);
     TEST_ASSERT_EQUAL(t, bytes_written, data_size);
     file_close(file);
 
@@ -69,7 +69,7 @@ static void test_file_write_read(test_context* t) {
     void* buffer;
     uptr bytes_read = file_read_all(file, &buffer, &alloc);
     TEST_ASSERT_EQUAL(t, bytes_read, data_size);
-    TEST_ASSERT_EQUAL(t, memcmp(buffer, test_data, data_size), 0);
+    TEST_ASSERT_EQUAL(t, memcmp(buffer, test_data.begin, data_size), 0);
 
     sa_free(&alloc, buffer);
     file_close(file);
@@ -84,8 +84,8 @@ static void test_file_read_all(test_context* t) {
     // Set up temporary directory for tests
     setup_test_temp_dir();
 
-    const char* test_data = "This is a test file content.";
-    uptr data_size = sizeof("This is a test file content.") - 1;
+    const string_span test_data = STATIC_STRING("This is a test file content.");
+    uptr data_size = bytesize(test_data.begin, test_data.end);
 
     const uptr stack_size = 1024;
     void* memory = mem_map(stack_size);
@@ -95,7 +95,7 @@ static void test_file_read_all(test_context* t) {
     // Write test data to file
     file_t file = file_open(&alloc, path_test_read_all.begin, path_test_read_all.end, FILE_MODE_WRITE);
     TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
-    file_write(file, test_data, data_size);
+    file_write(file, test_data.begin, test_data.end);
     file_close(file);
 
     // Read entire file using stack allocator
@@ -106,7 +106,7 @@ static void test_file_read_all(test_context* t) {
     uptr bytes_read = file_read_all(file, &buffer, &alloc);
     TEST_ASSERT_EQUAL(t, bytes_read, data_size);
     TEST_ASSERT_NOT_NULL(t, buffer);
-    TEST_ASSERT_EQUAL(t, memcmp(buffer, test_data, data_size), 0);
+    TEST_ASSERT_EQUAL(t, memcmp(buffer, test_data.begin, data_size), 0);
 
     file_close(file);
     sa_free(&alloc, buffer);
@@ -121,8 +121,8 @@ static void test_file_size(test_context* t) {
     // Set up temporary directory for tests
     setup_test_temp_dir();
 
-    const char* test_data = "Size test data";
-    uptr data_size = sizeof("Size test data") - 1;
+    const string_span test_data = STATIC_STRING("Size test data");
+    uptr data_size = bytesize(test_data.begin, test_data.end);
 
     const uptr stack_size = 1024;
     void* memory = mem_map(stack_size);
@@ -132,7 +132,7 @@ static void test_file_size(test_context* t) {
     // Write test data
     file_t file = file_open(&alloc, path_test_size.begin, path_test_size.end, FILE_MODE_WRITE);
     TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
-    file_write(file, test_data, data_size);
+    file_write(file, test_data.begin, test_data.end);
     file_close(file);
 
     // Check file size

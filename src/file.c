@@ -89,8 +89,9 @@ uptr file_read_all(file_t file, void** buffer, stack_alloc* alloc) {
 }
 
 // Write data to file
-uptr file_write(file_t file, const void* buffer, uptr size) {
-    ssize_t bytes_written = write(file, buffer, (size_t)size);
+uptr file_write(file_t file, const void* begin, const void* end) {
+    uptr size = bytesize(begin, end);
+    ssize_t bytes_written = write(file, begin, (size_t)size);
     if (bytes_written == file_invalid()) {
         return 0;
     }

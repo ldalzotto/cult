@@ -27,7 +27,7 @@ file_t file_stderr(void);
 uptr file_read_all(file_t file, void** buffer, stack_alloc* alloc);
 
 // Write operations
-uptr file_write(file_t file, const void* buffer, uptr size);
+uptr file_write(file_t file, const void* begin, const void* end);
 
 // Utility functions
 uptr file_size(file_t file);
