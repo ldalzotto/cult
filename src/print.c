@@ -2,7 +2,6 @@
 #include "./assert.h"
 #include "./format_iterator.h"
 #include <stdarg.h>  // for variadic functions
-#include <string.h>  // for memcpy
 
 // Print a plain string to file
 void print_string(file_t file, const char* str) {
@@ -28,7 +27,7 @@ void print_format(file_t file, const char* format, ...) {
         format_iteration fi = format_iterator_next(iter);
         if (fi.type == FORMAT_ITERATION_END) break;
 
-        file_write(file, fi.text, byteoffset(fi.text, fi.length));
+        file_write(file, fi.text.begin, fi.text.end);
     }
 
     format_iterator_deinit(&alloc, iter);
@@ -51,8 +50,9 @@ void* print_format_to_buffer(stack_alloc* alloc, const char* format, ...) {
         format_iteration fi = format_iterator_next(iter);
         if (fi.type == FORMAT_ITERATION_END) break;
 
-        void* dest = sa_alloc(alloc, fi.length);
-        sa_copy(alloc, fi.text, dest, fi.length);
+        uptr text_length = bytesize(fi.text.begin, fi.text.end);
+        void* dest = sa_alloc(alloc, text_length);
+        sa_copy(alloc, fi.text.begin, dest, text_length);
     }
 
     format_iterator_deinit(alloc, iter);

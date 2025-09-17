@@ -15,8 +15,10 @@ typedef enum {
 
 typedef struct {
     format_iteration_type type;
-    const char* text;
-    uptr length; // TODO -> return end?
+    struct {
+        const char* begin;
+        const char* end;
+    } text;
 } format_iteration;
 
 format_iteration format_iterator_next(format_iterator* iterator);

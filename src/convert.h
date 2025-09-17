@@ -3,6 +3,7 @@
 
 #include "primitive.h"
 
+// TODO: should take a stack alloc as well
 // Function declarations for converting primitive types to strings
 void convert_i8_to_string(i8 value, char* buffer, uptr* length);
 void convert_u8_to_string(u8 value, char* buffer, uptr* length);

@@ -138,7 +138,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
             }
             void* start = sa_alloc(&iter->buffer, len);
             sa_copy(&iter->buffer, _buf, start, len);
-            return (format_iteration){FORMAT_ITERATION_LITERAL, iter->buffer.begin, len};
+            return (format_iteration){FORMAT_ITERATION_LITERAL, {start, iter->buffer.cursor}};
         } else {
             // Struct
             void* start = iter->buffer.cursor;
@@ -168,8 +168,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
                 sa_copy(&iter->buffer, ": ", cursor, 2);
                 iter->offset += result.fields_current->offset;
             }
-            uptr len = bytesize(start, iter->buffer.cursor);
-            return (format_iteration){FORMAT_ITERATION_LITERAL, start, len};
+            return (format_iteration){FORMAT_ITERATION_LITERAL, {start, iter->buffer.cursor}};
         }
     } else {
         if (*iter->current == '\0') {
@@ -181,7 +180,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
             if (*iter->current == '\0') {
                 iter->segment_end = iter->current;
                 iter->current++;
-                return (format_iteration){FORMAT_ITERATION_LITERAL, iter->segment_start, iter->segment_end - iter->segment_start};
+                return (format_iteration){FORMAT_ITERATION_LITERAL, {iter->segment_start, iter->segment_end}};
             }
             iter->specifier = *iter->current;
             iter->segment_end = iter->current + 1;
@@ -198,7 +197,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
                 uptr length;
                 void* start = iter->buffer.cursor;
                 process_format_specifier(iter->specifier, iter->args, &iter->buffer, iter->buffer.begin, &length);
-                return (format_iteration){FORMAT_ITERATION_LITERAL, start, length};
+                return (format_iteration){FORMAT_ITERATION_LITERAL, {start, byteoffset(start, length)}};
             }
         } else {
             iter->segment_start = iter->current;
@@ -206,7 +205,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
                 iter->current++;
             }
             iter->segment_end = iter->current;
-            return (format_iteration){FORMAT_ITERATION_LITERAL, iter->segment_start, iter->segment_end - iter->segment_start};
+            return (format_iteration){FORMAT_ITERATION_LITERAL, {iter->segment_start, iter->segment_end}};
         }
     }
 }
