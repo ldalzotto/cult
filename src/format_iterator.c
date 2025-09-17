@@ -172,7 +172,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
         }
     } else {
         if (*iter->current == '\0') {
-            return (format_iteration){FORMAT_ITERATION_END, NULL, 0};
+            return (format_iteration){FORMAT_ITERATION_END, {NULL, 0}};
         }
         if (*iter->current == '%') {
             iter->segment_start = iter->current;

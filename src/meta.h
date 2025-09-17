@@ -37,7 +37,7 @@ struct field_descriptor {
 
 
 static const meta i8_meta = {
-    .type_name = STATIC_STRING("i8"),
+    .type_name = STR("i8"),
     .is_array = 0,
     .type_size = sizeof(i8),
     .pt = PT_I8,
@@ -45,7 +45,7 @@ static const meta i8_meta = {
 };
 
 static const meta u8_meta = {
-    .type_name = STATIC_STRING("u8"),
+    .type_name = STR("u8"),
     .is_array = 0,
     .type_size = sizeof(u8),
     .pt = PT_U8,
@@ -53,7 +53,7 @@ static const meta u8_meta = {
 };
 
 static const meta i16_meta = {
-    .type_name = STATIC_STRING("i16"),
+    .type_name = STR("i16"),
     .is_array = 0,
     .type_size = sizeof(i16),
     .pt = PT_I16,
@@ -61,7 +61,7 @@ static const meta i16_meta = {
 };
 
 static const meta u16_meta = {
-    .type_name = STATIC_STRING("u16"),
+    .type_name = STR("u16"),
     .is_array = 0,
     .type_size = sizeof(u16),
     .pt = PT_U16,
@@ -69,7 +69,7 @@ static const meta u16_meta = {
 };
 
 static const meta i32_meta = {
-    .type_name = STATIC_STRING("i32"),
+    .type_name = STR("i32"),
     .is_array = 0,
     .type_size = sizeof(i32),
     .pt = PT_I32,
@@ -77,7 +77,7 @@ static const meta i32_meta = {
 };
 
 static const meta u32_meta = {
-    .type_name = STATIC_STRING("u32"),
+    .type_name = STR("u32"),
     .is_array = 0,
     .type_size = sizeof(u32),
     .pt = PT_U32,
@@ -85,7 +85,7 @@ static const meta u32_meta = {
 };
 
 static const meta i64_meta = {
-    .type_name = STATIC_STRING("i64"),
+    .type_name = STR("i64"),
     .is_array = 0,
     .type_size = sizeof(i64),
     .pt = PT_I64,
@@ -93,7 +93,7 @@ static const meta i64_meta = {
 };
 
 static const meta u64_meta = {
-    .type_name = STATIC_STRING("u64"),
+    .type_name = STR("u64"),
     .is_array = 0,
     .type_size = sizeof(u64),
     .pt = PT_U64,
@@ -101,7 +101,7 @@ static const meta u64_meta = {
 };
 
 static const meta iptr_meta = {
-    .type_name = STATIC_STRING("iptr"),
+    .type_name = STR("iptr"),
     .is_array = 0,
     .type_size = sizeof(iptr),
     .pt = PT_IPTR,
@@ -109,7 +109,7 @@ static const meta iptr_meta = {
 };
 
 static const meta uptr_meta = {
-    .type_name = STATIC_STRING("uptr"),
+    .type_name = STR("uptr"),
     .is_array = 0,
     .type_size = sizeof(uptr),
     .pt = PT_UPTR,

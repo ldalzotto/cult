@@ -9,11 +9,11 @@
 #include <stdio.h>
 #include <string.h>
 
-// Path definitions using STATIC_STRING
-static const string_span path_non_existent  = STATIC_STRING("test_temp/non_existent_file.txt");
-static const string_span path_test_output   = STATIC_STRING("test_temp/test_output.txt");
-static const string_span path_test_read_all = STATIC_STRING("test_temp/test_read_all.txt");
-static const string_span path_test_size     = STATIC_STRING("test_temp/test_size.txt");
+// Path definitions using STR
+static const string_span path_non_existent  = STR("test_temp/non_existent_file.txt");
+static const string_span path_test_output   = STR("test_temp/test_output.txt");
+static const string_span path_test_read_all = STR("test_temp/test_read_all.txt");
+static const string_span path_test_size     = STR("test_temp/test_size.txt");
 
 static void test_file_open_close(test_context* t) {
     // Set up temporary directory for tests
@@ -51,7 +51,7 @@ static void test_file_write_read(test_context* t) {
     stack_alloc alloc;
     sa_init(&alloc, memory, byteoffset(memory, stack_size));
 
-    const string_span test_data = STATIC_STRING("Hello, World!");
+    const string_span test_data = STR("Hello, World!");
     uptr data_size = bytesize(test_data.begin, test_data.end);
 
     // Write to file
@@ -84,7 +84,7 @@ static void test_file_read_all(test_context* t) {
     // Set up temporary directory for tests
     setup_test_temp_dir();
 
-    const string_span test_data = STATIC_STRING("This is a test file content.");
+    const string_span test_data = STR("This is a test file content.");
     uptr data_size = bytesize(test_data.begin, test_data.end);
 
     const uptr stack_size = 1024;
@@ -121,7 +121,7 @@ static void test_file_size(test_context* t) {
     // Set up temporary directory for tests
     setup_test_temp_dir();
 
-    const string_span test_data = STATIC_STRING("Size test data");
+    const string_span test_data = STR("Size test data");
     uptr data_size = bytesize(test_data.begin, test_data.end);
 
     const uptr stack_size = 1024;

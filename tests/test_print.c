@@ -9,8 +9,8 @@
 #include <stddef.h>
 #include <string.h>
 
-// Path definitions using STATIC_STRING
-static const string_span path_test_output = STATIC_STRING("test_temp/print_test_output.txt");
+// Path definitions using STR
+static const string_span path_test_output = STR("test_temp/print_test_output.txt");
 
 // Define test structs
 typedef struct {
@@ -25,13 +25,13 @@ typedef struct {
 
 // Fields for test_point_t
 const field_descriptor test_point_fields[] = {
-    {STATIC_STRING("x"), offsetof(test_point_t, x), &i32_meta},
-    {STATIC_STRING("y"), offsetof(test_point_t, y), &i32_meta}
+    {STR("x"), offsetof(test_point_t, x), &i32_meta},
+    {STR("y"), offsetof(test_point_t, y), &i32_meta}
 };
 
 // Meta for test_point_t
 const meta test_point_meta = {
-    .type_name = STATIC_STRING("test_point_t"),
+    .type_name = STR("test_point_t"),
     .is_array = 0,
     .type_size = sizeof(test_point_t),
     .pt = PT_NONE,
@@ -42,13 +42,13 @@ const meta test_point_meta = {
 
 // Fields for complex_t
 const field_descriptor complex_fields[] = {
-    {STATIC_STRING("pos"), offsetof(complex_t, pos), &test_point_meta},
-    {STATIC_STRING("id"), offsetof(complex_t, id), &i32_meta}
+    {STR("pos"), offsetof(complex_t, pos), &test_point_meta},
+    {STR("id"), offsetof(complex_t, id), &i32_meta}
 };
 
 // Meta for complex_t
 const meta complex_meta = {
-    .type_name = STATIC_STRING("complex_t"),
+    .type_name = STR("complex_t"),
     .is_array = 0,
     .type_size = sizeof(complex_t),
     .pt = PT_NONE,
