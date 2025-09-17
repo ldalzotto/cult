@@ -33,7 +33,7 @@ file_t file_open(stack_alloc* alloc, const u8* path_begin, const u8* path_end, f
 
     // Allocate path buffer from stack allocator
     u8* path = sa_alloc(alloc, path_len + 1);
-    memcpy(path, path_begin, path_len);
+    sa_copy(alloc, path_begin, path, path_len);
     path[path_len] = '\0';
 
     int fd = open((void*)path, flags, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -121,7 +121,7 @@ i32 directory_create(stack_alloc* alloc, const u8* path_begin, const u8* path_en
     // Allocate contiguous buffer for path
     uptr path_len = bytesize(path_begin, path_end);
     u8* path_buf = sa_alloc(alloc, path_len + 1);
-    memcpy(path_buf, path_begin, path_len);
+    sa_copy(alloc, path_begin, path_buf, path_len);
     path_buf[path_len] = '\0';
 
     // Iterate through path segments
@@ -180,7 +180,7 @@ i32 directory_remove(stack_alloc* alloc, const u8* path_begin, const u8* path_en
     dir_node_t* root_node = (dir_node_t*)root_chunk;
     root_node->path_start = (u8*)(root_node + 1); // path immediately after struct
     root_node->path_end   = byteoffset(root_node->path_start, root_size);
-    memcpy(root_node->path_start, path_begin, root_size);
+    sa_copy(alloc, path_begin, root_node->path_start, root_size);
     root_node->path_start[root_size] = '\0';
 
     // Push root entry pointer onto stack
@@ -215,9 +215,9 @@ i32 directory_remove(stack_alloc* alloc, const u8* path_begin, const u8* path_en
             entry_node->path_end   = byteoffset(entry_node->path_start, dir_len + 1 + entry_len);
 
             // Build path
-            memcpy(entry_node->path_start, dir_node->path_start, dir_len);
+            sa_copy(alloc, dir_node->path_start, entry_node->path_start, root_size);
             entry_node->path_start[dir_len] = '/';
-            memcpy(byteoffset(entry_node->path_start, dir_len + 1), entry->d_name, entry_len);
+            sa_copy(alloc, entry->d_name, byteoffset(entry_node->path_start, dir_len + 1), entry_len);
             entry_node->path_start[dir_len + 1 + entry_len] = '\0';
 
             struct stat st;
@@ -227,7 +227,7 @@ i32 directory_remove(stack_alloc* alloc, const u8* path_begin, const u8* path_en
                     // Resize stack if necessary
                     uptr stack_bytes = bytesize(stack_begin, stack_cursor);
                     dir_node_t** new_stack = sa_alloc(alloc, stack_bytes + sizeof(dir_node_t*));
-                    memcpy(new_stack, stack_begin, stack_bytes);
+                    sa_copy(alloc, stack_begin, new_stack, stack_bytes);
                     stack_cursor = new_stack + (stack_cursor - stack_begin);
                     stack_begin = new_stack;
 
