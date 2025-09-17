@@ -3,7 +3,6 @@
 #include "./meta_iterator.h"
 #include "stack_alloc.h"
 #include <stddef.h>
-#include <string.h>
 #include <stdarg.h>
 
 // Process a format specifier and get the result
