@@ -6,56 +6,59 @@
 #include <string.h>
 #include <stdarg.h>
 
-// TODO: should take a stack alloc as input
 // Process a format specifier and get the result
-static void process_format_specifier(char specifier, va_list args, stack_alloc* alloc, char* buffer, uptr* length) {
+static char* process_format_specifier(char specifier, va_list args, stack_alloc* alloc) {
     switch (specifier) {
         case 'd': {
             // Handle signed integer
             i32 value = va_arg(args, i32);
-            convert_i32_to_string(value, buffer, length);
-            break;
+            return convert_i32_to_string(value, alloc);
         }
         case 'u': {
             // Handle unsigned integer
             u32 value = va_arg(args, u32);
-            convert_u32_to_string(value, buffer, length);
-            break;
+            return convert_u32_to_string(value, alloc);
         }
         case 's': {
             // Handle string
             const char* str = va_arg(args, const char*);
             if (str) {
-                *length = 0;
-                while (str[*length] != '\0') ++(*length);
-                sa_copy(alloc, str, buffer, *length);
+                uptr length = 0;
+                while (str[length] != '\0') ++length;
+                char* result = (char*)sa_alloc(alloc, length + 1);
+                sa_copy(alloc, str, result, length);
+                result[length] = '\0';
+                return result;
             } else {
                 // Copy "(null)" to buffer
                 const char* null_str = "(null)";
-                *length = 6;
-                sa_copy(alloc, null_str, buffer, *length);
+                char* result = (char*)sa_alloc(alloc, 7);
+                sa_copy(alloc, null_str, result, 6);
+                result[6] = '\0';
+                return result;
             }
-            break;
         }
         case 'c': {
             // Handle character
             char c = (char)va_arg(args, int);  // char is promoted to int
-            buffer[0] = c;
-            *length = 1;
-            break;
+            char* result = (char*)sa_alloc(alloc, 2);
+            result[0] = c;
+            result[1] = '\0';
+            return result;
         }
         case 'p': {
             // Handle pointer
             void* ptr = va_arg(args, void*);
-            convert_pointer_to_string(ptr, buffer, length);
-            break;
+            return convert_pointer_to_string(ptr, alloc);
         }
-        default:
+        default: {
             // Handle unknown format specifier
-            buffer[0] = '%';
-            buffer[1] = specifier;
-            *length = 2;
-            break;
+            char* result = (char*)sa_alloc(alloc, 3);
+            result[0] = '%';
+            result[1] = specifier;
+            result[2] = '\0';
+            return result;
+        }
     }
 }
 
@@ -102,8 +105,8 @@ void format_iterator_deinit(stack_alloc* alloc, format_iterator* iterator) {
 
 
 format_iteration format_iterator_next(format_iterator* iter) {
+    iter->buffer.cursor = iter->buffer.begin;
     if (iter->in_meta) {
-        iter->buffer.cursor = iter->buffer.begin;
         print_meta_iteration result = print_meta_iterator_next(iter->meta_iter);
         if (!result.meta) {
             iter->in_meta = 0;
@@ -115,30 +118,28 @@ format_iteration format_iterator_next(format_iterator* iter) {
         const meta* current = result.meta;
         if (current->pt != PT_NONE) {
             // Primitive
-            char _buf[256];
-            stack_alloc buf;
-            sa_init(&buf, _buf, byteoffset(_buf, sizeof(_buf)));
-            uptr len;
             void* data_offset = byteoffset(iter->data, iter->offset);
+            char* result;
             switch (current->pt) {
-                case PT_I8: convert_i8_to_string(*(i8*)data_offset, _buf, &len); break;
-                case PT_U8: convert_u8_to_string(*(u8*)data_offset, _buf, &len); break;
-                case PT_I16: convert_i16_to_string(*(i16*)data_offset, _buf, &len); break;
-                case PT_U16: convert_u16_to_string(*(u16*)data_offset, _buf, &len); break;
-                case PT_I32: convert_i32_to_string(*(i32*)data_offset, _buf, &len); break;
-                case PT_U32: convert_u32_to_string(*(u32*)data_offset, _buf, &len); break;
-                case PT_I64: convert_i64_to_string(*(i64*)data_offset, _buf, &len); break;
-                case PT_U64: convert_u64_to_string(*(u64*)data_offset, _buf, &len); break;
-                case PT_IPTR: convert_iptr_to_string(*(iptr*)data_offset, _buf, &len); break;
-                case PT_UPTR: convert_uptr_to_string(*(uptr*)data_offset, _buf, &len); break;
+                case PT_I8: result = convert_i8_to_string(*(i8*)data_offset, &iter->buffer); break;
+                case PT_U8: result = convert_u8_to_string(*(u8*)data_offset, &iter->buffer); break;
+                case PT_I16: result = convert_i16_to_string(*(i16*)data_offset, &iter->buffer); break;
+                case PT_U16: result = convert_u16_to_string(*(u16*)data_offset, &iter->buffer); break;
+                case PT_I32: result = convert_i32_to_string(*(i32*)data_offset, &iter->buffer); break;
+                case PT_U32: result = convert_u32_to_string(*(u32*)data_offset, &iter->buffer); break;
+                case PT_I64: result = convert_i64_to_string(*(i64*)data_offset, &iter->buffer); break;
+                case PT_U64: result = convert_u64_to_string(*(u64*)data_offset, &iter->buffer); break;
+                case PT_IPTR: result = convert_iptr_to_string(*(iptr*)data_offset, &iter->buffer); break;
+                case PT_UPTR: result = convert_uptr_to_string(*(uptr*)data_offset, &iter->buffer); break;
                 default:
-                    len = 18;
-                    memcpy(_buf, "<unknown primitive>", len);
+                    result = (char*)sa_alloc(&iter->buffer, 19);
+                    sa_copy(&iter->buffer, "<unknown primitive>", result, 18);
+                    result[18] = '\0';
                     break;
             }
-            void* start = sa_alloc(&iter->buffer, len);
-            sa_copy(&iter->buffer, _buf, start, len);
-            return (format_iteration){FORMAT_ITERATION_LITERAL, {start, iter->buffer.cursor}};
+            uptr length = 0;
+            while (result[length] != '\0') ++length;
+            return (format_iteration){FORMAT_ITERATION_LITERAL, {result, byteoffset(result, length)}};
         } else {
             // Struct
             void* start = iter->buffer.cursor;
@@ -194,10 +195,9 @@ format_iteration format_iterator_next(format_iterator* iter) {
                 return format_iterator_next(iter);
             } else {
                 // Process the specifier
-                uptr length;
-                void* start = iter->buffer.cursor;
-                process_format_specifier(iter->specifier, iter->args, &iter->buffer, iter->buffer.begin, &length);
-                return (format_iteration){FORMAT_ITERATION_LITERAL, {start, byteoffset(start, length)}};
+                char* result = process_format_specifier(iter->specifier, iter->args, &iter->buffer);
+                uptr length = bytesize(result, iter->buffer.cursor) - 1;
+                return (format_iteration){FORMAT_ITERATION_LITERAL, {result, byteoffset(result, length)}};
             }
         } else {
             iter->segment_start = iter->current;
