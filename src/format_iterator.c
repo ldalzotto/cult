@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdarg.h>
 
+// TODO: should take a stack alloc as input
 // Process a format specifier and get the result
 static void process_format_specifier(char specifier, va_list args, stack_alloc* alloc, char* buffer, uptr* length) {
     switch (specifier) {
@@ -73,7 +74,6 @@ struct format_iterator {
     va_list args;
     char _buffer[1024];
     stack_alloc buffer;
-    uptr buffer_pos;
 };
 
 format_iterator* format_iterator_init(stack_alloc* alloc, const char* format, va_list args) {
@@ -91,7 +91,6 @@ format_iterator* format_iterator_init(stack_alloc* alloc, const char* format, va
     iter->offset = 0;
     va_copy(iter->args, args);
     sa_init(&iter->buffer, iter->_buffer, byteoffset(iter->_buffer, sizeof(iter->_buffer)));
-    iter->buffer_pos = 0;
     return iter;
 }
 
@@ -104,6 +103,7 @@ void format_iterator_deinit(stack_alloc* alloc, format_iterator* iterator) {
 
 format_iteration format_iterator_next(format_iterator* iter) {
     if (iter->in_meta) {
+        iter->buffer.cursor = iter->buffer.begin;
         print_meta_iteration result = print_meta_iterator_next(iter->meta_iter);
         if (!result.meta) {
             iter->in_meta = 0;
@@ -136,42 +136,40 @@ format_iteration format_iterator_next(format_iterator* iter) {
                     memcpy(_buf, "<unknown primitive>", len);
                     break;
             }
-            uptr start = iter->buffer_pos;
-            sa_copy(&iter->buffer, _buf, iter->_buffer + iter->buffer_pos, len);
-            iter->buffer_pos += len;
-            sa_deinit(&buf);
-            return (format_iteration){FORMAT_ITERATION_LITERAL, iter->_buffer + start, len};
+            void* start = sa_alloc(&iter->buffer, len);
+            sa_copy(&iter->buffer, _buf, start, len);
+            return (format_iteration){FORMAT_ITERATION_LITERAL, iter->buffer.begin, len};
         } else {
             // Struct
-            uptr start = iter->buffer_pos;
+            void* start = iter->buffer.cursor;
             if (result.fields_current == result.meta->fields.begin) {
                 uptr name_len = bytesize(current->type_name.begin, current->type_name.end);
-                sa_copy(&iter->buffer, current->type_name.begin, iter->_buffer + iter->buffer_pos, name_len);
-                iter->buffer_pos += name_len;
-                sa_copy(&iter->buffer, " {", iter->_buffer + iter->buffer_pos, 2);
-                iter->buffer_pos += 2;
+                void* cursor = sa_alloc(&iter->buffer, name_len);
+                sa_copy(&iter->buffer, current->type_name.begin, cursor, name_len);
+                cursor = sa_alloc(&iter->buffer, 2);
+                sa_copy(&iter->buffer, " {", cursor, 2);
                 uptr field_len = bytesize(result.fields_current->field_name.begin, result.fields_current->field_name.end);
-                sa_copy(&iter->buffer, result.fields_current->field_name.begin, iter->_buffer + iter->buffer_pos, field_len);
-                iter->buffer_pos += field_len;
-                sa_copy(&iter->buffer, ": ", iter->_buffer + iter->buffer_pos, 2);
-                iter->buffer_pos += 2;
+                cursor = sa_alloc(&iter->buffer, field_len);
+                sa_copy(&iter->buffer, result.fields_current->field_name.begin, cursor, field_len);
+                cursor = sa_alloc(&iter->buffer, 2);
+                sa_copy(&iter->buffer, ": ", cursor, 2);
                 iter->offset += result.fields_current->offset;
             } else if (result.fields_current == result.meta->fields.end) {
-                sa_copy(&iter->buffer, "}", iter->_buffer + iter->buffer_pos, 1);
-                iter->buffer_pos += 1;
+                void* cursor = sa_alloc(&iter->buffer, 1);
+                sa_copy(&iter->buffer, "}", cursor, 1);
                 iter->offset -= (result.meta->fields.end - 1)->offset;
             } else {
-                sa_copy(&iter->buffer, ", ", iter->_buffer + iter->buffer_pos, 2);
-                iter->buffer_pos += 2;
+                void* cursor = sa_alloc(&iter->buffer, 2);
+                sa_copy(&iter->buffer, ", ", cursor, 2);
                 uptr field_len = bytesize(result.fields_current->field_name.begin, result.fields_current->field_name.end);
-                sa_copy(&iter->buffer, result.fields_current->field_name.begin, iter->_buffer + iter->buffer_pos, field_len);
-                iter->buffer_pos += field_len;
-                sa_copy(&iter->buffer, ": ", iter->_buffer + iter->buffer_pos, 2);
-                iter->buffer_pos += 2;
+                cursor = sa_alloc(&iter->buffer, field_len);
+                sa_copy(&iter->buffer, result.fields_current->field_name.begin, cursor, field_len);;
+                cursor = sa_alloc(&iter->buffer, 2);
+                sa_copy(&iter->buffer, ": ", cursor, 2);
                 iter->offset += result.fields_current->offset;
             }
-            uptr len = iter->buffer_pos - start;
-            return (format_iteration){FORMAT_ITERATION_LITERAL, iter->_buffer + start, len};
+            uptr len = bytesize(start, iter->buffer.cursor);
+            return (format_iteration){FORMAT_ITERATION_LITERAL, start, len};
         }
     } else {
         if (*iter->current == '\0') {
@@ -198,10 +196,9 @@ format_iteration format_iterator_next(format_iterator* iter) {
             } else {
                 // Process the specifier
                 uptr length;
-                uptr start = iter->buffer_pos;
-                process_format_specifier(iter->specifier, iter->args, &iter->buffer, iter->_buffer + iter->buffer_pos, &length);
-                iter->buffer_pos += length;
-                return (format_iteration){FORMAT_ITERATION_LITERAL, iter->_buffer + start, length};
+                void* start = iter->buffer.cursor;
+                process_format_specifier(iter->specifier, iter->args, &iter->buffer, iter->buffer.begin, &length);
+                return (format_iteration){FORMAT_ITERATION_LITERAL, start, length};
             }
         } else {
             iter->segment_start = iter->current;

@@ -16,7 +16,7 @@ typedef enum {
 typedef struct {
     format_iteration_type type;
     const char* text;
-    uptr length;
+    uptr length; // TODO -> return end?
 } format_iteration;
 
 format_iteration format_iterator_next(format_iterator* iterator);
