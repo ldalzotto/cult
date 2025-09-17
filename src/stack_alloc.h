@@ -79,20 +79,19 @@ void sa_move_tail(stack_alloc* alloc, void* from, void* to);
 // Postconditions: The memory block has been moved to the destination, alloc->cursor remains unchanged
 void sa_move(stack_alloc* alloc, void* from, void* to, uptr size);
 
-// Copy a block of memory from 'from' to 'to' with specified size within the stack allocator
+// Copy a block of memory from 'from' to 'to' with specified size, where 'to' is within the stack allocator
 //
 // @param alloc: Pointer to stack_alloc
-// @param from: Start of the memory block to copy from (must be within the allocated region)
+// @param from: Start of the memory block to copy from (can be from anywhere; if within the allocator, must be within allocated region)
 // @param to: Destination where the block should be copied to
 // @param size: Size in bytes of the memory block to copy
 //
 // Returns: void
 // Preconditions:
-// - from must be between alloc->begin and alloc->cursor
-// - from + size must not exceed alloc->cursor (the block must be allocated)
+// - if from is between alloc->begin and alloc->cursor, then from + size must not exceed alloc->cursor
 // - to must be between alloc->begin and alloc->end
 // - to + size must not exceed alloc->end
 // Postconditions: The memory block has been copied to the destination, alloc->cursor remains unchanged
-void sa_copy(stack_alloc* alloc, void* from, void* to, uptr size);
+void sa_copy(stack_alloc* alloc, const void* from, void* to, uptr size);
 
 #endif /* STACK_ALLOC_H */

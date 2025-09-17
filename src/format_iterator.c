@@ -1,12 +1,13 @@
 #include "format_iterator.h"
 #include "convert.h"
 #include "./meta_iterator.h"
+#include "stack_alloc.h"
 #include <stddef.h>
 #include <string.h>
 #include <stdarg.h>
 
 // Process a format specifier and get the result
-static void process_format_specifier(char specifier, va_list args, char* buffer, uptr* length) {
+static void process_format_specifier(char specifier, va_list args, stack_alloc* alloc, char* buffer, uptr* length) {
     switch (specifier) {
         case 'd': {
             // Handle signed integer
@@ -26,17 +27,12 @@ static void process_format_specifier(char specifier, va_list args, char* buffer,
             if (str) {
                 *length = 0;
                 while (str[*length] != '\0') ++(*length);
-                // Copy string to buffer
-                for (uptr i = 0; i < *length; i++) {
-                    buffer[i] = str[i];
-                }
+                sa_copy(alloc, str, buffer, *length);
             } else {
                 // Copy "(null)" to buffer
                 const char* null_str = "(null)";
                 *length = 6;
-                for (uptr i = 0; i < *length; i++) {
-                    buffer[i] = null_str[i];
-                }
+                sa_copy(alloc, null_str, buffer, *length);
             }
             break;
         }
@@ -75,7 +71,9 @@ struct format_iterator {
     stack_alloc* alloc;
     uptr offset;
     va_list args;
-    char buffer[1024];
+    char _buffer[1024];
+    stack_alloc buffer;
+    uptr buffer_pos;
 };
 
 format_iterator* format_iterator_init(stack_alloc* alloc, const char* format, va_list args) {
@@ -92,10 +90,13 @@ format_iterator* format_iterator_init(stack_alloc* alloc, const char* format, va
     iter->alloc = alloc;
     iter->offset = 0;
     va_copy(iter->args, args);
+    sa_init(&iter->buffer, iter->_buffer, byteoffset(iter->_buffer, sizeof(iter->_buffer)));
+    iter->buffer_pos = 0;
     return iter;
 }
 
 void format_iterator_deinit(stack_alloc* alloc, format_iterator* iterator) {
+    sa_deinit(&iterator->buffer);
     sa_free(alloc, iterator);
 }
 
@@ -114,57 +115,63 @@ format_iteration format_iterator_next(format_iterator* iter) {
         const meta* current = result.meta;
         if (current->pt != PT_NONE) {
             // Primitive
-            char buf[256];
+            char _buf[256];
+            stack_alloc buf;
+            sa_init(&buf, _buf, byteoffset(_buf, sizeof(_buf)));
             uptr len;
             void* data_offset = byteoffset(iter->data, iter->offset);
             switch (current->pt) {
-                case PT_I8: convert_i8_to_string(*(i8*)data_offset, buf, &len); break;
-                case PT_U8: convert_u8_to_string(*(u8*)data_offset, buf, &len); break;
-                case PT_I16: convert_i16_to_string(*(i16*)data_offset, buf, &len); break;
-                case PT_U16: convert_u16_to_string(*(u16*)data_offset, buf, &len); break;
-                case PT_I32: convert_i32_to_string(*(i32*)data_offset, buf, &len); break;
-                case PT_U32: convert_u32_to_string(*(u32*)data_offset, buf, &len); break;
-                case PT_I64: convert_i64_to_string(*(i64*)data_offset, buf, &len); break;
-                case PT_U64: convert_u64_to_string(*(u64*)data_offset, buf, &len); break;
-                case PT_IPTR: convert_iptr_to_string(*(iptr*)data_offset, buf, &len); break;
-                case PT_UPTR: convert_uptr_to_string(*(uptr*)data_offset, buf, &len); break;
+                case PT_I8: convert_i8_to_string(*(i8*)data_offset, _buf, &len); break;
+                case PT_U8: convert_u8_to_string(*(u8*)data_offset, _buf, &len); break;
+                case PT_I16: convert_i16_to_string(*(i16*)data_offset, _buf, &len); break;
+                case PT_U16: convert_u16_to_string(*(u16*)data_offset, _buf, &len); break;
+                case PT_I32: convert_i32_to_string(*(i32*)data_offset, _buf, &len); break;
+                case PT_U32: convert_u32_to_string(*(u32*)data_offset, _buf, &len); break;
+                case PT_I64: convert_i64_to_string(*(i64*)data_offset, _buf, &len); break;
+                case PT_U64: convert_u64_to_string(*(u64*)data_offset, _buf, &len); break;
+                case PT_IPTR: convert_iptr_to_string(*(iptr*)data_offset, _buf, &len); break;
+                case PT_UPTR: convert_uptr_to_string(*(uptr*)data_offset, _buf, &len); break;
                 default:
                     len = 18;
-                    memcpy(buf, "<unknown primitive>", len);
+                    memcpy(_buf, "<unknown primitive>", len);
                     break;
             }
-            memcpy(iter->buffer, buf, len);
-            return (format_iteration){FORMAT_ITERATION_LITERAL, iter->buffer, len};
+            uptr start = iter->buffer_pos;
+            sa_copy(&iter->buffer, _buf, iter->_buffer + iter->buffer_pos, len);
+            iter->buffer_pos += len;
+            sa_deinit(&buf);
+            return (format_iteration){FORMAT_ITERATION_LITERAL, iter->_buffer + start, len};
         } else {
             // Struct
-            uptr pos = 0;
+            uptr start = iter->buffer_pos;
             if (result.fields_current == result.meta->fields.begin) {
                 uptr name_len = bytesize(current->type_name.begin, current->type_name.end);
-                memcpy(iter->buffer + pos, current->type_name.begin, name_len);
-                pos += name_len;
-                memcpy(iter->buffer + pos, " {", 2);
-                pos += 2;
+                sa_copy(&iter->buffer, current->type_name.begin, iter->_buffer + iter->buffer_pos, name_len);
+                iter->buffer_pos += name_len;
+                sa_copy(&iter->buffer, " {", iter->_buffer + iter->buffer_pos, 2);
+                iter->buffer_pos += 2;
                 uptr field_len = bytesize(result.fields_current->field_name.begin, result.fields_current->field_name.end);
-                memcpy(iter->buffer + pos, result.fields_current->field_name.begin, field_len);
-                pos += field_len;
-                memcpy(iter->buffer + pos, ": ", 2);
-                pos += 2;
+                sa_copy(&iter->buffer, result.fields_current->field_name.begin, iter->_buffer + iter->buffer_pos, field_len);
+                iter->buffer_pos += field_len;
+                sa_copy(&iter->buffer, ": ", iter->_buffer + iter->buffer_pos, 2);
+                iter->buffer_pos += 2;
                 iter->offset += result.fields_current->offset;
             } else if (result.fields_current == result.meta->fields.end) {
-                memcpy(iter->buffer + pos, "}", 1);
-                pos = 1;
+                sa_copy(&iter->buffer, "}", iter->_buffer + iter->buffer_pos, 1);
+                iter->buffer_pos += 1;
                 iter->offset -= (result.meta->fields.end - 1)->offset;
             } else {
-                memcpy(iter->buffer + pos, ", ", 2);
-                pos += 2;
+                sa_copy(&iter->buffer, ", ", iter->_buffer + iter->buffer_pos, 2);
+                iter->buffer_pos += 2;
                 uptr field_len = bytesize(result.fields_current->field_name.begin, result.fields_current->field_name.end);
-                memcpy(iter->buffer + pos, result.fields_current->field_name.begin, field_len);
-                pos += field_len;
-                memcpy(iter->buffer + pos, ": ", 2);
-                pos += 2;
+                sa_copy(&iter->buffer, result.fields_current->field_name.begin, iter->_buffer + iter->buffer_pos, field_len);
+                iter->buffer_pos += field_len;
+                sa_copy(&iter->buffer, ": ", iter->_buffer + iter->buffer_pos, 2);
+                iter->buffer_pos += 2;
                 iter->offset += result.fields_current->offset;
             }
-            return (format_iteration){FORMAT_ITERATION_LITERAL, iter->buffer, pos};
+            uptr len = iter->buffer_pos - start;
+            return (format_iteration){FORMAT_ITERATION_LITERAL, iter->_buffer + start, len};
         }
     } else {
         if (*iter->current == '\0') {
@@ -191,8 +198,10 @@ format_iteration format_iterator_next(format_iterator* iter) {
             } else {
                 // Process the specifier
                 uptr length;
-                process_format_specifier(iter->specifier, iter->args, iter->buffer, &length);
-                return (format_iteration){FORMAT_ITERATION_LITERAL, iter->buffer, length};
+                uptr start = iter->buffer_pos;
+                process_format_specifier(iter->specifier, iter->args, &iter->buffer, iter->_buffer + iter->buffer_pos, &length);
+                iter->buffer_pos += length;
+                return (format_iteration){FORMAT_ITERATION_LITERAL, iter->_buffer + start, length};
             }
         } else {
             iter->segment_start = iter->current;

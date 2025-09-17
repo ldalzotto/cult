@@ -52,7 +52,7 @@ void* print_format_to_buffer(stack_alloc* alloc, const char* format, ...) {
         if (fi.type == FORMAT_ITERATION_END) break;
 
         void* dest = sa_alloc(alloc, fi.length);
-        memcpy(dest, fi.text, fi.length);
+        sa_copy(alloc, fi.text, dest, fi.length);
     }
 
     format_iterator_deinit(alloc, iter);
