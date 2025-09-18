@@ -109,7 +109,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
             print_meta_iterator_deinit(iter->alloc, iter->meta_iter);
             iter->meta_iter = NULL;
             // Continue with format
-            return format_iterator_next(iter);
+            return (format_iteration){FORMAT_ITERATION_CONTINUE, {0,0}};
         }
         const meta* current = result.meta;
         if (current->pt != PT_NONE) {
@@ -188,7 +188,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
                 iter->in_meta = 1;
                 iter->offset = 0;
                 iter->meta_iter = print_meta_iterator_init(iter->alloc, iter->meta);
-                return format_iterator_next(iter);
+                return (format_iteration){FORMAT_ITERATION_CONTINUE, {0,0}};
             } else {
                 // Process the specifier
                 char* result = process_format_specifier(iter->specifier, iter->args, &iter->text_format_alloc);

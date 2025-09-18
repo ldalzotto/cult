@@ -11,6 +11,7 @@ void format_iterator_deinit(stack_alloc* alloc, format_iterator* iterator);
 
 typedef enum {
     FORMAT_ITERATION_LITERAL,
+    FORMAT_ITERATION_CONTINUE,
     FORMAT_ITERATION_END
 } format_iteration_type;
 

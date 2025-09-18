@@ -44,6 +44,7 @@ void* print_format_to_buffer(stack_alloc* alloc, string_span format, ...) {
     while (1) {
         format_iteration fi = format_iterator_next(iter);
         if (fi.type == FORMAT_ITERATION_END) break;
+        if (fi.type == FORMAT_ITERATION_CONTINUE) continue;
 
         uptr text_length = bytesize(fi.text.begin, fi.text.end);
         void* dest = sa_alloc(alloc, text_length);
