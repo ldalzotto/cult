@@ -31,6 +31,7 @@ COMMON_OBJS= \
 	$(OBJ_DIR)/meta_iterator.o \
 	$(OBJ_DIR)/format_iterator.o \
 	$(OBJ_DIR)/convert.o \
+	$(OBJ_DIR)/geom/primitive.o \
 	$(OBJ_DIR)/window/win_x11.o
 
 TEST_OBJS= \
@@ -41,7 +42,8 @@ TEST_OBJS= \
 	$(OBJ_DIR)/$(TESTS_DIR)/test_file.o \
 	$(OBJ_DIR)/$(TESTS_DIR)/test_print.o \
 	$(OBJ_DIR)/$(TESTS_DIR)/test_temp_dir.o \
-	$(OBJ_DIR)/$(TESTS_DIR)/test_framework.o
+	$(OBJ_DIR)/$(TESTS_DIR)/test_framework.o \
+	$(OBJ_DIR)/$(TESTS_DIR)/test_geom.o
 
 # We may want to cache this
 USE_X11 := $(shell pkg-config --exists x11 && echo 1 || echo 0)
