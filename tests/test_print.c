@@ -36,7 +36,7 @@ const meta test_point_meta = {
     .type_size = sizeof(test_point_t),
     .pt = PT_NONE,
     .fields = {
-        ARRAY_RANGE(test_point_fields)
+        RANGE(test_point_fields)
     },
 };
 
@@ -53,7 +53,7 @@ const meta complex_meta = {
     .type_size = sizeof(complex_t),
     .pt = PT_NONE,
     .fields = {
-        ARRAY_RANGE(complex_fields)
+        RANGE(complex_fields)
     }
 };
 

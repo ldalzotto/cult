@@ -11,7 +11,7 @@ typedef struct {
 #define STR(str) {(str), (str) + sizeof(str) - 1}
 #define STR_SPAN(str) (string_span) STR(str)
 
-#define ARRAY_RANGE(variable) \
+#define RANGE(variable) \
       variable, byteoffset(variable, sizeof(variable))
 
 #endif /* LITTERAL_H */
