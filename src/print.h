@@ -2,9 +2,10 @@
 #define PRINT_H
 
 #include "file.h"
+#include "litteral.h"
 
 // File-based print functions using file.h
-void print_string(file_t file, const char* str);
+void print_string(file_t file, string_span string);
 void print_format(file_t file, const char* format, ...);
 
 // Stack allocator-based print functions

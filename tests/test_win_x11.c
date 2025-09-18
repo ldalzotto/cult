@@ -10,7 +10,7 @@
 #include <stdio.h>
 
 static void test_win_x11_basic_init_deinit(test_context* t) {
-    print_string(file_stdout(), "Testing basic win_x11 init/deinit...\n");
+    print_string(file_stdout(), STR_SPAN("Testing basic win_x11 init/deinit...\n"));
 
     uptr size = 64 * 1024; // 64KB should be sufficient for basic operations
     void* mem = mem_map(size);
@@ -27,11 +27,11 @@ static void test_win_x11_basic_init_deinit(test_context* t) {
     // Test completes without crash - this is the main objective
 
     mem_unmap(mem, size);
-    print_string(file_stdout(), "Basic init/deinit test passed\n");
+    print_string(file_stdout(), STR_SPAN("Basic init/deinit test passed\n"));
 }
 
 static void test_win_x11_window_lifecycle(test_context* t) {
-    print_string(file_stdout(), "Testing win_x11 window lifecycle...\n");
+    print_string(file_stdout(), STR_SPAN("Testing win_x11 window lifecycle...\n"));
 
     uptr size = 1024 * 1024; // 1MB for window and buffer
     void* mem = mem_map(size);
@@ -74,11 +74,11 @@ static void test_win_x11_window_lifecycle(test_context* t) {
     win_x11_deinit(&alloc, win);
     mem_unmap(mem, size);
 
-    print_string(file_stdout(), "Window lifecycle test passed\n");
+    print_string(file_stdout(), STR_SPAN("Window lifecycle test passed\n"));
 }
 
 static void test_win_x11_pixel_buffer_access(test_context* t) {
-    print_string(file_stdout(), "Testing pixel buffer access...\n");
+    print_string(file_stdout(), STR_SPAN("Testing pixel buffer access...\n"));
 
     uptr size = 1024 * 1024; // 1MB for testing
     void* mem = mem_map(size);
@@ -112,11 +112,11 @@ static void test_win_x11_pixel_buffer_access(test_context* t) {
     win_x11_deinit(&alloc, win);
     mem_unmap(mem, size);
 
-    print_string(file_stdout(), "Pixel buffer access test passed\n");
+    print_string(file_stdout(), STR_SPAN("Pixel buffer access test passed\n"));
 }
 
 void test_win_x11_module(test_context* t) {
-    print_string(file_stdout(), "Registering win_x11 Module Tests...\n");
+    print_string(file_stdout(), STR_SPAN("Registering win_x11 Module Tests...\n"));
     REGISTER_TEST(t, "win_x11_basic_init_deinit", test_win_x11_basic_init_deinit);
     REGISTER_TEST(t, "win_x11_window_lifecycle", test_win_x11_window_lifecycle);
     REGISTER_TEST(t, "win_x11_pixel_buffer_access", test_win_x11_pixel_buffer_access);

@@ -9,6 +9,7 @@ typedef struct {
 
 // Macro to create a string_span from a static string literal
 #define STR(str) {(str), (str) + sizeof(str) - 1}
+#define STR_SPAN(str) (string_span) STR(str)
 
 #define ARRAY_RANGE(variable) \
       variable, byteoffset(variable, sizeof(variable))

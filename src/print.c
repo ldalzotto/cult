@@ -4,10 +4,8 @@
 #include <stdarg.h>  // for variadic functions
 
 // Print a plain string to file
-void print_string(file_t file, const char* str) {
-    uptr len = 0;
-    while (str[len] != '\0') ++len;
-    file_write(file, str, byteoffset(str, len));
+void print_string(file_t file, const string_span string) {
+    file_write(file, string.begin, string.end);
 }
 
 // Print a formatted string with arguments to file

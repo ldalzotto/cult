@@ -14,7 +14,7 @@ test_context* test_context_init(stack_alloc* alloc) {
 }
 
 void test_report_context(test_context* t) {
-    print_string(file_stdout(), "Test Results:\n");
+    print_string(file_stdout(), STR_SPAN("Test Results:\n"));
     if (t->filter_pattern) {
         print_format(file_stdout(), "  Filter: %s\n", t->filter_pattern);
     }

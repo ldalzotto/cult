@@ -268,7 +268,7 @@ static void test_sa_copy(test_context* t) {
 }
 
 void test_sa_module(test_context* t) {
-    print_string(file_stdout(), "Registering Stack Allocator Module Tests...\n");
+    print_string(file_stdout(), STR_SPAN("Registering Stack Allocator Module Tests...\n"));
     REGISTER_TEST(t, "sa_basic_alloc", test_sa_basic_alloc);
     REGISTER_TEST(t, "sa_reuse_space", test_sa_reuse_space);
     REGISTER_TEST(t, "sa_move_tail", test_sa_move_tail);

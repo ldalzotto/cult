@@ -151,7 +151,7 @@ static void test_file_size(test_context* t) {
 }
 
 void test_file_module(test_context* t) {
-    print_string(file_stdout(), "Registering File Module Tests...\n");
+    print_string(file_stdout(), STR_SPAN("Registering File Module Tests...\n"));
 
     REGISTER_TEST(t, "file_open_close", test_file_open_close);
     REGISTER_TEST(t, "file_write_read", test_file_write_read);
