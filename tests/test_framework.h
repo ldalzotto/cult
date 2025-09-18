@@ -2,14 +2,15 @@
 #define TEST_FRAMEWORK_H
 
 #include "../src/primitive.h"
-#include "../src/backtrace.h"
+#include "../src/litteral.h"
 #include "../src/stack_alloc.h"
+#include "../src/backtrace.h"
 
 typedef struct test_context test_context;
 
 typedef struct test_context_entry {
     void (*func)(struct test_context* t);
-    char* name;
+    string_span name;
 } test_context_entry;
 
 struct test_context {
@@ -17,14 +18,14 @@ struct test_context {
     u32 passed;
     u32 failed;
     u32 test_count;
-    char* filter_pattern;
+    string_span filter_pattern;
     test_context_entry* entries;
 };
 
 // Function declarations
 test_context* test_context_init(stack_alloc* alloc);
 void test_report_context(test_context* t);
-void test_register(test_context* t, const char* name, void (*func)(test_context* t));
+void test_register(test_context* t, const string_span name, void (*func)(test_context* t));
 void test_run_filtered(test_context* t);
 
 // Test macros using context
@@ -32,7 +33,7 @@ void test_run_filtered(test_context* t);
     if ((cond)) { \
         (ctx)->passed++; \
     } else { \
-        print_format(file_stdout(), STR_SPAN("TEST FAILED: %s at %s:%d\n"), msg, __FILE__, __LINE__); \
+        print_format(file_stdout(), STR_SPAN("TEST FAILED: %s at %s:%d\n"), STR_SPAN(msg), STR_SPAN(__FILE__), __LINE__); \
         print_backtrace(); \
         (ctx)->failed++; \
     }
@@ -45,6 +46,6 @@ void test_run_filtered(test_context* t);
 #define TEST_ASSERT_NOT_EQUAL(ctx, a, b) TEST_ASSERT(ctx, (a) != (b), "Expected not equal: " #a " != " #b)
 
 // Test registration macro
-#define REGISTER_TEST(ctx, name, func) test_register(ctx, name, func)
+#define REGISTER_TEST(ctx, name, func) test_register(ctx, STR_SPAN(name), func)
 
 #endif /* TEST_FRAMEWORK_H */

@@ -17,7 +17,7 @@ void print_backtrace(void) {
         perror("readlink");
         return;
     }
-    exe_path[len] = '\0';
+    string_span exe_path_str = {exe_path, byteoffset(exe_path, len)};
 
     print_string(file_stderr(), STR_SPAN("Backtrace (most recent call last):\n") );
 
@@ -25,13 +25,15 @@ void print_backtrace(void) {
         u8 cmd[2048];
         stack_alloc alloc;
         sa_init(&alloc, cmd, byteoffset(cmd, sizeof(cmd)));
-        print_format_to_buffer(&alloc, STR_SPAN("addr2line -e %s -f -C -i %p"), exe_path, buffer[i]);
+        print_format_to_buffer(&alloc, STR_SPAN("addr2line -e %s -f -C -i %p"), exe_path_str, buffer[i]);
 
         FILE *fp = popen((char*)cmd, "r");
         if (fp) {
             u8 line[1024];
-            while (fgets((char*)line, sizeof(line), fp)) {
-                print_format(file_stdout(), STR_SPAN("  [%d] %s"), i, line);
+            while (1) {
+                char* end = fgets((char*)line, sizeof(line), fp);
+                if (!end) {break;}
+                print_format(file_stdout(), STR_SPAN("  [%d] %s"), (string_span){line, end}, line);
             }
             pclose(fp);
         } else {

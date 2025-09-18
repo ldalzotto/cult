@@ -20,12 +20,10 @@ static char* process_format_specifier(char specifier, va_list args, stack_alloc*
         }
         case 's': {
             // Handle string
-            const char* str = va_arg(args, const char*);
-            if (str) {
-                uptr length = 0;
-                while (str[length] != '\0') ++length;
-                char* result = (char*)sa_alloc(alloc, length );
-                sa_copy(alloc, str, result, length);
+            const string_span str = va_arg(args, const string_span);
+            if (str.begin && str.end) {
+                char* result = (char*)sa_alloc(alloc, bytesize(str.begin, str.end));
+                sa_copy(alloc, str.begin, result, bytesize(str.begin, str.end));
                 return result;
             } else {
                 // Copy "(null)" to buffer

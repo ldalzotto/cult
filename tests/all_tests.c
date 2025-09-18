@@ -24,7 +24,10 @@ int main(int argc, char* argv[]) {
     // Parse command line arguments
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--filter") == 0 && i + 1 < argc) {
-            ctx->filter_pattern = argv[i + 1];
+            ctx->filter_pattern.begin = argv[i + 1];
+            char* end = argv[i + 1];
+            while (*end) {++end;}
+            ctx->filter_pattern.end = end;
             i++; // Skip the next argument
         } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
             print_string(file_stdout(), STR_SPAN("Usage: all_tests [--filter <pattern>]\n"));
@@ -35,7 +38,7 @@ int main(int argc, char* argv[]) {
     }
 
     print_string(file_stdout(), STR_SPAN("Test Suite Starting...\n"));
-    if (ctx->filter_pattern) {
+    if (ctx->filter_pattern.begin) {
         print_format(file_stdout(), STR_SPAN("Filter: %s\n"), ctx->filter_pattern);
     }
 

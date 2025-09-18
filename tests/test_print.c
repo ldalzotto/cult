@@ -320,11 +320,11 @@ static void test_print_meta_iterator(test_context* t) {
 
         print_format(file, STR_SPAN("%s\n"), iteration.meta->type_name);
         if (iteration.fields_current == iteration.meta->fields.begin) {
-            print_format(file, STR_SPAN("%s\n"), "Begin");
+            print_format(file, STR_SPAN("%s\n"), STR_SPAN("Begin"));
         } else if (iteration.fields_current == iteration.meta->fields.end) {
-            print_format(file, STR_SPAN("%s\n"), "End");
+            print_format(file, STR_SPAN("%s\n"), STR_SPAN("End"));
         } else {
-            print_format(file, STR_SPAN("%s\n"), "Middle");
+            print_format(file, STR_SPAN("%s\n"), STR_SPAN("Middle"));
         }
     }
     print_meta_iterator_deinit(&alloc, it);
