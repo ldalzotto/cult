@@ -58,48 +58,50 @@ static char* process_format_specifier(char specifier, va_list args, stack_alloc*
 
 struct format_iterator {
     string_span format;
+    struct {
+        const char* begin;
+        const char* end;
+    } format_segment;
     const char* format_current;
-    const char* segment_start;
-    const char* segment_end;
     char specifier;
     u8 in_meta;
     const meta* meta;
-    void* data;
+    void* data_to_format;
     print_meta_iterator* meta_iter;
     stack_alloc* alloc;
     uptr offset;
     va_list args;
-    char _buffer[1024];
-    stack_alloc buffer;
+
+    // A very small buffer that holds temporary data to be printed for each iteration
+    char _text_format_buffer[1024];
+    stack_alloc text_format_alloc;
 };
 
 format_iterator* format_iterator_init(stack_alloc* alloc, string_span format, va_list args) {
     format_iterator* iter = sa_alloc(alloc, sizeof(format_iterator));
     iter->format = format;
     iter->format_current = format.begin;
-    iter->segment_start = format.begin;
-    iter->segment_end = format.begin;
+    iter->format_segment.begin = format.begin;
+    iter->format_segment.end = format.begin;
     iter->specifier = 0;
     iter->in_meta = 0;
     iter->meta = NULL;
-    iter->data = NULL;
+    iter->data_to_format = NULL;
     iter->meta_iter = NULL;
     iter->alloc = alloc;
     iter->offset = 0;
     va_copy(iter->args, args);
-    sa_init(&iter->buffer, iter->_buffer, byteoffset(iter->_buffer, sizeof(iter->_buffer)));
+    sa_init(&iter->text_format_alloc, iter->_text_format_buffer, byteoffset(iter->_text_format_buffer, sizeof(iter->_text_format_buffer)));
     return iter;
 }
 
 void format_iterator_deinit(stack_alloc* alloc, format_iterator* iterator) {
-    sa_deinit(&iterator->buffer);
+    sa_deinit(&iterator->text_format_alloc);
     sa_free(alloc, iterator);
 }
 
-
-
 format_iteration format_iterator_next(format_iterator* iter) {
-    iter->buffer.cursor = iter->buffer.begin;
+    iter->text_format_alloc.cursor = iter->text_format_alloc.begin;
     if (iter->in_meta) {
         print_meta_iteration result = print_meta_iterator_next(iter->meta_iter);
         if (!result.meta) {
@@ -112,93 +114,93 @@ format_iteration format_iterator_next(format_iterator* iter) {
         const meta* current = result.meta;
         if (current->pt != PT_NONE) {
             // Primitive
-            void* data_offset = byteoffset(iter->data, iter->offset);
+            void* data_offset = byteoffset(iter->data_to_format, iter->offset);
             char* result;
             switch (current->pt) {
-                case PT_I8: result = convert_i8_to_string(*(i8*)data_offset, &iter->buffer); break;
-                case PT_U8: result = convert_u8_to_string(*(u8*)data_offset, &iter->buffer); break;
-                case PT_I16: result = convert_i16_to_string(*(i16*)data_offset, &iter->buffer); break;
-                case PT_U16: result = convert_u16_to_string(*(u16*)data_offset, &iter->buffer); break;
-                case PT_I32: result = convert_i32_to_string(*(i32*)data_offset, &iter->buffer); break;
-                case PT_U32: result = convert_u32_to_string(*(u32*)data_offset, &iter->buffer); break;
-                case PT_I64: result = convert_i64_to_string(*(i64*)data_offset, &iter->buffer); break;
-                case PT_U64: result = convert_u64_to_string(*(u64*)data_offset, &iter->buffer); break;
-                case PT_IPTR: result = convert_iptr_to_string(*(iptr*)data_offset, &iter->buffer); break;
-                case PT_UPTR: result = convert_uptr_to_string(*(uptr*)data_offset, &iter->buffer); break;
+                case PT_I8: result = convert_i8_to_string(*(i8*)data_offset, &iter->text_format_alloc); break;
+                case PT_U8: result = convert_u8_to_string(*(u8*)data_offset, &iter->text_format_alloc); break;
+                case PT_I16: result = convert_i16_to_string(*(i16*)data_offset, &iter->text_format_alloc); break;
+                case PT_U16: result = convert_u16_to_string(*(u16*)data_offset, &iter->text_format_alloc); break;
+                case PT_I32: result = convert_i32_to_string(*(i32*)data_offset, &iter->text_format_alloc); break;
+                case PT_U32: result = convert_u32_to_string(*(u32*)data_offset, &iter->text_format_alloc); break;
+                case PT_I64: result = convert_i64_to_string(*(i64*)data_offset, &iter->text_format_alloc); break;
+                case PT_U64: result = convert_u64_to_string(*(u64*)data_offset, &iter->text_format_alloc); break;
+                case PT_IPTR: result = convert_iptr_to_string(*(iptr*)data_offset, &iter->text_format_alloc); break;
+                case PT_UPTR: result = convert_uptr_to_string(*(uptr*)data_offset, &iter->text_format_alloc); break;
                 default: {
                     const string_span unknown = STR("<unknown primitive>");
-                    result = (char*)sa_alloc(&iter->buffer, bytesize(unknown.begin, unknown.end));
-                    sa_copy(&iter->buffer, unknown.begin, result, bytesize(unknown.begin, unknown.end));
+                    result = (char*)sa_alloc(&iter->text_format_alloc, bytesize(unknown.begin, unknown.end));
+                    sa_copy(&iter->text_format_alloc, unknown.begin, result, bytesize(unknown.begin, unknown.end));
                     break;
                 }
                     
             }
-            return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->buffer.cursor}};
+            return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->text_format_alloc.cursor}};
         } else {
             // Struct
-            void* start = iter->buffer.cursor;
+            void* start = iter->text_format_alloc.cursor;
             if (result.fields_current == result.meta->fields.begin) {
                 uptr name_len = bytesize(current->type_name.begin, current->type_name.end);
-                void* cursor = sa_alloc(&iter->buffer, name_len);
-                sa_copy(&iter->buffer, current->type_name.begin, cursor, name_len);
-                cursor = sa_alloc(&iter->buffer, 2);
-                sa_copy(&iter->buffer, " {", cursor, 2);
+                void* cursor = sa_alloc(&iter->text_format_alloc, name_len);
+                sa_copy(&iter->text_format_alloc, current->type_name.begin, cursor, name_len);
+                cursor = sa_alloc(&iter->text_format_alloc, 2);
+                sa_copy(&iter->text_format_alloc, " {", cursor, 2);
                 uptr field_len = bytesize(result.fields_current->field_name.begin, result.fields_current->field_name.end);
-                cursor = sa_alloc(&iter->buffer, field_len);
-                sa_copy(&iter->buffer, result.fields_current->field_name.begin, cursor, field_len);
-                cursor = sa_alloc(&iter->buffer, 2);
-                sa_copy(&iter->buffer, ": ", cursor, 2);
+                cursor = sa_alloc(&iter->text_format_alloc, field_len);
+                sa_copy(&iter->text_format_alloc, result.fields_current->field_name.begin, cursor, field_len);
+                cursor = sa_alloc(&iter->text_format_alloc, 2);
+                sa_copy(&iter->text_format_alloc, ": ", cursor, 2);
                 iter->offset += result.fields_current->offset;
             } else if (result.fields_current == result.meta->fields.end) {
-                void* cursor = sa_alloc(&iter->buffer, 1);
-                sa_copy(&iter->buffer, "}", cursor, 1);
+                void* cursor = sa_alloc(&iter->text_format_alloc, 1);
+                sa_copy(&iter->text_format_alloc, "}", cursor, 1);
                 iter->offset -= (result.meta->fields.end - 1)->offset;
             } else {
-                void* cursor = sa_alloc(&iter->buffer, 2);
-                sa_copy(&iter->buffer, ", ", cursor, 2);
+                void* cursor = sa_alloc(&iter->text_format_alloc, 2);
+                sa_copy(&iter->text_format_alloc, ", ", cursor, 2);
                 uptr field_len = bytesize(result.fields_current->field_name.begin, result.fields_current->field_name.end);
-                cursor = sa_alloc(&iter->buffer, field_len);
-                sa_copy(&iter->buffer, result.fields_current->field_name.begin, cursor, field_len);;
-                cursor = sa_alloc(&iter->buffer, 2);
-                sa_copy(&iter->buffer, ": ", cursor, 2);
+                cursor = sa_alloc(&iter->text_format_alloc, field_len);
+                sa_copy(&iter->text_format_alloc, result.fields_current->field_name.begin, cursor, field_len);;
+                cursor = sa_alloc(&iter->text_format_alloc, 2);
+                sa_copy(&iter->text_format_alloc, ": ", cursor, 2);
                 iter->offset += result.fields_current->offset;
             }
-            return (format_iteration){FORMAT_ITERATION_LITERAL, {start, iter->buffer.cursor}};
+            return (format_iteration){FORMAT_ITERATION_LITERAL, {start, iter->text_format_alloc.cursor}};
         }
     } else {
         if (iter->format_current == iter->format.end) {
             return (format_iteration){FORMAT_ITERATION_END, {NULL, 0}};
         }
         if (*iter->format_current == '%') {
-            iter->segment_start = iter->format_current;
+            iter->format_segment.begin = iter->format_current;
             iter->format_current++;
             if (iter->format_current == iter->format.end) {
-                iter->segment_end = iter->format_current;
+                iter->format_segment.end = iter->format_current;
                 iter->format_current++;
-                return (format_iteration){FORMAT_ITERATION_LITERAL, {iter->segment_start, iter->segment_end}};
+                return (format_iteration){FORMAT_ITERATION_LITERAL, {iter->format_segment.begin, iter->format_segment.end}};
             }
             iter->specifier = *iter->format_current;
-            iter->segment_end = iter->format_current + 1;
+            iter->format_segment.end = iter->format_current + 1;
             iter->format_current++;
             if (iter->specifier == 'm') {
                 iter->meta = va_arg(iter->args, const meta*);
-                iter->data = va_arg(iter->args, void*);
+                iter->data_to_format = va_arg(iter->args, void*);
                 iter->in_meta = 1;
                 iter->offset = 0;
                 iter->meta_iter = print_meta_iterator_init(iter->alloc, iter->meta);
                 return format_iterator_next(iter);
             } else {
                 // Process the specifier
-                char* result = process_format_specifier(iter->specifier, iter->args, &iter->buffer);
-                return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->buffer.cursor}};
+                char* result = process_format_specifier(iter->specifier, iter->args, &iter->text_format_alloc);
+                return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->text_format_alloc.cursor}};
             }
         } else {
-            iter->segment_start = iter->format_current;
+            iter->format_segment.begin = iter->format_current;
             while (iter->format_current != iter->format.end && *iter->format_current != '%') {
                 iter->format_current++;
             }
-            iter->segment_end = iter->format_current;
-            return (format_iteration){FORMAT_ITERATION_LITERAL, {iter->segment_start, iter->segment_end}};
+            iter->format_segment.end = iter->format_current;
+            return (format_iteration){FORMAT_ITERATION_LITERAL, {iter->format_segment.begin, iter->format_segment.end}};
         }
     }
 }
