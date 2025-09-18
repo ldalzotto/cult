@@ -1,8 +1,8 @@
 
 #include <X11/Xlib.h>
-#include "../mem.h"
-#include "../stack_alloc.h"
-#include "../assert.h"
+#include "mem.h"
+#include "stack_alloc.h"
+#include "assert.h"
 
 typedef struct {
     stack_alloc alloc;

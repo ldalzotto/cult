@@ -1,7 +1,7 @@
 #ifndef TEST_TEMP_DIR_H
 #define TEST_TEMP_DIR_H
 
-#include "../src/litteral.h"
+#include "litteral.h"
 
 extern const string test_temp_dir;
 

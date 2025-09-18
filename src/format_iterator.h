@@ -1,8 +1,8 @@
 #ifndef FORMAT_ITERATOR_H
 #define FORMAT_ITERATOR_H
 
-#include "./stack_alloc.h"
-#include "./litteral.h"
+#include "stack_alloc.h"
+#include "litteral.h"
 #include <stdarg.h>
 
 typedef struct format_iterator format_iterator;

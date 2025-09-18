@@ -4,9 +4,9 @@
 #include "test_win_x11.h"
 #include "test_file.h"
 #include "test_print.h"
-#include "../src/print.h"
-#include "../src/file.h"
-#include "../src/mem.h"
+#include "print.h"
+#include "file.h"
+#include "mem.h"
 #include <string.h>
 
 int main(int argc, char* argv[]) {

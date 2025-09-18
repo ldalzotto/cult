@@ -1,8 +1,8 @@
 #ifndef META_H
 #define META_H
 
-#include "./primitive.h"
-#include "./litteral.h"
+#include "primitive.h"
+#include "litteral.h"
 
 // Forward declaration
 typedef struct meta meta;

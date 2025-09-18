@@ -1,11 +1,11 @@
 #include "test_print.h"
 #include "test_temp_dir.h"
-#include "../src/print.h"
-#include "../src/litteral.h"
-#include "../src/stack_alloc.h"
-#include "../src/mem.h"
-#include "../src/file.h"
-#include "../src/meta_iterator.h"
+#include "print.h"
+#include "litteral.h"
+#include "stack_alloc.h"
+#include "mem.h"
+#include "file.h"
+#include "meta_iterator.h"
 #include <stddef.h>
 #include <string.h>
 

@@ -1,5 +1,5 @@
-#include "./mem.h"
-#include "./assert.h"
+#include "mem.h"
+#include "assert.h"
 
 #include <sys/mman.h>
 

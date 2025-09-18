@@ -1,7 +1,7 @@
 #ifndef MEM_H
 #define MEM_H
 
-#include "./primitive.h"
+#include "primitive.h"
 
 // Basic memory map/unmap functions
 // mem_map: Allocates a block of memory of the specified size.

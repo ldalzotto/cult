@@ -1,12 +1,12 @@
 #include "primitive.h"
-#include "./mem.h"
-#include "./stack_alloc.h"
-#include "./window/win_x11.h"
-#include "./assert.h"
-#include "./print.h"
-#include "./file.h"
+#include "mem.h"
+#include "stack_alloc.h"
+#include "window/win_x11.h"
+#include "assert.h"
+#include "print.h"
+#include "file.h"
 
-i32 main() {
+i32 main(void) {
     // Example usage of win_x11.h
     // Initialize stack allocator for window management
     uptr win_mem_size = 4096 * 1024; // 4KB should be sufficient for window context

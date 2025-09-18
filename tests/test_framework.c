@@ -1,6 +1,6 @@
 #include "test_framework.h"
-#include "../src/print.h"
-#include "../src/file.h"
+#include "print.h"
+#include "file.h"
 
 test_context* test_context_init(stack_alloc* alloc) {
     test_context* t = sa_alloc(alloc, sizeof(*t));

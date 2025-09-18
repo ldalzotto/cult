@@ -1,6 +1,6 @@
 #include "print.h"
-#include "./assert.h"
-#include "./format_iterator.h"
+#include "assert.h"
+#include "format_iterator.h"
 #include <stdarg.h>  // for variadic functions
 
 // Print a plain string to file

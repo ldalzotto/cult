@@ -1,7 +1,7 @@
-#include "./backtrace.h"
-#include "./primitive.h"
-#include "./print.h"
-#include "./file.h"
+#include "backtrace.h"
+#include "primitive.h"
+#include "print.h"
+#include "file.h"
 
 #include <execinfo.h>
 #include <stdio.h>

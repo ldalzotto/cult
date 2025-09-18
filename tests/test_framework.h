@@ -1,10 +1,10 @@
 #ifndef TEST_FRAMEWORK_H
 #define TEST_FRAMEWORK_H
 
-#include "../src/primitive.h"
-#include "../src/litteral.h"
-#include "../src/stack_alloc.h"
-#include "../src/backtrace.h"
+#include "primitive.h"
+#include "litteral.h"
+#include "stack_alloc.h"
+#include "backtrace.h"
 
 typedef struct test_context test_context;
 

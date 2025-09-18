@@ -10,8 +10,8 @@
 #ifndef WIN_X11_H
 #define WIN_X11_H
 
-#include "../stack_alloc.h"
-#include "./win.h"
+#include "stack_alloc.h"
+#include "win.h"
 
 /**
  * @brief Opaque handle to window context

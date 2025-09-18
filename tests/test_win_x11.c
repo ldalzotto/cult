@@ -1,12 +1,12 @@
 // Tests for win_x11 module
 #include "test_framework.h"
-#include "../src/window/win_x11.h"
-#include "../src/window/win.h"
-#include "../src/stack_alloc.h"
-#include "../src/mem.h"
-#include "../src/primitive.h"
-#include "../src/print.h"
-#include "../src/file.h"
+#include "window/win_x11.h"
+#include "window/win.h"
+#include "stack_alloc.h"
+#include "mem.h"
+#include "primitive.h"
+#include "print.h"
+#include "file.h"
 
 static void test_win_x11_basic_init_deinit(test_context* t) {
     print_string(file_stdout(), STRING("Testing basic win_x11 init/deinit...\n"));

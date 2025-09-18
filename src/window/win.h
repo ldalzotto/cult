@@ -1,7 +1,7 @@
 #ifndef WIN_H
 #define WIN_H
 
-#include "../primitive.h"
+#include "primitive.h"
 
 /**
  * @brief Simple event structure

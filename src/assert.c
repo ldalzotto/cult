@@ -1,6 +1,6 @@
-#include "./assert.h"
-#include "./backtrace.h"
-#include "./print.h"
+#include "assert.h"
+#include "backtrace.h"
+#include "print.h"
 
 void __debug_assert(u8 condition, string cond_str, string file, int line) {
     if (!condition) {

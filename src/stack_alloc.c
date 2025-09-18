@@ -1,6 +1,6 @@
 #include <string.h>
-#include "./stack_alloc.h"
-#include "./assert.h"
+#include "stack_alloc.h"
+#include "assert.h"
 
 // Initialize the stack allocator
 void sa_init(stack_alloc* alloc, void* begin, void* end) {

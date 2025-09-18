@@ -15,11 +15,11 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
-#include "../assert.h"
-#include "../stack_alloc.h"
-#include "../primitive.h"
-#include "../print.h"
-#include "../file.h"
+#include "assert.h"
+#include "stack_alloc.h"
+#include "primitive.h"
+#include "print.h"
+#include "file.h"
 #include "win_x11.h"
 
 /**

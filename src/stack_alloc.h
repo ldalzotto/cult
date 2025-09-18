@@ -1,7 +1,7 @@
 #ifndef STACK_ALLOC_H
 #define STACK_ALLOC_H
 
-#include "./primitive.h"
+#include "primitive.h"
 
 // Stack allocator module for linear memory allocation/deallocation
 //

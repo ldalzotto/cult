@@ -1,6 +1,5 @@
-#include "./meta_iterator.h"
-
-#include "./assert.h"
+#include "meta_iterator.h"
+#include "assert.h"
 
 typedef struct {
     const meta* meta;

@@ -1,6 +1,6 @@
 #include "format_iterator.h"
 #include "convert.h"
-#include "./meta_iterator.h"
+#include "meta_iterator.h"
 #include "stack_alloc.h"
 #include <stddef.h>
 #include <stdarg.h>

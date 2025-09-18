@@ -1,5 +1,6 @@
 SRC_DIR=src
 ELIBS_DIR=elibs
+TESTS_DIR=tests
 DEP_DIR=build/deps
 OBJ_DIR=build/objects
 CC=gcc
@@ -33,14 +34,14 @@ COMMON_OBJS= \
 	$(OBJ_DIR)/window/win_x11.o
 
 TEST_OBJS= \
-	$(OBJ_DIR)/tests/all_tests.o \
-	$(OBJ_DIR)/tests/test_mem.o \
-	$(OBJ_DIR)/tests/test_stack_alloc.o \
-	$(OBJ_DIR)/tests/test_win_x11.o \
-	$(OBJ_DIR)/tests/test_file.o \
-	$(OBJ_DIR)/tests/test_print.o \
-	$(OBJ_DIR)/tests/test_temp_dir.o \
-	$(OBJ_DIR)/tests/test_framework.o
+	$(OBJ_DIR)/$(TESTS_DIR)/all_tests.o \
+	$(OBJ_DIR)/$(TESTS_DIR)/test_mem.o \
+	$(OBJ_DIR)/$(TESTS_DIR)/test_stack_alloc.o \
+	$(OBJ_DIR)/$(TESTS_DIR)/test_win_x11.o \
+	$(OBJ_DIR)/$(TESTS_DIR)/test_file.o \
+	$(OBJ_DIR)/$(TESTS_DIR)/test_print.o \
+	$(OBJ_DIR)/$(TESTS_DIR)/test_temp_dir.o \
+	$(OBJ_DIR)/$(TESTS_DIR)/test_framework.o
 
 # We may want to cache this
 USE_X11 := $(shell pkg-config --exists x11 && echo 1 || echo 0)
@@ -62,34 +63,34 @@ $(X11_MARKER): $(ELIBS_DIR)/x11_headers.tar.gz
 	touch $@
 
 MAIN_DEPS := $(patsubst $(OBJ_DIR)/%.o, $(DEP_DIR)/%.d, $(OBJ_DIR)/main.o $(COMMON_OBJS))
-TEST_DEPS := $(patsubst $(OBJ_DIR)/tests/%.o, $(DEP_DIR)/tests/%.d, $(TEST_OBJS)) $(patsubst $(OBJ_DIR)/%.o, $(DEP_DIR)/%.d, $(COMMON_OBJS))
+TEST_DEPS := $(patsubst $(OBJ_DIR)/$(TESTS_DIR)/%.o, $(DEP_DIR)/$(TESTS_DIR)/%.d, $(TEST_OBJS)) $(patsubst $(OBJ_DIR)/%.o, $(DEP_DIR)/%.d, $(COMMON_OBJS))
 
 
 # Dependency generation rule
 $(DEP_DIR)/%.d: $(SRC_DIR)/%.c
 	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -MM $< -MT $(OBJ_DIR)/$*.o -MF $@
+	$(CC) $(CFLAGS) -I $(SRC_DIR) -MM $< -MT $(OBJ_DIR)/$*.o -MF $@
 
-$(DEP_DIR)/tests/%.d: tests/%.c
+$(DEP_DIR)/$(TESTS_DIR)/%.d: $(TESTS_DIR)/%.c
 	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -MM $< -MT $(OBJ_DIR)/tests/$*.o -MF $@ -I src
+	$(CC) $(CFLAGS) -I $(SRC_DIR) -I $(TESTS_DIR) -MM $< -MT $(OBJ_DIR)/$(TESTS_DIR)/$*.o -MF $@
 
 # Object file compilation
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -I $(SRC_DIR) -c $< -o $@
 
 $(OBJ_DIR)/window/win_x11.o: $(SRC_DIR)/window/win_x11.c $(X11_MARKER)
 	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -I$(SRC_DIR)/elibs -c $< -o $@
+	$(CC) $(CFLAGS) -I $(SRC_DIR) -I$(SRC_DIR)/elibs -c $< -o $@
 
 $(OBJ_DIR)/window/x11_stub.o: $(SRC_DIR)/window/x11_stub.c $(X11_MARKER)
 	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -I$(SRC_DIR)/elibs -c $< -o $@
+	$(CC) $(CFLAGS) -I $(SRC_DIR) -I$(SRC_DIR)/elibs -c $< -o $@
 
-$(OBJ_DIR)/tests/%.o: tests/%.c
-	mkdir -p $(OBJ_DIR)/tests
-	$(CC) $(CFLAGS) -c $< -o $@ -I src
+$(OBJ_DIR)/$(TESTS_DIR)/%.o: $(TESTS_DIR)/%.c
+	mkdir -p $(OBJ_DIR)/$(TESTS_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -I src -I $(TESTS_DIR)
 
 build/$(TARGET): $(OBJ_DIR)/main.o $(COMMON_OBJS)
 	mkdir -p build
@@ -97,6 +98,9 @@ build/$(TARGET): $(OBJ_DIR)/main.o $(COMMON_OBJS)
 
 # Include the dependency files (if they exist)
 -include $(MAIN_DEPS)
+
+myapp: build/$(TARGET)
+	   ./build/$(TARGET)
 
 test: build/$(TEST_TARGET)
 	./build/$(TEST_TARGET)

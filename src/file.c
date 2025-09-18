@@ -1,5 +1,5 @@
 #include "file.h"
-#include "./assert.h"
+#include "assert.h"
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>

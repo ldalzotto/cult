@@ -1,10 +1,10 @@
 // Tests for stack allocator module
 #include "test_framework.h"
-#include "../src/mem.h"
-#include "../src/stack_alloc.h"
-#include "../src/primitive.h"
-#include "../src/print.h"
-#include "../src/file.h"
+#include "mem.h"
+#include "stack_alloc.h"
+#include "primitive.h"
+#include "print.h"
+#include "file.h"
 
 static void test_sa_basic_alloc(test_context* t) {
     uptr size = 1024;

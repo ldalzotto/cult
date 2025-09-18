@@ -1,11 +1,10 @@
 #include "test_file.h"
 #include "test_temp_dir.h"
-#include "../src/file.h"
-#include "../src/primitive.h"
-#include "../src/mem.h"
-#include "../src/litteral.h"
-#include "../src/stack_alloc.h"
-#include "../src/print.h"
+#include "file.h"
+#include "mem.h"
+#include "litteral.h"
+#include "stack_alloc.h"
+#include "print.h"
 #include <string.h>
 
 // Path definitions using STR

@@ -1,7 +1,7 @@
 #include "test_temp_dir.h"
-#include "../src/mem.h"
-#include "../src/stack_alloc.h"
-#include "../src/file.h"
+#include "mem.h"
+#include "stack_alloc.h"
+#include "file.h"
 
 const string test_temp_dir = STR("test_temp");
 

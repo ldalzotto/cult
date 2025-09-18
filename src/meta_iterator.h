@@ -1,8 +1,8 @@
 #ifndef PRINT_META_ITERATOR_H
 #define PRINT_META_ITERATOR_H
 
-#include "./stack_alloc.h"
-#include "./meta.h"
+#include "stack_alloc.h"
+#include "meta.h"
 
 typedef struct print_meta_iterator print_meta_iterator;
 print_meta_iterator* print_meta_iterator_init(stack_alloc* alloc, const meta* start);

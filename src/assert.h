@@ -1,8 +1,8 @@
 #ifndef ASSERT_H
 #define ASSERT_H
 
-#include "./primitive.h"
-#include "./litteral.h"
+#include "primitive.h"
+#include "litteral.h"
 
 #ifndef DEBUG_ASSERTIONS_ENABLED
 #error DEBUG_ASSERTIONS_ENABLED not defined
