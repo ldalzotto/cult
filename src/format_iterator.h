@@ -2,10 +2,11 @@
 #define FORMAT_ITERATOR_H
 
 #include "./stack_alloc.h"
+#include "./litteral.h"
 #include <stdarg.h>
 
 typedef struct format_iterator format_iterator;
-format_iterator* format_iterator_init(stack_alloc* alloc, const char* format, va_list args);
+format_iterator* format_iterator_init(stack_alloc* alloc, string_span format, va_list args);
 void format_iterator_deinit(stack_alloc* alloc, format_iterator* iterator);
 
 typedef enum {

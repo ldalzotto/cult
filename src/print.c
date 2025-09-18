@@ -9,9 +9,7 @@ void print_string(file_t file, const string_span string) {
 }
 
 // Print a formatted string with arguments to file
-void print_format(file_t file, const char* format, ...) {
-    debug_assert(format != 0);
-
+void print_format(file_t file, string_span format, ...) {
     u8 stack[2048];
     stack_alloc alloc;
     sa_init(&alloc, stack, byteoffset(stack, sizeof(stack)));
@@ -33,9 +31,8 @@ void print_format(file_t file, const char* format, ...) {
 }
 
 // Print a formatted string with arguments to a buffer using stack allocator
-void* print_format_to_buffer(stack_alloc* alloc, const char* format, ...) {
+void* print_format_to_buffer(stack_alloc* alloc, string_span format, ...) {
     debug_assert(alloc != 0);
-    debug_assert(format != 0);
 
     void* start = alloc->cursor;
 

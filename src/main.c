@@ -43,7 +43,7 @@ i32 main() {
         win_event* event_end = win_alloc.cursor;
         for (win_event* event = event_begin; event < event_end;++event) {
             // Simple event handling - just print for demonstration
-            print_format(file_stdout(), "Received event type: %d\n", event->type);
+            print_format(file_stdout(), STR_SPAN("Received event type: %d\n"), event->type);
             if (event->type == 2) {
                 should_exit = 1;
             }

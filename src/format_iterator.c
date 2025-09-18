@@ -59,8 +59,8 @@ static char* process_format_specifier(char specifier, va_list args, stack_alloc*
 }
 
 struct format_iterator {
-    const char* format;
-    const char* current;
+    string_span format;
+    const char* format_current;
     const char* segment_start;
     const char* segment_end;
     char specifier;
@@ -75,12 +75,12 @@ struct format_iterator {
     stack_alloc buffer;
 };
 
-format_iterator* format_iterator_init(stack_alloc* alloc, const char* format, va_list args) {
+format_iterator* format_iterator_init(stack_alloc* alloc, string_span format, va_list args) {
     format_iterator* iter = sa_alloc(alloc, sizeof(format_iterator));
     iter->format = format;
-    iter->current = format;
-    iter->segment_start = format;
-    iter->segment_end = format;
+    iter->format_current = format.begin;
+    iter->segment_start = format.begin;
+    iter->segment_end = format.begin;
     iter->specifier = 0;
     iter->in_meta = 0;
     iter->meta = NULL;
@@ -168,20 +168,20 @@ format_iteration format_iterator_next(format_iterator* iter) {
             return (format_iteration){FORMAT_ITERATION_LITERAL, {start, iter->buffer.cursor}};
         }
     } else {
-        if (*iter->current == '\0') {
+        if (iter->format_current == iter->format.end) {
             return (format_iteration){FORMAT_ITERATION_END, {NULL, 0}};
         }
-        if (*iter->current == '%') {
-            iter->segment_start = iter->current;
-            iter->current++;
-            if (*iter->current == '\0') {
-                iter->segment_end = iter->current;
-                iter->current++;
+        if (*iter->format_current == '%') {
+            iter->segment_start = iter->format_current;
+            iter->format_current++;
+            if (iter->format_current == iter->format.end) {
+                iter->segment_end = iter->format_current;
+                iter->format_current++;
                 return (format_iteration){FORMAT_ITERATION_LITERAL, {iter->segment_start, iter->segment_end}};
             }
-            iter->specifier = *iter->current;
-            iter->segment_end = iter->current + 1;
-            iter->current++;
+            iter->specifier = *iter->format_current;
+            iter->segment_end = iter->format_current + 1;
+            iter->format_current++;
             if (iter->specifier == 'm') {
                 iter->meta = va_arg(iter->args, const meta*);
                 iter->data = va_arg(iter->args, void*);
@@ -195,11 +195,11 @@ format_iteration format_iterator_next(format_iterator* iter) {
                 return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->buffer.cursor}};
             }
         } else {
-            iter->segment_start = iter->current;
-            while (*iter->current != '\0' && *iter->current != '%') {
-                iter->current++;
+            iter->segment_start = iter->format_current;
+            while (iter->format_current != iter->format.end && *iter->format_current != '%') {
+                iter->format_current++;
             }
-            iter->segment_end = iter->current;
+            iter->segment_end = iter->format_current;
             return (format_iteration){FORMAT_ITERATION_LITERAL, {iter->segment_start, iter->segment_end}};
         }
     }

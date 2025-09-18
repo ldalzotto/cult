@@ -25,17 +25,17 @@ void print_backtrace(void) {
         u8 cmd[2048];
         stack_alloc alloc;
         sa_init(&alloc, cmd, byteoffset(cmd, sizeof(cmd)));
-        print_format_to_buffer(&alloc, "addr2line -e %s -f -C -i %p", exe_path, buffer[i]);
+        print_format_to_buffer(&alloc, STR_SPAN("addr2line -e %s -f -C -i %p"), exe_path, buffer[i]);
 
         FILE *fp = popen((char*)cmd, "r");
         if (fp) {
             u8 line[1024];
             while (fgets((char*)line, sizeof(line), fp)) {
-                print_format(file_stdout(), "  [%d] %s", i, line);
+                print_format(file_stdout(), STR_SPAN("  [%d] %s"), i, line);
             }
             pclose(fp);
         } else {
-            print_format(file_stdout(), "  [%d] %p\n", i, buffer[i]);
+            print_format(file_stdout(), STR_SPAN("  [%d] %p\n"), i, buffer[i]);
         }
 
         sa_free(&alloc, cmd);

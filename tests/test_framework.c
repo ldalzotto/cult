@@ -16,11 +16,11 @@ test_context* test_context_init(stack_alloc* alloc) {
 void test_report_context(test_context* t) {
     print_string(file_stdout(), STR_SPAN("Test Results:\n"));
     if (t->filter_pattern) {
-        print_format(file_stdout(), "  Filter: %s\n", t->filter_pattern);
+        print_format(file_stdout(), STR_SPAN("  Filter: %s\n"), t->filter_pattern);
     }
-    print_format(file_stdout(), "  Passed: %u\n", t->passed);
-    print_format(file_stdout(), "  Failed: %u\n", t->failed);
-    print_format(file_stdout(), "  Total: %u\n", t->passed + t->failed);
+    print_format(file_stdout(), STR_SPAN("  Passed: %u\n"), t->passed);
+    print_format(file_stdout(), STR_SPAN("  Failed: %u\n"), t->failed);
+    print_format(file_stdout(), STR_SPAN("  Total: %u\n"), t->passed + t->failed);
 }
 
 void test_register(test_context* t, const char* name, void (*func)(test_context* t)) {
@@ -55,11 +55,11 @@ void test_run_filtered(test_context* t) {
                       test_matches_filter(test->name, t->filter_pattern);
 
         if (matches) {
-            print_format(file_stdout(), "Running test: %s\n", test->name);
+            print_format(file_stdout(), STR_SPAN("Running test: %s\n"), test->name);
             test->func(t);
             run_count++;
         } else {
-            print_format(file_stdout(), "Skipping test: %s\n", test->name);
+            print_format(file_stdout(), STR_SPAN("Skipping test: %s\n"), test->name);
             skipped_count++;
         }
 
@@ -67,6 +67,6 @@ void test_run_filtered(test_context* t) {
     }
 
     if (t->filter_pattern) {
-        print_format(file_stdout(), "Tests run: %u, skipped: %u\n", run_count, skipped_count);
+        print_format(file_stdout(), STR_SPAN("Tests run: %u, skipped: %u\n"), run_count, skipped_count);
     }
 }

@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
 
     print_string(file_stdout(), STR_SPAN("Test Suite Starting...\n"));
     if (ctx->filter_pattern) {
-        print_format(file_stdout(), "Filter: %s\n", ctx->filter_pattern);
+        print_format(file_stdout(), STR_SPAN("Filter: %s\n"), ctx->filter_pattern);
     }
 
     // Register all tests

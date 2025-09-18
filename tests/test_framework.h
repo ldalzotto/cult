@@ -32,7 +32,7 @@ void test_run_filtered(test_context* t);
     if ((cond)) { \
         (ctx)->passed++; \
     } else { \
-        print_format(file_stdout(), "TEST FAILED: %s at %s:%d\n", msg, __FILE__, __LINE__); \
+        print_format(file_stdout(), STR_SPAN("TEST FAILED: %s at %s:%d\n"), msg, __FILE__, __LINE__); \
         print_backtrace(); \
         (ctx)->failed++; \
     }
