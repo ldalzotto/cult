@@ -30,16 +30,16 @@ int main(int argc, char* argv[]) {
             ctx->filter_pattern.end = end;
             i++; // Skip the next argument
         } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
-            print_string(file_stdout(), STR_SPAN("Usage: all_tests [--filter <pattern>]\n"));
-            print_string(file_stdout(), STR_SPAN("  --filter <pattern>: Run only tests matching the pattern (supports * wildcards)\n"));
-            print_string(file_stdout(), STR_SPAN("  --help: Show this help message\n"));
+            print_string(file_stdout(), STRING("Usage: all_tests [--filter <pattern>]\n"));
+            print_string(file_stdout(), STRING("  --filter <pattern>: Run only tests matching the pattern (supports * wildcards)\n"));
+            print_string(file_stdout(), STRING("  --help: Show this help message\n"));
             return 0;
         }
     }
 
-    print_string(file_stdout(), STR_SPAN("Test Suite Starting...\n"));
+    print_string(file_stdout(), STRING("Test Suite Starting...\n"));
     if (ctx->filter_pattern.begin) {
-        print_format(file_stdout(), STR_SPAN("Filter: %s\n"), ctx->filter_pattern);
+        print_format(file_stdout(), STRING("Filter: %s\n"), ctx->filter_pattern);
     }
 
     // Register all tests

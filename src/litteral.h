@@ -5,11 +5,11 @@
 typedef struct {
     const void* begin;
     const void* end;
-} string_span;
+} string;
 
 // Macro to create a string_span from a static string literal
 #define STR(str) {(str), (str) + sizeof(str) - 1}
-#define STR_SPAN(str) (string_span) STR(str)
+#define STRING(str) (string) STR(str)
 
 #define RANGE(variable) \
       variable, byteoffset(variable, sizeof(variable))

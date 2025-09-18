@@ -20,14 +20,14 @@ static char* process_format_specifier(char specifier, va_list args, stack_alloc*
         }
         case 's': {
             // Handle string
-            const string_span str = va_arg(args, const string_span);
+            const string str = va_arg(args, const string);
             if (str.begin && str.end) {
                 char* result = (char*)sa_alloc(alloc, bytesize(str.begin, str.end));
                 sa_copy(alloc, str.begin, result, bytesize(str.begin, str.end));
                 return result;
             } else {
                 // Copy "(null)" to buffer
-                const string_span null_str = STR("(null)");
+                const string null_str = STR("(null)");
                 const uptr null_str_size = bytesize(null_str.begin, null_str.end);
                 char* result = sa_alloc(alloc, null_str_size);
                 sa_copy(alloc, null_str.begin, result, null_str_size);
@@ -57,7 +57,7 @@ static char* process_format_specifier(char specifier, va_list args, stack_alloc*
 }
 
 struct format_iterator {
-    string_span format;
+    string format;
     struct {
         const char* begin;
         const char* end;
@@ -77,7 +77,7 @@ struct format_iterator {
     stack_alloc text_format_alloc;
 };
 
-format_iterator* format_iterator_init(stack_alloc* alloc, string_span format, va_list args) {
+format_iterator* format_iterator_init(stack_alloc* alloc, string format, va_list args) {
     format_iterator* iter = sa_alloc(alloc, sizeof(format_iterator));
     iter->format = format;
     iter->format_current = format.begin;
@@ -128,7 +128,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
                 case PT_IPTR: result = convert_iptr_to_string(*(iptr*)data_offset, &iter->text_format_alloc); break;
                 case PT_UPTR: result = convert_uptr_to_string(*(uptr*)data_offset, &iter->text_format_alloc); break;
                 default: {
-                    const string_span unknown = STR("<unknown primitive>");
+                    const string unknown = STR("<unknown primitive>");
                     result = (char*)sa_alloc(&iter->text_format_alloc, bytesize(unknown.begin, unknown.end));
                     sa_copy(&iter->text_format_alloc, unknown.begin, result, bytesize(unknown.begin, unknown.end));
                     break;

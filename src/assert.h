@@ -9,11 +9,11 @@
 #endif
 
 #if DEBUG_ASSERTIONS_ENABLED
-#define debug_assert(cond) __debug_assert(cond, STR_SPAN(#cond), STR_SPAN(__FILE__), __LINE__)
+#define debug_assert(cond) __debug_assert(cond, STRING(#cond), STRING(__FILE__), __LINE__)
 #else
 #define debug_assert(cond)
 #endif
 
-void __debug_assert(u8 condition, string_span cond_str, string_span file, int line);
+void __debug_assert(u8 condition, string cond_str, string file, int line);
 
 #endif // ASSERT_H

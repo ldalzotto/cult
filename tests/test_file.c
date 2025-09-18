@@ -9,10 +9,10 @@
 #include <string.h>
 
 // Path definitions using STR
-static const string_span path_non_existent  = STR("test_temp/non_existent_file.txt");
-static const string_span path_test_output   = STR("test_temp/test_output.txt");
-static const string_span path_test_read_all = STR("test_temp/test_read_all.txt");
-static const string_span path_test_size     = STR("test_temp/test_size.txt");
+static const string path_non_existent  = STR("test_temp/non_existent_file.txt");
+static const string path_test_output   = STR("test_temp/test_output.txt");
+static const string path_test_read_all = STR("test_temp/test_read_all.txt");
+static const string path_test_size     = STR("test_temp/test_size.txt");
 
 static void test_file_open_close(test_context* t) {
     // Set up temporary directory for tests
@@ -50,7 +50,7 @@ static void test_file_write_read(test_context* t) {
     stack_alloc alloc;
     sa_init(&alloc, memory, byteoffset(memory, stack_size));
 
-    const string_span test_data = STR("Hello, World!");
+    const string test_data = STR("Hello, World!");
     uptr data_size = bytesize(test_data.begin, test_data.end);
 
     // Write to file
@@ -83,7 +83,7 @@ static void test_file_read_all(test_context* t) {
     // Set up temporary directory for tests
     setup_test_temp_dir();
 
-    const string_span test_data = STR("This is a test file content.");
+    const string test_data = STR("This is a test file content.");
     uptr data_size = bytesize(test_data.begin, test_data.end);
 
     const uptr stack_size = 1024;
@@ -120,7 +120,7 @@ static void test_file_size(test_context* t) {
     // Set up temporary directory for tests
     setup_test_temp_dir();
 
-    const string_span test_data = STR("Size test data");
+    const string test_data = STR("Size test data");
     uptr data_size = bytesize(test_data.begin, test_data.end);
 
     const uptr stack_size = 1024;
@@ -150,7 +150,7 @@ static void test_file_size(test_context* t) {
 }
 
 void test_file_module(test_context* t) {
-    print_string(file_stdout(), STR_SPAN("Registering File Module Tests...\n"));
+    print_string(file_stdout(), STRING("Registering File Module Tests...\n"));
 
     REGISTER_TEST(t, "file_open_close", test_file_open_close);
     REGISTER_TEST(t, "file_write_read", test_file_write_read);

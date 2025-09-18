@@ -4,12 +4,12 @@
 #include <stdarg.h>  // for variadic functions
 
 // Print a plain string to file
-void print_string(file_t file, const string_span string) {
+void print_string(file_t file, const string string) {
     file_write(file, string.begin, string.end);
 }
 
 // Print a formatted string with arguments to file
-void print_format(file_t file, string_span format, ...) {
+void print_format(file_t file, string format, ...) {
     u8 stack[2048];
     stack_alloc alloc;
     sa_init(&alloc, stack, byteoffset(stack, sizeof(stack)));
@@ -31,7 +31,7 @@ void print_format(file_t file, string_span format, ...) {
 }
 
 // Print a formatted string with arguments to a buffer using stack allocator
-void* print_format_to_buffer(stack_alloc* alloc, string_span format, ...) {
+void* print_format_to_buffer(stack_alloc* alloc, string format, ...) {
     debug_assert(alloc != 0);
 
     void* start = alloc->cursor;

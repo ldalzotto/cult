@@ -3,7 +3,7 @@
 
 #include "../src/litteral.h"
 
-extern const string_span test_temp_dir;
+extern const string test_temp_dir;
 
 void setup_test_temp_dir(void);
 void cleanup_test_temp_dir(void);

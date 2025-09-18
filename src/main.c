@@ -18,7 +18,7 @@ i32 main() {
     // Initialize X11 window context
     win_x11* win_ctx = win_x11_init(&win_alloc);
     if (win_ctx == 0) {
-        print_string(file_stderr(), STR_SPAN("Failed to initialize X11 window context\n"));
+        print_string(file_stderr(), STRING("Failed to initialize X11 window context\n"));
         mem_unmap(win_mem, win_mem_size);
         return 1;
     }
@@ -26,13 +26,13 @@ i32 main() {
     // Open a window
     i32 window_created = win_x11_open_window(win_ctx, "X11 Window Example", 200, 200, &win_alloc);
     if (window_created == 0) {
-        print_string(file_stderr(), STR_SPAN("Failed to create window\n"));
+        print_string(file_stderr(), STRING("Failed to create window\n"));
         win_x11_deinit(&win_alloc, win_ctx);
         mem_unmap(win_mem, win_mem_size);
         return 1;
     }
 
-    print_string(file_stdout(), STR_SPAN("Window created successfully. Press Ctrl+C to exit.\n"));
+    print_string(file_stdout(), STRING("Window created successfully. Press Ctrl+C to exit.\n"));
 
     // Simple event polling loop
     // In a real application, you'd have proper event handling
@@ -42,7 +42,7 @@ i32 main() {
         win_event* event_end = win_alloc.cursor;
         for (win_event* event = event_begin; event < event_end;++event) {
             // Simple event handling - just print for demonstration
-            print_format(file_stdout(), STR_SPAN("Received event type: %d\n"), event->type);
+            print_format(file_stdout(), STRING("Received event type: %d\n"), event->type);
             if (event->type == 2) {
                 should_exit = 1;
             }

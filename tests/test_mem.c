@@ -34,7 +34,7 @@ static void test_mem_map_large_block(test_context* t) {
 }
 
 void test_mem_module(test_context* t) {
-    print_string(file_stdout(), STR_SPAN("Registering Memory Module Tests...\n"));
+    print_string(file_stdout(), STRING("Registering Memory Module Tests...\n"));
     REGISTER_TEST(t, "mem_small_block", test_mem_map_small_block);
     REGISTER_TEST(t, "mem_large_block", test_mem_map_large_block);
 }

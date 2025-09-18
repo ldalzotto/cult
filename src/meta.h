@@ -18,7 +18,7 @@ typedef enum {
 
 // Meta structure for describing how to print any type
 struct meta {
-    string_span type_name;         // e.g., "i32", "my_struct"
+    string type_name;         // e.g., "i32", "my_struct"
     u32 is_array;                  // 1 if this is an array type
     uptr type_size;                // size of the type in bytes
     primitive_type pt;             // primitive type enum
@@ -30,7 +30,7 @@ struct meta {
 
 // Field descriptor structure
 struct field_descriptor {
-    string_span field_name;
+    string field_name;
     uptr offset;              // byte offset in struct
     const meta* field_meta;   // recursive meta for nested types
 };

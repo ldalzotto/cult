@@ -10,7 +10,7 @@
 #include <string.h>
 
 // Path definitions using STR
-static const string_span path_test_output = STR("test_temp/print_test_output.txt");
+static const string path_test_output = STR("test_temp/print_test_output.txt");
 
 // Define test structs
 typedef struct {
@@ -60,10 +60,10 @@ const meta complex_meta = {
 static void test_print_primitives(test_context* t) {
     // Test printing primitives
     i32 val_i32 = 42;
-    print_format(file_stdout(), STR_SPAN("%m\n"), &i32_meta, &val_i32);
+    print_format(file_stdout(), STRING("%m\n"), &i32_meta, &val_i32);
 
     u64 val_u64 = 1234567890123456789ULL;
-    print_format(file_stdout(), STR_SPAN("%m\n"), &u64_meta, &val_u64);
+    print_format(file_stdout(), STRING("%m\n"), &u64_meta, &val_u64);
 
     // Since we can't easily test output, just ensure no crash
     TEST_ASSERT_TRUE(t, 1);
@@ -71,7 +71,7 @@ static void test_print_primitives(test_context* t) {
 
 static void test_print_struct(test_context* t) {
     test_point_t point = {10, 20};
-    print_format(file_stdout(), STR_SPAN("%m\n"), &test_point_meta, &point);
+    print_format(file_stdout(), STRING("%m\n"), &test_point_meta, &point);
 
     TEST_ASSERT_TRUE(t, 1);
 }
@@ -94,7 +94,7 @@ static void test_print_to_file(test_context* t) {
     TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     // Print to file using file_t version
-    print_format(file, STR_SPAN("%m"), &test_point_meta, &point);
+    print_format(file, STRING("%m"), &test_point_meta, &point);
     file_close(file);
 
     // Open file for reading
@@ -133,14 +133,14 @@ static void test_print_nested_to_file(test_context* t) {
     complex_t obj = {{10, 20}, 42};
     const char* expected = "complex_t {pos: test_point_t {x: 10, y: 20}, id: 42}";
 
-    print_format(file_stdout(), STR_SPAN("%m\n"), &complex_meta, &obj);
+    print_format(file_stdout(), STRING("%m\n"), &complex_meta, &obj);
     
     // Open file for writing
     file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
     TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     // Print to file using file_t version
-    print_format(file, STR_SPAN("%m"), &complex_meta, &obj);
+    print_format(file, STRING("%m"), &complex_meta, &obj);
     file_close(file);
 
     // Open file for reading
@@ -180,7 +180,7 @@ static void test_print_format_function(test_context* t) {
     TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     // Test print_format function
-    print_format(file, STR_SPAN("Hello, World! Value: %d"), 42);
+    print_format(file, STRING("Hello, World! Value: %d"), 42);
     file_close(file);
 
     // Open file for reading
@@ -225,7 +225,7 @@ static void test_print_format_meta_specifier(test_context* t) {
     TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     // Test print_format with %m specifier
-    print_format(file, STR_SPAN("Point: %m"), &test_point_meta, &point);
+    print_format(file, STRING("Point: %m"), &test_point_meta, &point);
     file_close(file);
 
     // Open file for reading
@@ -270,7 +270,7 @@ static void test_print_format_multiple_meta(test_context* t) {
     TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
     // Test print_format with multiple %m specifiers
-    print_format(file, STR_SPAN("Simple: %m Complex: %m"), &test_point_meta, &point, &complex_meta, &obj);
+    print_format(file, STRING("Simple: %m Complex: %m"), &test_point_meta, &point, &complex_meta, &obj);
     file_close(file);
 
     // Open file for reading
@@ -318,13 +318,13 @@ static void test_print_meta_iterator(test_context* t) {
         print_meta_iteration iteration = print_meta_iterator_next(it);
         if (!iteration.meta) {break;}
 
-        print_format(file, STR_SPAN("%s\n"), iteration.meta->type_name);
+        print_format(file, STRING("%s\n"), iteration.meta->type_name);
         if (iteration.fields_current == iteration.meta->fields.begin) {
-            print_format(file, STR_SPAN("%s\n"), STR_SPAN("Begin"));
+            print_format(file, STRING("%s\n"), STRING("Begin"));
         } else if (iteration.fields_current == iteration.meta->fields.end) {
-            print_format(file, STR_SPAN("%s\n"), STR_SPAN("End"));
+            print_format(file, STRING("%s\n"), STRING("End"));
         } else {
-            print_format(file, STR_SPAN("%s\n"), STR_SPAN("Middle"));
+            print_format(file, STRING("%s\n"), STRING("Middle"));
         }
     }
     print_meta_iterator_deinit(&alloc, it);

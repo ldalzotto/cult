@@ -3,7 +3,7 @@
 #include "../src/stack_alloc.h"
 #include "../src/file.h"
 
-const string_span test_temp_dir = STR("test_temp");
+const string test_temp_dir = STR("test_temp");
 
 void cleanup_test_temp_dir(void) {
     const uptr stack_size = 1024;
