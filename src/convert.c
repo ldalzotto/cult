@@ -37,11 +37,10 @@ char* convert_i8_to_string(i8 value, stack_alloc* alloc) {
     }
 
     // Allocate memory and copy
-    char* result = (char*)sa_alloc(alloc, idx + 1);
+    char* result = (char*)sa_alloc(alloc, idx);
     for (int i = 0; i < idx; i++) {
         result[i] = temp_buffer[i];
     }
-    result[idx] = '\0';
 
     return result;
 }
@@ -71,11 +70,10 @@ char* convert_u8_to_string(u8 value, stack_alloc* alloc) {
     }
 
     // Allocate memory and copy
-    char* result = (char*)sa_alloc(alloc, idx + 1);
+    char* result = (char*)sa_alloc(alloc, idx);
     for (int i = 0; i < idx; i++) {
         result[i] = temp_buffer[i];
     }
-    result[idx] = '\0';
 
     return result;
 }
@@ -117,11 +115,10 @@ char* convert_i16_to_string(i16 value, stack_alloc* alloc) {
     }
 
     // Allocate memory and copy
-    char* result = (char*)sa_alloc(alloc, idx + 1);
+    char* result = (char*)sa_alloc(alloc, idx);
     for (int i = 0; i < idx; i++) {
         result[i] = temp_buffer[i];
     }
-    result[idx] = '\0';
 
     return result;
 }
@@ -151,11 +148,10 @@ char* convert_u16_to_string(u16 value, stack_alloc* alloc) {
     }
 
     // Allocate memory and copy
-    char* result = (char*)sa_alloc(alloc, idx + 1);
+    char* result = (char*)sa_alloc(alloc, idx);
     for (int i = 0; i < idx; i++) {
         result[i] = temp_buffer[i];
     }
-    result[idx] = '\0';
 
     return result;
 }
@@ -197,11 +193,10 @@ char* convert_i32_to_string(i32 value, stack_alloc* alloc) {
     }
 
     // Allocate memory and copy
-    char* result = (char*)sa_alloc(alloc, idx + 1);
+    char* result = (char*)sa_alloc(alloc, idx);
     for (int i = 0; i < idx; i++) {
         result[i] = temp_buffer[i];
     }
-    result[idx] = '\0';
 
     return result;
 }
@@ -231,11 +226,10 @@ char* convert_u32_to_string(u32 value, stack_alloc* alloc) {
     }
 
     // Allocate memory and copy
-    char* result = (char*)sa_alloc(alloc, idx + 1);
+    char* result = (char*)sa_alloc(alloc, idx);
     for (int i = 0; i < idx; i++) {
         result[i] = temp_buffer[i];
     }
-    result[idx] = '\0';
 
     return result;
 }
@@ -277,11 +271,10 @@ char* convert_i64_to_string(i64 value, stack_alloc* alloc) {
     }
 
     // Allocate memory and copy
-    char* result = (char*)sa_alloc(alloc, idx + 1);
+    char* result = (char*)sa_alloc(alloc, idx);
     for (int i = 0; i < idx; i++) {
         result[i] = temp_buffer[i];
     }
-    result[idx] = '\0';
 
     return result;
 }
@@ -311,11 +304,10 @@ char* convert_u64_to_string(u64 value, stack_alloc* alloc) {
     }
 
     // Allocate memory and copy
-    char* result = (char*)sa_alloc(alloc, idx + 1);
+    char* result = (char*)sa_alloc(alloc, idx);
     for (int i = 0; i < idx; i++) {
         result[i] = temp_buffer[i];
     }
-    result[idx] = '\0';
 
     return result;
 }
@@ -357,11 +349,10 @@ char* convert_iptr_to_string(iptr value, stack_alloc* alloc) {
     }
 
     // Allocate memory and copy
-    char* result = (char*)sa_alloc(alloc, idx + 1);
+    char* result = (char*)sa_alloc(alloc, idx);
     for (int i = 0; i < idx; i++) {
         result[i] = temp_buffer[i];
     }
-    result[idx] = '\0';
 
     return result;
 }
@@ -391,11 +382,10 @@ char* convert_uptr_to_string(uptr value, stack_alloc* alloc) {
     }
 
     // Allocate memory and copy
-    char* result = (char*)sa_alloc(alloc, idx + 1);
+    char* result = (char*)sa_alloc(alloc, idx);
     for (int i = 0; i < idx; i++) {
         result[i] = temp_buffer[i];
     }
-    result[idx] = '\0';
 
     return result;
 }
@@ -437,11 +427,10 @@ char* convert_pointer_to_string(void* ptr, stack_alloc* alloc) {
     }
 
     // Allocate memory and copy
-    char* result = (char*)sa_alloc(alloc, idx + 1);
+    char* result = (char*)sa_alloc(alloc, idx);
     for (int i = 0; i < idx; i++) {
         result[i] = temp_buffer[i];
     }
-    result[idx] = '\0';
 
     return result;
 }

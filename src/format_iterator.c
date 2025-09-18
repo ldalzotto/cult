@@ -24,25 +24,23 @@ static char* process_format_specifier(char specifier, va_list args, stack_alloc*
             if (str) {
                 uptr length = 0;
                 while (str[length] != '\0') ++length;
-                char* result = (char*)sa_alloc(alloc, length + 1);
+                char* result = (char*)sa_alloc(alloc, length );
                 sa_copy(alloc, str, result, length);
-                result[length] = '\0';
                 return result;
             } else {
                 // Copy "(null)" to buffer
-                const char* null_str = "(null)";
-                char* result = (char*)sa_alloc(alloc, 7);
-                sa_copy(alloc, null_str, result, 6);
-                result[6] = '\0';
+                const string_span null_str = STR("(null)");
+                const uptr null_str_size = bytesize(null_str.begin, null_str.end);
+                char* result = sa_alloc(alloc, null_str_size);
+                sa_copy(alloc, null_str.begin, result, null_str_size);
                 return result;
             }
         }
         case 'c': {
             // Handle character
             char c = (char)va_arg(args, int);  // char is promoted to int
-            char* result = (char*)sa_alloc(alloc, 2);
-            result[0] = c;
-            result[1] = '\0';
+            char* result = sa_alloc(alloc, 1);
+            *result = c;
             return result;
         }
         case 'p': {
@@ -52,10 +50,9 @@ static char* process_format_specifier(char specifier, va_list args, stack_alloc*
         }
         default: {
             // Handle unknown format specifier
-            char* result = (char*)sa_alloc(alloc, 3);
+            char* result = (char*)sa_alloc(alloc, 2);
             result[0] = '%';
             result[1] = specifier;
-            result[2] = '\0';
             return result;
         }
     }
@@ -84,7 +81,7 @@ format_iterator* format_iterator_init(stack_alloc* alloc, const char* format, va
     iter->current = format;
     iter->segment_start = format;
     iter->segment_end = format;
-    iter->specifier = '\0';
+    iter->specifier = 0;
     iter->in_meta = 0;
     iter->meta = NULL;
     iter->data = NULL;
@@ -130,15 +127,15 @@ format_iteration format_iterator_next(format_iterator* iter) {
                 case PT_U64: result = convert_u64_to_string(*(u64*)data_offset, &iter->buffer); break;
                 case PT_IPTR: result = convert_iptr_to_string(*(iptr*)data_offset, &iter->buffer); break;
                 case PT_UPTR: result = convert_uptr_to_string(*(uptr*)data_offset, &iter->buffer); break;
-                default:
-                    result = (char*)sa_alloc(&iter->buffer, 19);
-                    sa_copy(&iter->buffer, "<unknown primitive>", result, 18);
-                    result[18] = '\0';
+                default: {
+                    const string_span unknown = STR("<unknown primitive>");
+                    result = (char*)sa_alloc(&iter->buffer, bytesize(unknown.begin, unknown.end));
+                    sa_copy(&iter->buffer, unknown.begin, result, bytesize(unknown.begin, unknown.end));
                     break;
+                }
+                    
             }
-            uptr length = 0;
-            while (result[length] != '\0') ++length;
-            return (format_iteration){FORMAT_ITERATION_LITERAL, {result, byteoffset(result, length)}};
+            return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->buffer.cursor}};
         } else {
             // Struct
             void* start = iter->buffer.cursor;
@@ -195,8 +192,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
             } else {
                 // Process the specifier
                 char* result = process_format_specifier(iter->specifier, iter->args, &iter->buffer);
-                uptr length = bytesize(result, iter->buffer.cursor) - 1;
-                return (format_iteration){FORMAT_ITERATION_LITERAL, {result, byteoffset(result, length)}};
+                return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->buffer.cursor}};
             }
         } else {
             iter->segment_start = iter->current;
