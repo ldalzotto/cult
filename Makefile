@@ -3,7 +3,7 @@ ELIBS_DIR=elibs
 DEP_DIR=build/deps
 OBJ_DIR=build/objects
 CC=gcc
-CFLAGS_SHARED=-Wall -Wextra -pedantic
+CFLAGS_SHARED=-Wall -Wextra -Werror -pedantic
 LDFLAGS=
 
 # Default build flavor
