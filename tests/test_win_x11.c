@@ -7,7 +7,6 @@
 #include "../src/primitive.h"
 #include "../src/print.h"
 #include "../src/file.h"
-#include <stdio.h>
 
 static void test_win_x11_basic_init_deinit(test_context* t) {
     print_string(file_stdout(), STR_SPAN("Testing basic win_x11 init/deinit...\n"));
@@ -50,7 +49,7 @@ static void test_win_x11_window_lifecycle(test_context* t) {
 
     // Get pixel buffer and modify some pixels
     win_buffer buffer = win_x11_get_pixel_buffer(win);
-    if (buffer.begin != NULL && buffer.end != NULL) {
+    if (buffer.begin != 0 && buffer.end != 0) {
         // Set first pixel to red (0xFF0000FF in RGBA)
         u32* pixels = (u32*)buffer.begin;
         pixels[0] = 0xFF0000FF;

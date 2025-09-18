@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "primitive.h"
 #include "./mem.h"
 #include "./stack_alloc.h"
@@ -18,7 +17,7 @@ i32 main() {
 
     // Initialize X11 window context
     win_x11* win_ctx = win_x11_init(&win_alloc);
-    if (win_ctx == NULL) {
+    if (win_ctx == 0) {
         print_string(file_stderr(), STR_SPAN("Failed to initialize X11 window context\n"));
         mem_unmap(win_mem, win_mem_size);
         return 1;

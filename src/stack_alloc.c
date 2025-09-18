@@ -1,4 +1,3 @@
-#include <stddef.h>
 #include <string.h>
 #include "./stack_alloc.h"
 #include "./assert.h"

@@ -5,7 +5,6 @@
 #include "../src/primitive.h"
 #include "../src/print.h"
 #include "../src/file.h"
-#include <stdio.h>
 
 static void test_sa_basic_alloc(test_context* t) {
     uptr size = 1024;

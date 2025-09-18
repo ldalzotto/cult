@@ -1,10 +1,8 @@
 // Tests for memory module
 #include "test_framework.h"
 #include "../src/mem.h"
-#include "../src/assert.h"
 #include "../src/print.h"
 #include "../src/file.h"
-#include <stdio.h>
 
 static void test_mem_map_small_block(test_context* t) {
     uptr size = 1024;

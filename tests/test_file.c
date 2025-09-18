@@ -6,7 +6,6 @@
 #include "../src/litteral.h"
 #include "../src/stack_alloc.h"
 #include "../src/print.h"
-#include <stdio.h>
 #include <string.h>
 
 // Path definitions using STR
