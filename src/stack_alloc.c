@@ -12,6 +12,7 @@ void sa_init(stack_alloc* alloc, void* begin, void* end) {
 // Deinitialize the stack allocator by checking that the cursor is back to begin
 void sa_deinit(stack_alloc* alloc) {
     debug_assert(alloc->cursor == alloc->begin);
+    unused(alloc);
 }
 
 // Allocate a block of memory
@@ -50,6 +51,7 @@ void sa_move(stack_alloc* alloc, void* from, void* to, uptr size) {
     debug_assert((uptr)from >= (uptr)alloc->begin && (uptr)from <= (uptr)alloc->cursor);
     debug_assert((uptr)byteoffset(from, size) <= (uptr)alloc->cursor);  // Ensure the block to move is within allocated memory
     debug_assert((uptr)to >= (uptr)alloc->begin && (uptr)byteoffset(to, size) <= (uptr)alloc->end);
+    unused(alloc);
 
     memmove(to, from, size);
 
@@ -60,6 +62,7 @@ void sa_move(stack_alloc* alloc, void* from, void* to, uptr size) {
 void sa_copy(stack_alloc* alloc, const void* from, void* to, uptr size) {
     debug_assert(!((uptr)from >= (uptr)alloc->begin && (uptr)from <= (uptr)alloc->cursor) || ((uptr)byteoffset(from, size) <= (uptr)alloc->cursor));
     debug_assert((uptr)to >= (uptr)alloc->begin && (uptr)byteoffset(to, size) <= (uptr)alloc->end);
+    unused(alloc);
 
     __builtin_memcpy(to, from, size);
 

@@ -12,4 +12,5 @@ void* mem_map(uptr size) {
 void mem_unmap(void* pointer, uptr size) {
     i32 result = munmap(pointer, size);
     debug_assert(result == 0);
+    unused(result);
 }
