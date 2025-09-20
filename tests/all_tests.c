@@ -5,6 +5,7 @@
 #include "test_file.h"
 #include "test_print.h"
 #include "test_lzss.h"
+#include "test_backtrace.h"
 
 #include "print.h"
 #include "file.h"
@@ -50,6 +51,7 @@ int main(int argc, char* argv[]) {
     test_win_x11_module(ctx);
     test_file_module(ctx);
     test_print_module(ctx);
+    test_backtrace_module(ctx);
     test_lzss_module(ctx);
 
     // Run filtered tests

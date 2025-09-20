@@ -22,6 +22,7 @@ void print_format(file_t file, string format, ...) {
     while (1) {
         format_iteration fi = format_iterator_next(iter);
         if (fi.type == FORMAT_ITERATION_END) break;
+        if (fi.type == FORMAT_ITERATION_CONTINUE) continue;
 
         file_write(file, fi.text.begin, fi.text.end);
     }
@@ -34,13 +35,16 @@ void print_format(file_t file, string format, ...) {
 void* print_format_to_buffer(stack_alloc* alloc, string format, ...) {
     debug_assert(alloc != 0);
 
+    u8 stack[2048];
+    stack_alloc alloc_stack;
+    sa_init(&alloc_stack, stack, byteoffset(stack, sizeof(stack)));
+
     void* start = alloc->cursor;
 
     va_list args;
     va_start(args, format);
 
-    format_iterator* iter = format_iterator_init(alloc, format, args);
-
+    format_iterator* iter = format_iterator_init(&alloc_stack, format, args);
     while (1) {
         format_iteration fi = format_iterator_next(iter);
         if (fi.type == FORMAT_ITERATION_END) break;
@@ -51,7 +55,7 @@ void* print_format_to_buffer(stack_alloc* alloc, string format, ...) {
         sa_copy(alloc, fi.text.begin, dest, text_length);
     }
 
-    format_iterator_deinit(alloc, iter);
+    format_iterator_deinit(&alloc_stack, iter);
     va_end(args);
 
     return start;
