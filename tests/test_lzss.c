@@ -21,7 +21,7 @@ static void test_lzss(test_context* t) {
     uptr compressed_size = bytesize(out, alloc.cursor);
     TEST_ASSERT(t, compressed_size > 0, "Compressed size should be positive");
     TEST_ASSERT(t, compressed_size < input_size, "Compressed size should be smaller than input for repetitive data");
-    TEST_ASSERT(t, compressed_size == 64, "");
+    TEST_ASSERT(t, compressed_size == 61, "");
 
     sa_free(&alloc, out);
 

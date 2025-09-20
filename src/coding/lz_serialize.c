@@ -8,6 +8,14 @@ STATIC_ASSERT(sizeof(item_type) == 1);
 
 typedef lz_match match;
 
+static void allocate_litteral(stack_alloc* alloc, u8* begin, u8* end) {
+    if (begin == end) {return;}
+    *(item_type*)sa_alloc(alloc, sizeof(item_type)) = LITERAL;
+    uptr size = bytesize(begin, end);
+    u8* data = sa_alloc(alloc, size);
+    sa_copy(alloc, begin, data, size);
+}
+
 static void allocate_match(stack_alloc* alloc, match* match) {
     *(item_type*)sa_alloc(alloc, sizeof(item_type)) = MATCH;
     uptr offset = match->lookahead.begin - match->search.begin;
@@ -21,19 +29,13 @@ u8* lz_serialize(u8* input_begin, u8* input_end, lz_match_span matches, stack_al
     u8* current = input_begin;
     for (lz_match* m = matches.begin; m != matches.end; ++m) {
         // Output literals before match
-        for (u8* p = current; p != m->lookahead.begin; ++p) {
-            *(item_type*)sa_alloc(alloc, sizeof(item_type)) = LITERAL;
-            *(u8*)sa_alloc(alloc, sizeof(u8)) = *p;
-        }
+        allocate_litteral(alloc, current, m->lookahead.begin);
         // Output match
         allocate_match(alloc, m);
         current = m->lookahead.end;
     }
     // Output remaining literals
-    for (u8* p = current; p != input_end; ++p) {
-        *(item_type*)sa_alloc(alloc, sizeof(item_type)) = LITERAL;
-        *(u8*)sa_alloc(alloc, sizeof(u8)) = *p;
-    }
+    allocate_litteral(alloc, current, input_end);
 
     return output;
 }
