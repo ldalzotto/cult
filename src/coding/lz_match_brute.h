@@ -13,6 +13,7 @@ typedef struct {
 } lz_match_span;
 
 u8 lz_match_has_value(lz_match match);
-lz_match lz_match_brute(lz_window window);
+u8 lz_match_is_large_enough(lz_match match, uptr match_size_min);
+lz_match lz_match_brute(lz_window window, uptr match_size_max);
 
 #endif /* LZ_MATCH_BRUTE */

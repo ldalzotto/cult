@@ -15,13 +15,17 @@ static void test_lzss(test_context* t) {
     uptr input_size = bytesize(input.begin, input.end);
     TEST_ASSERT(t, input_size > 0, "Input size should be positive");
 
-    void* out = lzss_compress((u8*)input.begin, (u8*)input.end, &alloc, /*debug=*/file_stdout());
+    lzss_config config;
+    config.match_size_max = 255;
+    config.match_size_min = 3;
+    config.window_size_max = 1024;
+    void* out = lzss_compress((u8*)input.begin, (u8*)input.end, config, &alloc, /*debug=*/file_stdout());
     TEST_ASSERT_NOT_NULL(t, out);
 
     uptr compressed_size = bytesize(out, alloc.cursor);
     TEST_ASSERT(t, compressed_size > 0, "Compressed size should be positive");
     TEST_ASSERT(t, compressed_size < input_size, "Compressed size should be smaller than input for repetitive data");
-    TEST_ASSERT(t, compressed_size == 61, "");
+    TEST_ASSERT(t, compressed_size == 48, "");
 
     sa_free(&alloc, out);
 

@@ -1,11 +1,21 @@
 #include "lz_match_brute.h"
+#include "assert.h"
 
-static lz_match update_largest_match(lz_match match_largest, lz_match match_current) {
+static lz_match update_largest_match(lz_match match_largest, lz_match match_current, uptr match_size_max) {
     uptr match_current_size = bytesize(match_current.search.begin, match_current.search.end);
     uptr match_largest_size = bytesize(match_largest.search.begin, match_largest.search.end);
+    debug_assert(match_largest_size <= match_size_max);
+    if (match_current_size > match_size_max) {
+        uptr diff = match_current_size - match_size_max;
+        match_current.search.end = byteoffset(match_current.search.end, -diff);
+        match_current_size -= diff;
+        debug_assert(match_current_size == bytesize(match_current.search.begin, match_current.search.end));
+        debug_assert(match_current_size == match_size_max);
+    }
     if (match_current_size > match_largest_size) {
         return match_current;
     } else {
+        
         return match_largest;
     }
 }
@@ -14,7 +24,12 @@ u8 lz_match_has_value(lz_match match) {
     return bytesize(match.search.begin, match.search.end) > 0;
 }
 
-lz_match lz_match_brute(lz_window window) {
+u8 lz_match_is_large_enough(lz_match match, uptr match_size_min) {
+    uptr match_size = bytesize(match.search.begin, match.search.end);
+    return match_size >= match_size_min;
+}
+
+lz_match lz_match_brute(lz_window window, uptr match_size_max) {
     // TODO
     unused(window);
     lz_match match_largest = {
@@ -34,7 +49,7 @@ lz_match lz_match_brute(lz_window window) {
                         .search = {search_start, search_cursor},
                         .lookahead = {window.lookahead_begin, lookahead_cursor},
                     };
-                    match_largest = update_largest_match(match_largest, match_current);
+                    match_largest = update_largest_match(match_largest, match_current, match_size_max);
                 }
                 break;
         }
@@ -52,7 +67,7 @@ lz_match lz_match_brute(lz_window window) {
                     .search = {search_start, search_cursor},
                     .lookahead = {window.lookahead_begin, lookahead_cursor},
                 };
-                match_largest = update_largest_match(match_largest, match_current);
+                match_largest = update_largest_match(match_largest, match_current, match_size_max);
                 lookahead_cursor = window.lookahead_begin;
                 comparison_started = 0;
             } else {
