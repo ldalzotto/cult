@@ -4,8 +4,6 @@
 #include "lz_bit_types.h"
 
 u8* lz_deserialize(u8* compressed_begin, u8* compressed_end, stack_alloc* alloc, file_t debug) {
-    uptr debug_allocated = bytesize(alloc->begin, alloc->cursor);
-    unused(debug_allocated);
     u8* output = alloc->cursor;
     u8* current = compressed_begin;
 
@@ -27,14 +25,9 @@ u8* lz_deserialize(u8* compressed_begin, u8* compressed_end, stack_alloc* alloc,
             u8 length = *current++;
             // Copy from offset back in output
             u8* source = (u8*)alloc->cursor - offset;
-            uptr debug_size_current = bytesize(output, alloc->cursor);
-            unused(debug_size_current);
             debug_assert(source >= output);
             u8* data = sa_alloc(alloc, length);
             sa_copy(alloc, source, data, length);
-            uptr debug_allocated_2 = bytesize(alloc->begin, alloc->cursor);
-            debug_allocated_2 = 10;
-            unused(debug_allocated_2);
         }
     }
 
