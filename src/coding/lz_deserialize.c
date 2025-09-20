@@ -1,10 +1,7 @@
 #include "lz_deserialize.h"
 #include "print.h"
 #include "assert.h"
-
-typedef u8 item_type;
-static const item_type LITERAL = 0;
-static const item_type MATCH = 1;
+#include "lz_bit_types.h"
 
 u8* lz_deserialize(u8* compressed_begin, u8* compressed_end, stack_alloc* alloc, file_t debug) {
     uptr debug_allocated = bytesize(alloc->begin, alloc->cursor);
