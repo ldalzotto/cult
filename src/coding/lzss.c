@@ -1,9 +1,10 @@
 #include "lzss.h"
 #include "lz_window.h"
 #include "lz_match_brute.h"
+#include "lz_serialize.h"
 #include "print.h"
 
-static void* compress(u8* begin, u8* end, stack_alloc* alloc, u8 debug) {
+static void* compress(u8* begin, u8* end, stack_alloc* alloc, file_t debug) {
     const uptr match_size_min = 3;
     const uptr window_size_max = 1024;
     lz_window window = {
@@ -11,7 +12,7 @@ static void* compress(u8* begin, u8* end, stack_alloc* alloc, u8 debug) {
         .lookahead_begin = begin,
         .end = end,
     };
-    struct {lz_match* begin; lz_match* end;} matches;
+    lz_match_span matches;
     matches.begin = alloc->cursor;
     while (!lz_window_end(window, match_size_min)) {
         lz_match match = lz_match_brute(window);
@@ -25,21 +26,22 @@ static void* compress(u8* begin, u8* end, stack_alloc* alloc, u8 debug) {
         lz_window_advance(&window, lookahead_next, window_size_max);
     }
     matches.end = alloc->cursor;
-    unused(matches);
 
     if (debug) {
         for (lz_match* match = matches.begin; match<matches.end; ++match) {
-            print_string(file_stdout(), (string){match->search.begin, match->search.end});
-            print_string(file_stdout(), STRING("\n"));
+            print_format(debug, STRING("match: %u bytes\n"), bytesize(match->search.begin, match->search.end));
+            // print_string(debug, (string){match->search.begin, match->search.end});
+            // print_string(debug, STRING("\n"));
         }
     }
     
-    // TODO serialize
+    u8* output = lz_serialize(begin, end, matches, alloc);
+
+    sa_move_tail(alloc, output, matches.begin);
 
     return matches.begin;
 }
 
-void* lzss_compress(u8* begin, u8* end, stack_alloc* alloc, u8 debug) {
+void* lzss_compress(u8* begin, u8* end, stack_alloc* alloc, file_t debug) {
     return compress(begin, end, alloc, debug);
 }
-

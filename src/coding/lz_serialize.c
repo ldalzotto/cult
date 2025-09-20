@@ -1,0 +1,39 @@
+#include "lz_serialize.h"
+
+
+typedef u8 item_type;
+const item_type LITERAL = 0;
+const item_type MATCH = 1;
+STATIC_ASSERT(sizeof(item_type) == 1);
+
+typedef lz_match match;
+
+static void allocate_match(stack_alloc* alloc, match* match) {
+    *(item_type*)sa_alloc(alloc, sizeof(item_type)) = MATCH;
+    uptr offset = match->lookahead.begin - match->search.begin;
+    *(u16*)sa_alloc(alloc, sizeof(u16)) = offset;
+    uptr length = match->lookahead.end - match->lookahead.begin;
+    *(u8*)sa_alloc(alloc, sizeof(u8)) = length;
+}
+
+u8* lz_serialize(u8* input_begin, u8* input_end, lz_match_span matches, stack_alloc* alloc) {
+    u8* output = alloc->cursor;
+    u8* current = input_begin;
+    for (lz_match* m = matches.begin; m != matches.end; ++m) {
+        // Output literals before match
+        for (u8* p = current; p != m->lookahead.begin; ++p) {
+            *(item_type*)sa_alloc(alloc, sizeof(item_type)) = LITERAL;
+            *(u8*)sa_alloc(alloc, sizeof(u8)) = *p;
+        }
+        // Output match
+        allocate_match(alloc, m);
+        current = m->lookahead.end;
+    }
+    // Output remaining literals
+    for (u8* p = current; p != input_end; ++p) {
+        *(item_type*)sa_alloc(alloc, sizeof(item_type)) = LITERAL;
+        *(u8*)sa_alloc(alloc, sizeof(u8)) = *p;
+    }
+
+    return output;
+}

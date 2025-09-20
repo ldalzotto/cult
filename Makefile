@@ -34,6 +34,7 @@ COMMON_OBJS= \
 	$(OBJ_DIR)/window/win_x11.o \
 	$(OBJ_DIR)/coding/lzss.o \
 	$(OBJ_DIR)/coding/lz_match_brute.o \
+	$(OBJ_DIR)/coding/lz_serialize.o \
 	$(OBJ_DIR)/coding/lz_window.o
 
 TEST_OBJS= \
