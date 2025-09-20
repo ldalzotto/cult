@@ -33,7 +33,7 @@ static void* compress(u8* begin, u8* end, lzss_config config, stack_alloc* alloc
         }
     }
     
-    u8* output = lz_serialize(begin, end, matches, alloc);
+    u8* output = lz_serialize(begin, end, matches, config.match_size_max, alloc);
 
     sa_move_tail(alloc, output, matches.begin);
 
