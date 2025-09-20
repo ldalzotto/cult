@@ -8,6 +8,7 @@ static lz_match update_largest_match(lz_match match_largest, lz_match match_curr
     if (match_current_size > match_size_max) {
         uptr diff = match_current_size - match_size_max;
         match_current.search.end = byteoffset(match_current.search.end, -diff);
+        match_current.lookahead.end = byteoffset(match_current.lookahead.end, -diff);
         match_current_size -= diff;
         debug_assert(match_current_size == bytesize(match_current.search.begin, match_current.search.end));
         debug_assert(match_current_size == match_size_max);

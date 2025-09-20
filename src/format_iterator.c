@@ -20,6 +20,7 @@ static char* process_format_specifier(char specifier, va_list args, stack_alloc*
         }
         case 's': {
             // Handle string
+            // TODO: this should be streamed
             const string str = va_arg(args, const string);
             if (str.begin && str.end) {
                 char* result = (char*)sa_alloc(alloc, bytesize(str.begin, str.end));

@@ -4,7 +4,7 @@
 #include "coding/lzss.h"
 
 static void test_lzss(test_context* t) {
-    uptr size = 1024;
+    uptr size = 1024 * 1024;
     void* mem = mem_map(size);
     TEST_ASSERT_NOT_NULL(t, mem);
 
@@ -19,14 +19,16 @@ static void test_lzss(test_context* t) {
     config.match_size_max = 255;
     config.match_size_min = 3;
     config.window_size_max = 1024;
-    void* out = lzss_compress((u8*)input.begin, (u8*)input.end, config, &alloc, /*debug=*/file_stdout());
+    void* out = lzss_compress((u8*)input.begin, (u8*)input.end, config, &alloc, 0);
     TEST_ASSERT_NOT_NULL(t, out);
 
     uptr compressed_size = bytesize(out, alloc.cursor);
     TEST_ASSERT(t, compressed_size > 0, "Compressed size should be positive");
     TEST_ASSERT(t, compressed_size < input_size, "Compressed size should be smaller than input for repetitive data");
-    TEST_ASSERT(t, compressed_size == 49, "");
 
+    void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, 0);
+    uptr decompressed_size = bytesize(decompressed, alloc.cursor);
+    TEST_ASSERT(t, decompressed_size == input_size, "");
 
     sa_free(&alloc, out);
 

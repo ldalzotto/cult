@@ -32,7 +32,7 @@ static void allocate_match(stack_alloc* alloc, match* match) {
     *(item_type*)sa_alloc(alloc, sizeof(item_type)) = MATCH;
     uptr offset = match->lookahead.begin - match->search.begin;
     *(u16*)sa_alloc(alloc, sizeof(u16)) = offset;
-    uptr length = match->lookahead.end - match->lookahead.begin;
+    uptr length = match->search.end - match->search.begin;
     *(u8*)sa_alloc(alloc, sizeof(u8)) = length;
 }
 

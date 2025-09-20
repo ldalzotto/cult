@@ -2,6 +2,7 @@
 #include "lz_window.h"
 #include "lz_match_brute.h"
 #include "lz_serialize.h"
+#include "lz_deserialize.h"
 #include "print.h"
 
 static void* compress(u8* begin, u8* end, lzss_config config, stack_alloc* alloc, file_t debug) {
@@ -40,6 +41,14 @@ static void* compress(u8* begin, u8* end, lzss_config config, stack_alloc* alloc
     return matches.begin;
 }
 
+static u8* decompress(u8* begin, u8* end, stack_alloc* alloc, file_t debug) {
+    return lz_deserialize(begin, end, alloc, debug);
+}
+
 void* lzss_compress(u8* begin, u8* end, lzss_config config, stack_alloc* alloc, file_t debug) {
     return compress(begin, end, config, alloc, debug);
+}
+
+void* lzss_decompress(u8* begin, u8* end, stack_alloc* alloc, file_t debug) {
+    return decompress(begin, end, alloc, debug);
 }

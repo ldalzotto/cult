@@ -11,5 +11,6 @@ typedef struct {
 } lzss_config;
 
 void* lzss_compress(u8* begin, u8* end, lzss_config config, stack_alloc* alloc, file_t debug);
+void* lzss_decompress(u8* begin, u8* end, stack_alloc* alloc, file_t debug);
 
 #endif
