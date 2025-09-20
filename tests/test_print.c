@@ -352,6 +352,60 @@ static void test_print_meta_iterator(test_context* t) {
     cleanup_test_temp_dir();
 }
 
+static void test_print_large_string(test_context* t) {
+    setup_test_temp_dir();
+
+    // Allocate memory using mem_map (need larger stack for 10KB string + file operations)
+    const uptr stack_size = 32768;
+    void* memory = mem_map(stack_size);
+    stack_alloc alloc;
+    sa_init(&alloc, memory, byteoffset(memory, stack_size));
+
+    // Create a 10KB string
+    const uptr large_string_size = 10240;
+    char* large_string_data = sa_alloc(&alloc, large_string_size);
+
+    // Fill with a repeating pattern
+    for (uptr i = 0; i < large_string_size; i++) {
+        large_string_data[i] = 'A' + (i % 26);
+    }
+
+    string large_string = {large_string_data, large_string_data + large_string_size};
+
+    // Open file for writing
+    file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
+
+    // Print the large string
+    print_format(file, STRING("%s"), large_string);
+    file_close(file);
+
+    // Open file for reading
+    file_t read_file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_READ);
+    TEST_ASSERT_NOT_EQUAL(t, read_file, file_invalid());
+
+    // Read content
+    void* buffer;
+    uptr size = file_read_all(read_file, &buffer, &alloc);
+    TEST_ASSERT_EQUAL(t, size, large_string_size);
+
+    // Check content matches
+    TEST_ASSERT_TRUE(t, memcmp(buffer, large_string_data, large_string_size) == 0);
+
+    sa_free(&alloc, buffer);
+    file_close(read_file);
+
+    // Free the large string data before deinit
+    sa_free(&alloc, large_string_data);
+
+    sa_deinit(&alloc);
+    mem_unmap(memory, stack_size);
+
+    cleanup_test_temp_dir();
+
+    TEST_ASSERT_TRUE(t, 1);
+}
+
 void test_print_module(test_context* t) {
     REGISTER_TEST(t, "print_primitives", test_print_primitives);
     REGISTER_TEST(t, "print_struct", test_print_struct);
@@ -361,4 +415,5 @@ void test_print_module(test_context* t) {
     REGISTER_TEST(t, "print_format_meta_specifier", test_print_format_meta_specifier);
     REGISTER_TEST(t, "print_format_multiple_meta", test_print_format_multiple_meta);
     REGISTER_TEST(t, "print_meta_iterator", test_print_meta_iterator);
+    REGISTER_TEST(t, "print_large_string", test_print_large_string);
 }
