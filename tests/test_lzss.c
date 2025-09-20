@@ -255,6 +255,153 @@ static void test_lzss_config_variations(test_context* t) {
     uptr decompressed_size = bytesize(decompressed, alloc.cursor);
     TEST_ASSERT(t, decompressed_size == input_size, "Decompressed size should match input");
 
+    sa_free(&alloc, decompressed);
+    sa_free(&alloc, out);
+    sa_deinit(&alloc);
+    mem_unmap(mem, size);
+}
+
+static void test_lzss_very_small_window(test_context* t) {
+    uptr size = 64 * 1024;
+    void* mem = mem_map(size);
+    TEST_ASSERT_NOT_NULL(t, mem);
+
+    stack_alloc alloc;
+    sa_init(&alloc, mem, byteoffset(mem, size));
+
+    string input = STR("aaaabbbb");
+    uptr input_size = bytesize(input.begin, input.end);
+
+    // Test with very small window
+    lzss_config config = {3, 255, 4}; // Very small window
+    void* out = lzss_compress((u8*)input.begin, (u8*)input.end, config, &alloc, 0);
+    TEST_ASSERT_NOT_NULL(t, out);
+
+    void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, 0);
+    uptr decompressed_size = bytesize(decompressed, alloc.cursor);
+    TEST_ASSERT(t, decompressed_size == input_size, "Decompressed size should match input");
+
+    sa_free(&alloc, decompressed);
+    sa_free(&alloc, out);
+    sa_deinit(&alloc);
+    mem_unmap(mem, size);
+}
+
+static void test_lzss_match_size_max_boundary(test_context* t) {
+    uptr size = 64 * 1024;
+    void* mem = mem_map(size);
+    TEST_ASSERT_NOT_NULL(t, mem);
+
+    stack_alloc alloc;
+    sa_init(&alloc, mem, byteoffset(mem, size));
+
+    // Create input with a match exactly equal to match_size_max
+    uptr match_len = 255; // match_size_max
+    char* input_buf = sa_alloc(&alloc, match_len * 2 + 10);
+    memset(input_buf, 'A', match_len);
+    memset(input_buf + match_len, 'A', match_len);
+    memset(input_buf + match_len * 2, 'X', 10);
+    string input = {input_buf, input_buf + match_len * 2 + 10};
+    uptr input_size = bytesize(input.begin, input.end);
+
+    lzss_config config = {3, 255, 1024};
+    void* out = lzss_compress((u8*)input.begin, (u8*)input.end, config, &alloc, 0);
+    TEST_ASSERT_NOT_NULL(t, out);
+
+    void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, 0);
+    uptr decompressed_size = bytesize(decompressed, alloc.cursor);
+    TEST_ASSERT(t, decompressed_size == input_size, "Decompressed size should match input");
+
+    sa_free(&alloc, decompressed);
+    sa_free(&alloc, out);
+    sa_free(&alloc, input_buf);
+    sa_deinit(&alloc);
+    mem_unmap(mem, size);
+}
+
+static void test_lzss_long_identical_run(test_context* t) {
+    uptr size = 64 * 1024;
+    void* mem = mem_map(size);
+    TEST_ASSERT_NOT_NULL(t, mem);
+
+    stack_alloc alloc;
+    sa_init(&alloc, mem, byteoffset(mem, size));
+
+    uptr input_size = 1000;
+    char* input_buf = sa_alloc(&alloc, input_size);
+    memset(input_buf, 'Z', input_size);
+    string input = {input_buf, input_buf + input_size};
+
+    lzss_config config = {3, 255, 1024};
+    void* out = lzss_compress((u8*)input.begin, (u8*)input.end, config, &alloc, 0);
+    TEST_ASSERT_NOT_NULL(t, out);
+
+    uptr compressed_size = bytesize(out, alloc.cursor);
+    TEST_ASSERT(t, compressed_size < input_size, "Should compress extremely well with long identical run");
+
+    void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, 0);
+    uptr decompressed_size = bytesize(decompressed, alloc.cursor);
+    TEST_ASSERT(t, decompressed_size == input_size, "Decompressed size should match input");
+
+    sa_free(&alloc, decompressed);
+    sa_free(&alloc, out);
+    sa_free(&alloc, input_buf);
+    sa_deinit(&alloc);
+    mem_unmap(mem, size);
+}
+
+static void test_lzss_random_binary(test_context* t) {
+    uptr size = 64 * 1024;
+    void* mem = mem_map(size);
+    TEST_ASSERT_NOT_NULL(t, mem);
+
+    stack_alloc alloc;
+    sa_init(&alloc, mem, byteoffset(mem, size));
+
+    uptr input_size = 512;
+    u8* input_buf = sa_alloc(&alloc, input_size);
+    // Fill with pseudo-random data
+    for (uptr i = 0; i < input_size; i++) {
+        input_buf[i] = (u8)(i * 7 + 13) % 256;
+    }
+    string input = {(char*)input_buf, (char*)input_buf + input_size};
+
+    lzss_config config = {3, 255, 1024};
+    void* out = lzss_compress((u8*)input.begin, (u8*)input.end, config, &alloc, 0);
+    TEST_ASSERT_NOT_NULL(t, out);
+
+    void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, 0);
+    uptr decompressed_size = bytesize(decompressed, alloc.cursor);
+    TEST_ASSERT(t, decompressed_size == input_size, "Decompressed size should match input");
+
+    sa_free(&alloc, decompressed);
+    sa_free(&alloc, out);
+    sa_free(&alloc, input_buf);
+    sa_deinit(&alloc);
+    mem_unmap(mem, size);
+}
+
+static void test_lzss_debug_output(test_context* t) {
+    uptr size = 64 * 1024;
+    void* mem = mem_map(size);
+    TEST_ASSERT_NOT_NULL(t, mem);
+
+    stack_alloc alloc;
+    sa_init(&alloc, mem, byteoffset(mem, size));
+
+    string input = STR("abcabcabcxyz");
+    uptr input_size = bytesize(input.begin, input.end);
+
+    lzss_config config = {3, 255, 1024};
+    // Test with debug output (using stdout for simplicity)
+    void* out = lzss_compress((u8*)input.begin, (u8*)input.end, config, &alloc, file_stdout());
+    TEST_ASSERT_NOT_NULL(t, out);
+
+    void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, file_stdout());
+    uptr decompressed_size = bytesize(decompressed, alloc.cursor);
+    TEST_ASSERT(t, decompressed_size == input_size, "Decompressed size should match input");
+
+    sa_free(&alloc, decompressed);
     sa_free(&alloc, out);
     sa_deinit(&alloc);
     mem_unmap(mem, size);
@@ -271,4 +418,9 @@ void test_lzss_module(test_context* t) {
     REGISTER_TEST(t, "lzss_end_match", test_lzss_end_match);
     REGISTER_TEST(t, "lzss_small_repetitions", test_lzss_small_repetitions);
     REGISTER_TEST(t, "lzss_config_variations", test_lzss_config_variations);
+    REGISTER_TEST(t, "lzss_very_small_window", test_lzss_very_small_window);
+    REGISTER_TEST(t, "lzss_match_size_max_boundary", test_lzss_match_size_max_boundary);
+    REGISTER_TEST(t, "lzss_long_identical_run", test_lzss_long_identical_run);
+    REGISTER_TEST(t, "lzss_random_binary", test_lzss_random_binary);
+    REGISTER_TEST(t, "lzss_debug_output", test_lzss_debug_output);
 }
