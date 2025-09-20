@@ -13,11 +13,11 @@ static void allocate_litteral(stack_alloc* alloc, u8* begin, u8* end) {
     sa_copy(alloc, begin, data, size);
 }
 
-static void allocate_and_split_litteral(stack_alloc* alloc, u8 match_size_max, u8* begin, u8* end) {
+static void allocate_and_split_litteral(stack_alloc* alloc, lzss_match_size_t match_size_max, u8* begin, u8* end) {
     u8* current = begin;
     while (current < end) {
         uptr remaining = end - current;
-        uptr chunk_size = remaining < match_size_max ? remaining : match_size_max;
+        lzss_match_size_t chunk_size = remaining < match_size_max ? remaining : match_size_max;
 
         allocate_litteral(alloc, current, byteoffset(current, chunk_size));
         current += chunk_size;
@@ -32,7 +32,7 @@ static void allocate_match(stack_alloc* alloc, match* match) {
     *(u8*)sa_alloc(alloc, sizeof(u8)) = length;
 }
 
-u8* lz_serialize(u8* input_begin, u8* input_end, lz_match_span matches, u8 match_size_max, stack_alloc* alloc) {
+u8* lz_serialize(u8* input_begin, u8* input_end, lz_match_span matches, lzss_match_size_t match_size_max, stack_alloc* alloc) {
     u8* output = alloc->cursor;
     u8* current = input_begin;
     for (lz_match* m = matches.begin; m != matches.end; ++m) {

@@ -28,9 +28,7 @@ static void* compress(u8* begin, u8* end, lzss_config config, stack_alloc* alloc
 
     if (debug) {
         for (lz_match* match = matches.begin; match<matches.end; ++match) {
-            print_format(debug, STRING("match: %u bytes\n"), bytesize(match->search.begin, match->search.end));
-            // print_string(debug, (string){match->search.begin, match->search.end});
-            // print_string(debug, STRING("\n"));
+            print_format(debug, STRING("match: %u bytes\n"), bytesize(match->search.begin, match->search.end));;
         }
     }
     

@@ -1,7 +1,7 @@
 #include "lz_window.h"
 #include "assert.h"
 
-void lz_window_advance(lz_window* window, u8* to, uptr window_size_max) {
+void lz_window_advance(lz_window* window, u8* to, lzss_window_size_t window_size_max) {
     debug_assert(to > window->lookahead_begin);
     debug_assert(to <= window->end);
     window->lookahead_begin = to;

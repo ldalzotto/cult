@@ -15,19 +15,7 @@
 
 #include "stack_alloc.h"
 #include "file.h"
-
-/**
- * @struct lzss_config
- * @brief Configuration parameters for LZSS compression.
- *
- * This structure holds the parameters that control the behavior of the LZSS compression algorithm,
- * including minimum and maximum match sizes and the maximum window size for searching matches.
- */
-typedef struct {
-    u8 match_size_min;    /**< Minimum size of a match to be considered for compression (in bytes). */
-    u8 match_size_max;    /**< Maximum size of a match that can be encoded (in bytes). */
-    u16 window_size_max;  /**< Maximum size of the sliding window for searching matches (in bytes). */
-} lzss_config;
+#include "lzss_config.h"
 
 /**
  * @brief Compresses data using the LZSS algorithm.

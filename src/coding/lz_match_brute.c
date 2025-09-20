@@ -1,7 +1,7 @@
 #include "lz_match_brute.h"
 #include "assert.h"
 
-static lz_match update_largest_match(lz_match match_largest, lz_match match_current, uptr match_size_max) {
+static lz_match update_largest_match(lz_match match_largest, lz_match match_current, lzss_match_size_t match_size_max) {
     uptr match_current_size = bytesize(match_current.search.begin, match_current.search.end);
     uptr match_largest_size = bytesize(match_largest.search.begin, match_largest.search.end);
     debug_assert(match_largest_size <= match_size_max);
@@ -25,12 +25,12 @@ u8 lz_match_has_value(lz_match match) {
     return bytesize(match.search.begin, match.search.end) > 0;
 }
 
-u8 lz_match_is_large_enough(lz_match match, uptr match_size_min) {
+u8 lz_match_is_large_enough(lz_match match, lzss_match_size_t match_size_min) {
     uptr match_size = bytesize(match.search.begin, match.search.end);
     return match_size >= match_size_min;
 }
 
-lz_match lz_match_brute(lz_window window, uptr match_size_max) {
+lz_match lz_match_brute(lz_window window, lzss_match_size_t match_size_max) {
     // TODO
     unused(window);
     lz_match match_largest = {
