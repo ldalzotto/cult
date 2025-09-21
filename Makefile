@@ -50,7 +50,8 @@ TEST_OBJS= \
 	$(OBJ_DIR)/$(TESTS_DIR)/test_temp_dir.o \
 	$(OBJ_DIR)/$(TESTS_DIR)/test_framework.o \
 	$(OBJ_DIR)/$(TESTS_DIR)/test_backtrace.o \
-	$(OBJ_DIR)/$(TESTS_DIR)/test_lzss.o
+	$(OBJ_DIR)/$(TESTS_DIR)/test_lzss.o \
+	$(OBJ_DIR)/$(TESTS_DIR)/test_fps_ticker.o
 
 # We may want to cache this
 USE_X11 := $(shell pkg-config --exists x11 && echo 1 || echo 0)

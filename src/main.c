@@ -9,9 +9,8 @@
 #include "time.h"
 
 i32 main(void) {
-    // Example usage of win_x11.h
     // Initialize stack allocator for window management
-    uptr win_mem_size = 4096 * 1024; // 4KB should be sufficient for window context
+    uptr win_mem_size = 4096 * 1024; // 4MB for window context
     void* win_mem = mem_map(win_mem_size);
 
     stack_alloc win_alloc;
@@ -36,36 +35,45 @@ i32 main(void) {
 
     print_string(file_stdout(), STRING("Window created successfully. Press Ctrl+C to exit.\n"));
 
-    // Simple event polling loop
-    // In a real application, you'd have proper event handling
-    while (1) {
-        u8 should_exit = 0;
+    // ---------------- FPS TICKER ----------------
+    fps_ticker ticker;
+    const u64 preferred_frame_us = 16666; // ~60 FPS
+    u64 start_time = sys_time_us();
+    fps_ticker_init(&ticker, preferred_frame_us, start_time);
 
-        u64 t = sys_time_us();
-        char* str = time_str_us(t, &win_alloc);
+    // Main loop
+    while (1) {
+        u64 now = sys_time_us();
+        u32 frames_to_process = fps_ticker_update(&ticker, now);
+
+        if (frames_to_process == 0) {
+            // Not enough time elapsed for the next frame
+            continue;
+        }
+
+        // Optional: print current time string
+        char* str = time_str_us(now, &win_alloc);
         print_format(file_stdout(), STRING("%s\n"), (string){str, win_alloc.cursor});
         sa_free(&win_alloc, str);
-        str = 0;
 
+        // Poll events
         win_event* event_begin = win_x11_poll_events(win_ctx, &win_alloc);
         win_event* event_end = win_alloc.cursor;
-        for (win_event* event = event_begin; event < event_end;++event) {
-            // Simple event handling - just print for demonstration
+        u8 should_exit = 0;
+
+        for (win_event* event = event_begin; event < event_end; ++event) {
             print_format(file_stdout(), STRING("Received event type: %d\n"), event->type);
-            if (event->type == 2) {
+            if (event->type == 2) { // Close event
                 should_exit = 1;
             }
         }
-
-        // Free the event memory if it was allocated
         sa_free(&win_alloc, event_begin);
 
         win_buffer buffer = win_x11_get_pixel_buffer(win_ctx);
         debug_assert(bytesize(buffer.begin, buffer.end) % sizeof(i32) == 0);
         for (i32* x = buffer.begin; x < (i32*)buffer.end; ++x) {
-            *x = 200;
+            *x = *x+1; // simple fill
         }
-
         win_x11_present(win_ctx);
 
         if (should_exit) {
@@ -73,13 +81,11 @@ i32 main(void) {
         }
     }
 
-    // Close the window
+    // Close window
     win_x11_close_window(win_ctx);
 
     // Deinitialize
     win_x11_deinit(&win_alloc, win_ctx);
-
-    // Clean up memory
     sa_deinit(&win_alloc);
     mem_unmap(win_mem, win_mem_size);
 

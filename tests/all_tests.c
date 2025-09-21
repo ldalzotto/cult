@@ -6,6 +6,7 @@
 #include "test_print.h"
 #include "test_lzss.h"
 #include "test_backtrace.h"
+#include "test_fps_ticker.h"
 
 #include "print.h"
 #include "file.h"
@@ -57,6 +58,7 @@ int main(int argc, char* argv[]) {
     test_print_module(ctx);
     test_backtrace_module(ctx);
     test_lzss_module(ctx);
+    test_fps_ticker_module(ctx);
 
     // Run filtered tests
     test_run_filtered(ctx);
