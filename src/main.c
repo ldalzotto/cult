@@ -51,11 +51,6 @@ i32 main(void) {
             continue;
         }
 
-        // Optional: print current time string
-        char* str = time_str_us(now, &win_alloc);
-        print_format(file_stdout(), STRING("%s\n"), (string){str, win_alloc.cursor});
-        sa_free(&win_alloc, str);
-
         // Poll events
         win_event* event_begin = win_x11_poll_events(win_ctx, &win_alloc);
         win_event* event_end = win_alloc.cursor;
