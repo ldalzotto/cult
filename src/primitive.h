@@ -45,4 +45,9 @@ STATIC_ASSERT(sizeof(u64) == 8);
 
 #define unused(variable) (void)variable
 
+#ifdef offsetof
+#undef offsetof
+#endif
+#define offsetof __builtin_offsetof
+
 #endif /* PRIMITIVE_H */

@@ -6,7 +6,6 @@
 #include "mem.h"
 #include "file.h"
 #include "meta_iterator.h"
-#include <stddef.h>
 
 // Path definitions using STR
 static const string path_test_output = STR("test_temp/print_test_output.txt");
