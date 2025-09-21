@@ -1,13 +1,11 @@
 #include "test_backtrace.h"
 
-#include <string.h>
-
 #include "test_temp_dir.h"
 #include "stack_alloc.h"
 #include "mem.h"
 #include "print.h"
 #include "backtrace.h"
-
+#include "litteral.h"
 
 static void test_backtrace_content(test_context* t) {
     setup_test_temp_dir();
@@ -38,8 +36,10 @@ static void test_backtrace_content(test_context* t) {
     TEST_ASSERT_TRUE(t, size > 0);
 
     // Check content
-    TEST_ASSERT_TRUE(t, strstr((char*)buffer, "backtrace.c") != NULL);
-    TEST_ASSERT_TRUE(t, strstr((char*)buffer, "test_backtrace_content") != NULL);
+    const string backtrace_c = STR("backtrace.c");
+    const string test_backtrace_content_expected = STR("test_backtrace_content");
+    TEST_ASSERT_TRUE(t, sa_contains(&alloc, buffer, byteoffset(buffer, size), backtrace_c.begin, backtrace_c.end));
+    TEST_ASSERT_TRUE(t, sa_contains(&alloc, buffer, byteoffset(buffer, size), test_backtrace_content_expected.begin, test_backtrace_content_expected.end));
 
     sa_free(&alloc, buffer);
     file_close(read_file);

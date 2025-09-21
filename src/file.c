@@ -1,10 +1,10 @@
 #include "file.h"
 #include "assert.h"
+#include "mem.h"
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <errno.h>
-#include <string.h>
 #include <dirent.h>
 
 file_t file_invalid(void) {
@@ -203,9 +203,14 @@ i32 directory_remove(stack_alloc* alloc, const u8* path_begin, const u8* path_en
         void* cursor_start = alloc->cursor;
 
         while ((entry = readdir(dir)) != NULL) {
-            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
-
-            uptr entry_len = strlen(entry->d_name);
+            const string entry_name = {entry->d_name, byteoffset(entry->d_name, mem_cstrlen(entry->d_name))};
+            const uptr entry_len = bytesize(entry_name.begin, entry_name.end);
+            const string dot = STR(".");
+            const string dotdot = STR("..");
+            if (sa_equals(alloc, entry_name.begin, entry_name.end, dot.begin, dot.end)
+                || sa_equals(alloc, entry_name.begin, entry_name.end, dotdot.begin, dotdot.end)) {
+                continue;
+            }
             uptr dir_len   = bytesize(dir_node->path_start, dir_node->path_end);
 
             // Allocate entry chunk: struct + path

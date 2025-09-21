@@ -10,7 +10,6 @@
 #include "print.h"
 #include "file.h"
 #include "mem.h"
-#include <string.h>
 
 int main(int argc, char* argv[]) {
     // Global memory pointer
@@ -26,13 +25,18 @@ int main(int argc, char* argv[]) {
 
     // Parse command line arguments
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--filter") == 0 && i + 1 < argc) {
+        const string arg = {argv[i], byteoffset(argv[i], mem_cstrlen(argv[i]))};
+        const string filter = STRING("--filter");
+        const string help = STRING("--help");
+        const string h = STRING("-h");
+        if (sa_equals(&alloc, arg.begin, arg.end, filter.begin, filter.end) && i + 1 < argc) {
             ctx->filter_pattern.begin = argv[i + 1];
             char* end = argv[i + 1];
             while (*end) {++end;}
             ctx->filter_pattern.end = end;
             i++; // Skip the next argument
-        } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+        } else if (sa_equals(&alloc, arg.begin, arg.end, help.begin, help.end) || 
+                    sa_equals(&alloc, arg.begin, arg.end, h.begin, h.end) == 0) {
             print_string(file_stdout(), STRING("Usage: all_tests [--filter <pattern>]\n"));
             print_string(file_stdout(), STRING("  --filter <pattern>: Run only tests matching the pattern (supports * wildcards)\n"));
             print_string(file_stdout(), STRING("  --help: Show this help message\n"));

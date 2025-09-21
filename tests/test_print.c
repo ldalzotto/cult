@@ -7,7 +7,6 @@
 #include "file.h"
 #include "meta_iterator.h"
 #include <stddef.h>
-#include <string.h>
 
 // Path definitions using STR
 static const string path_test_output = STR("test_temp/print_test_output.txt");
@@ -87,7 +86,7 @@ static void test_print_to_file(test_context* t) {
 
     // Define test data
     test_point_t point = {10, 20};
-    const char* expected = "test_point_t {x: 10, y: 20}";
+    const string expected = STR("test_point_t {x: 10, y: 20}");
 
     // Open file for writing
     file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
@@ -107,7 +106,7 @@ static void test_print_to_file(test_context* t) {
     TEST_ASSERT_TRUE(t, size > 0);
 
     // Check content
-    TEST_ASSERT_TRUE(t, strncmp((char*)buffer, expected, strlen(expected)) == 0);
+    TEST_ASSERT_TRUE(t, sa_equals(&alloc, buffer, byteoffset(buffer, size), expected.begin, expected.end) == 1);
 
     sa_free(&alloc, buffer);
     file_close(read_file);
@@ -131,7 +130,7 @@ static void test_print_nested_to_file(test_context* t) {
 
     // Define test data
     complex_t obj = {{10, 20}, 42};
-    const char* expected = "complex_t {pos: test_point_t {x: 10, y: 20}, id: 42}";
+    const string expected = STR("complex_t {pos: test_point_t {x: 10, y: 20}, id: 42}");
 
     print_format(file_stdout(), STRING("%m\n"), &complex_meta, &obj);
     
@@ -153,7 +152,7 @@ static void test_print_nested_to_file(test_context* t) {
     TEST_ASSERT_TRUE(t, size > 0);
 
     // Check content
-    TEST_ASSERT_TRUE(t, strncmp((char*)buffer, expected, strlen(expected)) == 0);
+    TEST_ASSERT_TRUE(t, sa_equals(&alloc, buffer, byteoffset(buffer, size), expected.begin, expected.end) == 1);
 
     sa_free(&alloc, buffer);
     file_close(read_file);
@@ -193,8 +192,8 @@ static void test_print_format_function(test_context* t) {
     TEST_ASSERT_TRUE(t, size > 0);
 
     // Check content
-    const char* expected = "Hello, World! Value: 42";
-    TEST_ASSERT_TRUE(t, strncmp((char*)buffer, expected, strlen(expected)) == 0);
+    const string expected = STR("Hello, World! Value: 42");
+    TEST_ASSERT_TRUE(t, sa_equals(&alloc, buffer, byteoffset(buffer, size), expected.begin, expected.end) == 1);
 
     sa_free(&alloc, buffer);
     file_close(read_file);
@@ -218,7 +217,7 @@ static void test_print_format_meta_specifier(test_context* t) {
 
     // Define test data
     test_point_t point = {10, 20};
-    const char expected[] = "Point: test_point_t {x: 10, y: 20}";
+    const string expected = STR("Point: test_point_t {x: 10, y: 20}");
 
     // Open file for writing
     file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
@@ -238,7 +237,7 @@ static void test_print_format_meta_specifier(test_context* t) {
     TEST_ASSERT_TRUE(t, size > 0);
 
     // Check content
-    TEST_ASSERT_TRUE(t, memcmp((char*)buffer, expected, sizeof(expected)) == 0);
+    TEST_ASSERT_TRUE(t, sa_equals(&alloc, buffer, byteoffset(buffer, size), expected.begin, expected.end) == 1);
 
     sa_free(&alloc, buffer);
     file_close(read_file);
@@ -263,7 +262,7 @@ static void test_print_format_multiple_meta(test_context* t) {
     // Define test data
     test_point_t point = {10, 20};
     complex_t obj = {{10, 20}, 42};
-    const char expected[] = "Simple: test_point_t {x: 10, y: 20} Complex: complex_t {pos: test_point_t {x: 10, y: 20}, id: 42}";
+    const string expected = STR("Simple: test_point_t {x: 10, y: 20} Complex: complex_t {pos: test_point_t {x: 10, y: 20}, id: 42}");
 
     // Open file for writing
     file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
@@ -283,7 +282,7 @@ static void test_print_format_multiple_meta(test_context* t) {
     TEST_ASSERT_TRUE(t, size > 0);
 
     // Check content
-    TEST_ASSERT_TRUE(t, memcmp((char*)buffer, expected, sizeof(expected)) == 0);
+    TEST_ASSERT_TRUE(t, sa_equals(&alloc, buffer, byteoffset(buffer, size), expected.begin, expected.end) == 1);
 
     sa_free(&alloc, buffer);
     file_close(read_file);
@@ -306,7 +305,7 @@ static void test_print_meta_iterator(test_context* t) {
     sa_init(&alloc, memory, byteoffset(memory, stack_size));
 
     // Define expected output
-    const char expected[] = "complex_t\nBegin\ntest_point_t\nBegin\ni32\nBegin\ntest_point_t\nMiddle\ni32\nBegin\ntest_point_t\nEnd\ncomplex_t\nMiddle\ni32\nBegin\ncomplex_t\nEnd\n";
+    const string expected = STR("complex_t\nBegin\ntest_point_t\nBegin\ni32\nBegin\ntest_point_t\nMiddle\ni32\nBegin\ntest_point_t\nEnd\ncomplex_t\nMiddle\ni32\nBegin\ncomplex_t\nEnd\n");
 
     // Open file for writing
     file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
@@ -341,7 +340,7 @@ static void test_print_meta_iterator(test_context* t) {
     TEST_ASSERT_TRUE(t, size > 0);
 
     // Check content
-    TEST_ASSERT_TRUE(t, memcmp((char*)buffer, expected, sizeof(expected)) == 0);
+    TEST_ASSERT_TRUE(t, sa_equals(&alloc, buffer, byteoffset(buffer, size), expected.begin, expected.end) == 1);
 
     sa_free(&alloc, buffer);
     file_close(read_file);
@@ -390,7 +389,7 @@ static void test_print_large_string(test_context* t) {
     TEST_ASSERT_EQUAL(t, size, large_string_size);
 
     // Check content matches
-    TEST_ASSERT_TRUE(t, memcmp(buffer, large_string_data, large_string_size) == 0);
+    TEST_ASSERT_TRUE(t, sa_equals(&alloc, buffer, byteoffset(buffer, size), large_string.begin, large_string.end) == 1);
 
     sa_free(&alloc, buffer);
     file_close(read_file);

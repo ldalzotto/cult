@@ -94,4 +94,35 @@ void sa_move(stack_alloc* alloc, void* from, void* to, uptr size);
 // Postconditions: The memory block has been copied to the destination, alloc->cursor remains unchanged
 void sa_copy(stack_alloc* alloc, const void* from, void* to, uptr size);
 
+// Compare two memory ranges for equality
+//
+// @param alloc: Pointer to stack_alloc
+// @param left_begin: Start of the left memory range
+// @param left_end: End of the left memory range
+// @param right_begin: Start of the right memory range
+// @param right_end: End of the right memory range
+//
+// Returns: u8 - 0 if the first 'right_size' bytes of left and right are equal, 1 otherwise
+// Preconditions:
+// - left_begin <= left_end
+// - right_begin <= right_end
+// - The size of left range must be >= the size of right range
+// - If ranges are within the allocator, they must be within valid bounds
+u8 sa_equals(stack_alloc* alloc, const void* left_begin, const void* left_end, const void* right_begin, const void* right_end);
+
+// Check if a needle memory range is contained within a haystack memory range
+//
+// @param alloc: Pointer to stack_alloc
+// @param haystack_begin: Start of the haystack memory range
+// @param haystack_end: End of the haystack memory range
+// @param needle_begin: Start of the needle memory range
+// @param needle_end: End of the needle memory range
+//
+// Returns: u8 - 1 if needle is found in haystack, 0 otherwise
+// Preconditions:
+// - haystack_begin <= haystack_end
+// - needle_begin <= needle_end
+// - If ranges are within the allocator, they must be within valid bounds
+u8 sa_contains(stack_alloc* alloc, const void* haystack_begin, const void* haystack_end, const void* needle_begin, const void* needle_end);
+
 #endif /* STACK_ALLOC_H */

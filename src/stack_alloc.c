@@ -1,4 +1,3 @@
-#include <string.h>
 #include "stack_alloc.h"
 #include "assert.h"
 
@@ -42,7 +41,7 @@ void sa_move_tail(stack_alloc* alloc, void* from, void* to) {
     debug_assert(from >= alloc->begin && from <= alloc->cursor);
     uptr len = bytesize(from, alloc->cursor);
     debug_assert(to >= alloc->begin && byteoffset(to, len) <= alloc->end);
-    memmove(to, from, len);
+    __builtin_memmove(to, from, len);
     alloc->cursor = byteoffset(to, len);
 }
 
@@ -53,7 +52,7 @@ void sa_move(stack_alloc* alloc, void* from, void* to, uptr size) {
     debug_assert((uptr)to >= (uptr)alloc->begin && (uptr)byteoffset(to, size) <= (uptr)alloc->end);
     unused(alloc);
 
-    memmove(to, from, size);
+    __builtin_memmove(to, from, size);
 
     // Note: cursor is never updated in sa_move (unlike sa_move_tail)
 }
@@ -67,4 +66,44 @@ void sa_copy(stack_alloc* alloc, const void* from, void* to, uptr size) {
     __builtin_memcpy(to, from, size);
 
     // Note: cursor is never updated in sa_copy (similar to sa_move)
+}
+
+// Compare two memory ranges for equality
+u8 sa_equals(stack_alloc* alloc, const void* left_begin, const void* left_end, const void* right_begin, const void* right_end) {
+
+    // If left range is within the allocator, ensure it's within allocated memory
+    debug_assert(!((uptr)left_begin >= (uptr)alloc->begin && (uptr)left_begin <= (uptr)alloc->cursor) || ((uptr)left_end <= (uptr)alloc->cursor));
+
+    // If right range is within the allocator, ensure it's within allocated memory
+    debug_assert(!((uptr)right_begin >= (uptr)alloc->begin && (uptr)right_begin <= (uptr)alloc->cursor) || ((uptr)right_end <= (uptr)alloc->cursor));
+
+    unused(alloc);
+
+    uptr right_size = (uptr)((char*)right_end - (char*)right_begin);
+    return __builtin_memcmp(left_begin, right_begin, right_size) == 0 ? 1 : 0;
+}
+
+// Check if a needle memory range is contained within a haystack memory range
+u8 sa_contains(stack_alloc* alloc, const void* haystack_begin, const void* haystack_end, const void* needle_begin, const void* needle_end) {
+
+    uptr haystack_size = (uptr)((char*)haystack_end - (char*)haystack_begin);
+    uptr needle_size = (uptr)((char*)needle_end - (char*)needle_begin);
+
+    if (needle_size > haystack_size) return 0;
+
+    // If haystack is within the allocator, ensure it's within allocated memory
+    debug_assert(!((uptr)haystack_begin >= (uptr)alloc->begin && (uptr)haystack_begin <= (uptr)alloc->cursor) || ((uptr)haystack_end <= (uptr)alloc->cursor));
+
+    // If needle is within the allocator, ensure it's within allocated memory
+    debug_assert(!((uptr)needle_begin >= (uptr)alloc->begin && (uptr)needle_begin <= (uptr)alloc->cursor) || ((uptr)needle_end <= (uptr)alloc->cursor));
+
+    unused(alloc);
+
+    for (uptr i = 0; i <= haystack_size - needle_size; i++) {
+        if (__builtin_memcmp((char*)haystack_begin + i, needle_begin, needle_size) == 0) {
+            return 1;
+        }
+    }
+
+    return 0;
 }

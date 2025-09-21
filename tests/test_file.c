@@ -5,7 +5,6 @@
 #include "litteral.h"
 #include "stack_alloc.h"
 #include "print.h"
-#include <string.h>
 
 // Path definitions using STR
 static const string path_non_existent  = STR("test_temp/non_existent_file.txt");
@@ -67,7 +66,7 @@ static void test_file_write_read(test_context* t) {
     void* buffer;
     uptr bytes_read = file_read_all(file, &buffer, &alloc);
     TEST_ASSERT_EQUAL(t, bytes_read, data_size);
-    TEST_ASSERT_EQUAL(t, memcmp(buffer, test_data.begin, data_size), 0);
+    TEST_ASSERT_EQUAL(t, sa_equals(&alloc, buffer, byteoffset(buffer, bytes_read), test_data.begin, test_data.end), 1);
 
     sa_free(&alloc, buffer);
     file_close(file);
@@ -100,11 +99,11 @@ static void test_file_read_all(test_context* t) {
     file = file_open(&alloc, path_test_read_all.begin, path_test_read_all.end, FILE_MODE_READ);
     TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
 
-    void* buffer = NULL;
+    void* buffer = 0;
     uptr bytes_read = file_read_all(file, &buffer, &alloc);
     TEST_ASSERT_EQUAL(t, bytes_read, data_size);
     TEST_ASSERT_NOT_NULL(t, buffer);
-    TEST_ASSERT_EQUAL(t, memcmp(buffer, test_data.begin, data_size), 0);
+    TEST_ASSERT_EQUAL(t, sa_equals(buffer, test_data.begin, test_data.end, buffer, byteoffset(buffer, bytes_read)), 1);
 
     file_close(file);
     sa_free(&alloc, buffer);
