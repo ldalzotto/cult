@@ -2,7 +2,6 @@
 #include "convert.h"
 #include "meta_iterator.h"
 #include "stack_alloc.h"
-#include <stddef.h>
 #include <stdarg.h>
 
 // Process a format specifier and get the result
@@ -75,14 +74,14 @@ format_iterator* format_iterator_init(stack_alloc* alloc, string format, va_list
     iter->format_segment.end = format.begin;
     iter->specifier = 0;
     iter->in_meta = 0;
-    iter->meta = NULL;
-    iter->data_to_format = NULL;
-    iter->meta_iter = NULL;
+    iter->meta = 0;
+    iter->data_to_format = 0;
+    iter->meta_iter = 0;
     iter->alloc = alloc;
     iter->offset = 0;
     iter->in_string = 0;
-    iter->string_current = NULL;
-    iter->string_end = NULL;
+    iter->string_current = 0;
+    iter->string_end = 0;
     va_copy(iter->args, args);
     sa_init(&iter->text_format_alloc, iter->_text_format_buffer, byteoffset(iter->_text_format_buffer, sizeof(iter->_text_format_buffer)));
     return iter;
@@ -100,7 +99,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
         if (!result.meta) {
             iter->in_meta = 0;
             print_meta_iterator_deinit(iter->alloc, iter->meta_iter);
-            iter->meta_iter = NULL;
+            iter->meta_iter = 0;
             // Continue with format
             return (format_iteration){FORMAT_ITERATION_CONTINUE, {0,0}};
         }
@@ -174,7 +173,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
         return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->text_format_alloc.cursor}};
     } else {
         if (iter->format_current == iter->format.end) {
-            return (format_iteration){FORMAT_ITERATION_END, {NULL, 0}};
+            return (format_iteration){FORMAT_ITERATION_END, {0, 0}};
         }
         if (*iter->format_current == '%') {
             iter->format_segment.begin = iter->format_current;

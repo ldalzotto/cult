@@ -1,7 +1,6 @@
 #include "print.h"
 #include "assert.h"
 #include "format_iterator.h"
-#include <stdarg.h>  // for variadic functions
 
 // Print a plain string to file
 void print_string(file_t file, const string string) {
