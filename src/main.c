@@ -5,6 +5,8 @@
 #include "assert.h"
 #include "print.h"
 #include "file.h"
+#include "system_time.h"
+#include "time.h"
 
 i32 main(void) {
     // Example usage of win_x11.h
@@ -38,6 +40,13 @@ i32 main(void) {
     // In a real application, you'd have proper event handling
     while (1) {
         u8 should_exit = 0;
+
+        u64 t = sys_time_us();
+        char* str = time_str_us(t, &win_alloc);
+        print_format(file_stdout(), STRING("%s\n"), (string){str, win_alloc.cursor});
+        sa_free(&win_alloc, str);
+        str = 0;
+
         win_event* event_begin = win_x11_poll_events(win_ctx, &win_alloc);
         win_event* event_end = win_alloc.cursor;
         for (win_event* event = event_begin; event < event_end;++event) {

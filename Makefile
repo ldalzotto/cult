@@ -24,6 +24,8 @@ TEST_TARGET=test_runner
 COMMON_OBJS= \
 	$(OBJ_DIR)/mem.o \
 	$(OBJ_DIR)/stack_alloc.o \
+	$(OBJ_DIR)/system_time.o \
+	$(OBJ_DIR)/time.o \
 	$(OBJ_DIR)/backtrace.o \
 	$(OBJ_DIR)/assert.o \
 	$(OBJ_DIR)/file.o \
