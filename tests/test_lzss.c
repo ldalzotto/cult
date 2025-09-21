@@ -2,7 +2,6 @@
 #include "print.h"
 #include "mem.h"
 #include "coding/lzss.h"
-#include <string.h>
 
 static void test_lzss_window_size_boundary(test_context* t) {
     uptr size = 64 * 1024;
@@ -82,7 +81,7 @@ static void test_lzss_all_identical(test_context* t) {
 
     uptr input_size = 512;
     char* input_buf = sa_alloc(&alloc, input_size);
-    memset(input_buf, 'A', input_size);
+    sa_set(&alloc, input_buf, input_buf + input_size, 'A');
     string input = {input_buf, input_buf + input_size};
 
     lzss_config config = {3, 255, 1024};
@@ -298,9 +297,9 @@ static void test_lzss_match_size_max_boundary(test_context* t) {
     // Create input with a match exactly equal to match_size_max
     uptr match_len = 255; // match_size_max
     char* input_buf = sa_alloc(&alloc, match_len * 2 + 10);
-    memset(input_buf, 'A', match_len);
-    memset(input_buf + match_len, 'A', match_len);
-    memset(input_buf + match_len * 2, 'X', 10);
+    sa_set(&alloc, input_buf, input_buf + match_len, 'A');
+    sa_set(&alloc, input_buf + match_len, input_buf + match_len + match_len, 'A');
+    sa_set(&alloc, input_buf + match_len * 2, input_buf + match_len * 2 + 10, 'X');
     string input = {input_buf, input_buf + match_len * 2 + 10};
     uptr input_size = bytesize(input.begin, input.end);
 
@@ -329,7 +328,7 @@ static void test_lzss_long_identical_run(test_context* t) {
 
     uptr input_size = 1000;
     char* input_buf = sa_alloc(&alloc, input_size);
-    memset(input_buf, 'Z', input_size);
+    sa_set(&alloc, input_buf, input_buf + input_size, 'Z');
     string input = {input_buf, input_buf + input_size};
 
     lzss_config config = {3, 255, 1024};

@@ -107,3 +107,16 @@ u8 sa_contains(stack_alloc* alloc, const void* haystack_begin, const void* hayst
 
     return 0;
 }
+
+// Set a memory range to a specified byte value
+void sa_set(stack_alloc* alloc, void* begin, void* end, u8 value) {
+
+    uptr size = (uptr)((char*)end - (char*)begin);
+
+    // If range is within the allocator, ensure it's within allocated memory
+    debug_assert(!((uptr)begin >= (uptr)alloc->begin && (uptr)begin <= (uptr)alloc->cursor) || ((uptr)end <= (uptr)alloc->cursor));
+
+    unused(alloc);
+
+    __builtin_memset(begin, value, size);
+}
