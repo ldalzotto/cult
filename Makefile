@@ -1,14 +1,88 @@
-SRC_DIR := src
-ELIBS_DIR := elibs
-TESTS_DIR := tests
-DEP_DIR := build/deps
-OBJ_DIR := build/objects
-CC := gcc
+
+define write_if_different
+  @echo "$2" | cmp -s - $1 2>/dev/null || echo "$2" > $1
+endef
+
+# returns directory without trailing slash
+define get-dir
+$(patsubst %/,%,$(dir $1))
+endef
+
+# returns base name without extension
+define get-basename
+$(basename $(notdir $1))
+endef
+
+define make_object
+
+$(eval NAME := $1)
+$(eval SRC_FILE := $2)
+$(eval FLAGS := $3)
+$(eval ADDITIONAL_DEPENDENCIES := $4)
+$(eval BUILD_DIR := $5)
+
+$(eval OUT_DIR := $(BUILD_DIR)/$(call get-dir,$(SRC_FILE)))
+$(eval OUT_BASE_FILE_NO_EXTENSION := $(OUT_DIR)/$(call get-basename,$(SRC_FILE)))
+$(eval OBJ_FILE := $(OUT_BASE_FILE_NO_EXTENSION).o)
+$(eval CFLAGS_FILE := $(OUT_BASE_FILE_NO_EXTENSION).cflags)
+$(eval DEP_FILE := $(OUT_BASE_FILE_NO_EXTENSION).d)
+
+# store cflags to recompile on flag changes
+$(CFLAGS_FILE): Makefile
+	@mkdir -p $(OUT_DIR)
+	$(call write_if_different, $(CFLAGS_FILE), "$(CC) $(FLAGS)")
+
+# build the dependency
+$(DEP_FILE): $(SRC_FILE) $(CFLAGS_FILE)
+	mkdir -p $(OUT_DIR)
+	$(CC) $(FLAGS) -MM $(SRC_FILE) -MF $(DEP_FILE) -MT $(DEP_FILE)
+
+# build the object
+$(OBJ_FILE): $(SRC_FILE) $(CFLAGS_FILE) $(ADDITIONAL_DEPENDENCIES)
+	$(CC) $(FLAGS) -c $(SRC_FILE) -o $(OBJ_FILE)
+
+-include $(DEP_FILE)
+
+$(NAME) = $(OBJ_FILE)
+
+endef
+
+define make_executable
+
+$(eval NAME := $1)
+$(eval OBJECTS := $2)
+$(eval FLAGS := $3)
+$(eval BUILD_DIR := $4)
+
+$(eval OUT_DIR := $(BUILD_DIR))
+$(eval OUT_BASE_FILE_NO_EXTENSION := $(OUT_DIR)/$(NAME))
+
+$(eval EXECUTABLE_FILE := $(OUT_BASE_FILE_NO_EXTENSION))
+$(eval LFLAGS_FILE := $(OUT_BASE_FILE_NO_EXTENSION).lflags)
+
+# store cflags to recompile on flag changes
+$(LFLAGS_FILE): Makefile
+	@mkdir -p $(OUT_DIR)
+	$(call write_if_different, $(LFLAGS_FILE), "$(CC) $(FLAGS)")
+
+$(EXECUTABLE_FILE): $(OBJECTS) $(LFLAGS_FILE)
+	$(CC) $(OBJECTS) $(FLAGS) -o $(EXECUTABLE_FILE)
+
+$(NAME) = $(EXECUTABLE_FILE)
+
+endef
+
+CC:=gcc
+LDFLAGS:=
+SRC_DIR:=src
+ELIBS_DIR:=elibs
+TESTS_DIR:=tests
+BUILD_DIR:=build
+
+# Update CFLAGS with flavor
+CFLAGS:=
 CFLAGS_SHARED := -Wall -Wextra -Werror -pedantic
-LDFLAGS :=
-
 FLAVOR ?= DEBUG
-
 ifeq ($(FLAVOR),DEBUG)
     CFLAGS := $(CFLAGS_SHARED) -O0 -g -no-pie -DDEBUG_ASSERTIONS_ENABLED=1
 else ifeq ($(FLAVOR),RELEASE)
@@ -17,66 +91,37 @@ else
     $(error Unknown FLAVOR '$(FLAVOR)'. Use FLAVOR=DEBUG or FLAVOR=RELEASE)
 endif
 
-TARGET := myapp
-TEST_TARGET := test_runner
+# Common
 
-# ----------------------
-# Module definitions
-# ----------------------
+COMMON_CFLAGS := -I$(SRC_DIR)
+CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS)
+$(eval $(call make_object, mem_o, $(SRC_DIR)/mem.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, stack_alloc_o, $(SRC_DIR)/stack_alloc.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, system_time_o, $(SRC_DIR)/system_time.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, time_o, $(SRC_DIR)/time.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, backtrace_o, $(SRC_DIR)/backtrace.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, assert_o, $(SRC_DIR)/assert.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, file_o, $(SRC_DIR)/file.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, print_o, $(SRC_DIR)/print.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, meta_iterator_o, $(SRC_DIR)/meta_iterator.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, format_iterator_o, $(SRC_DIR)/format_iterator.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, convert_o, $(SRC_DIR)/convert.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 
-# Common module
-COMMON_MODULE_OBJS := \
-    $(OBJ_DIR)/mem.o \
-    $(OBJ_DIR)/stack_alloc.o \
-    $(OBJ_DIR)/system_time.o \
-    $(OBJ_DIR)/time.o \
-    $(OBJ_DIR)/backtrace.o \
-    $(OBJ_DIR)/assert.o \
-    $(OBJ_DIR)/file.o \
-    $(OBJ_DIR)/print.o \
-    $(OBJ_DIR)/meta_iterator.o \
-    $(OBJ_DIR)/format_iterator.o \
-    $(OBJ_DIR)/convert.o \
-    $(OBJ_DIR)/window/win_x11.o \
-    $(OBJ_DIR)/coding/lzss.o \
-    $(OBJ_DIR)/coding/lz_match_brute.o \
-    $(OBJ_DIR)/coding/lz_serialize.o \
-    $(OBJ_DIR)/coding/lz_deserialize.o \
-    $(OBJ_DIR)/coding/lz_window.o
+common_o = $(mem_o) \
+		  $(stack_alloc_o) \
+		  $(system_time_o) \
+		  $(time_o) \
+		  $(backtrace_o) \
+		  $(assert_o) \
+		  $(file_o) \
+		  $(print_o) \
+		  $(meta_iterator_o) \
+		  $(format_iterator_o) \
+		  $(convert_o)
 
-# Auto-generate dependency files for common module
-COMMON_DEPS := $(patsubst $(OBJ_DIR)/%.o,$(DEP_DIR)/%.d,$(COMMON_MODULE_OBJS))
+# Window
 
-common_MODULE: $(COMMON_MODULE_OBJS) $(COMMON_DEPS)
-	@echo "Common module built."
-
-# Test module
-TEST_MODULE_OBJS := \
-    $(OBJ_DIR)/$(TESTS_DIR)/all_tests.o \
-    $(OBJ_DIR)/$(TESTS_DIR)/test_mem.o \
-    $(OBJ_DIR)/$(TESTS_DIR)/test_stack_alloc.o \
-    $(OBJ_DIR)/$(TESTS_DIR)/test_win_x11.o \
-    $(OBJ_DIR)/$(TESTS_DIR)/test_file.o \
-    $(OBJ_DIR)/$(TESTS_DIR)/test_print.o \
-    $(OBJ_DIR)/$(TESTS_DIR)/test_temp_dir.o \
-    $(OBJ_DIR)/$(TESTS_DIR)/test_framework.o \
-    $(OBJ_DIR)/$(TESTS_DIR)/test_backtrace.o \
-    $(OBJ_DIR)/$(TESTS_DIR)/test_lzss.o \
-    $(OBJ_DIR)/$(TESTS_DIR)/test_fps_ticker.o
-
-test_MODULE: common_MODULE $(TEST_MODULE_OBJS)
-	@echo "Test module built."
-
-# ----------------------
-# X11 detection
-# ----------------------
-USE_X11 := $(shell pkg-config --exists x11 && echo 1 || echo 0)
-
-ifeq ($(USE_X11), 1)
-	LDFLAGS += -lX11
-else
-	COMMON_MODULE_OBJS += $(OBJ_DIR)/window/x11_stub.o
-endif
+# Extract X11 headers
 
 X11_EXTRACTED_DIR := $(SRC_DIR)/elibs/X11
 X11_MARKER := $(SRC_DIR)/elibs/X11/.x11_extracted
@@ -88,65 +133,74 @@ $(X11_MARKER): $(ELIBS_DIR)/x11_headers.tar.gz
 	tar -xzvf $< -C $(SRC_DIR)/elibs
 	touch $@
 
-# ----------------------
-# Dependency generation
-# ----------------------
-MAIN_DEPS := $(DEP_DIR)/main.d $(COMMON_DEPS)
-TEST_DEPS := $(patsubst $(OBJ_DIR)/$(TESTS_DIR)/%.o, $(DEP_DIR)/$(TESTS_DIR)/%.d, $(TEST_MODULE_OBJS)) \
-             $(COMMON_DEPS)
+WINDOW_CFLAGS := -I$(ELIBS_DIR)
+WINDOW_LFLAGS := -lX11
+CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS) $(WINDOW_CFLAGS)
 
-$(DEP_DIR)/%.d: $(SRC_DIR)/%.c
-	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -I $(SRC_DIR) -MM $< -MT $(OBJ_DIR)/$*.o -MF $@
+$(eval $(call make_object, win_x11_o, $(SRC_DIR)/window/win_x11.c, $(CURRENT_CFLAGS), $(X11_MARKER), $(BUILD_DIR)))
+$(eval $(call make_object, x11_stub_o, $(SRC_DIR)/window/x11_stub.c, $(CURRENT_CFLAGS), $(X11_MARKER), $(BUILD_DIR)))
 
-$(DEP_DIR)/$(TESTS_DIR)/%.d: $(TESTS_DIR)/%.c
-	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -I $(SRC_DIR) -I $(TESTS_DIR) -MM $< -MT $(OBJ_DIR)/$(TESTS_DIR)/$*.o -MF $@
+window_o = $(win_x11_o)
 
-# ----------------------
-# Object compilation
-# ----------------------
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -I $(SRC_DIR) -c $< -o $@
 
-$(OBJ_DIR)/window/win_x11.o: $(SRC_DIR)/window/win_x11.c $(X11_MARKER)
-	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -I $(SRC_DIR) -I$(SRC_DIR)/elibs -c $< -o $@
+# Coding
 
-$(OBJ_DIR)/window/x11_stub.o: $(SRC_DIR)/window/x11_stub.c $(X11_MARKER)
-	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -I $(SRC_DIR) -I$(SRC_DIR)/elibs -c $< -o $@
+CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS)
+$(eval $(call make_object, lzss_o, $(SRC_DIR)/coding/lzss.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, lz_match_brute_o, $(SRC_DIR)/coding/lz_match_brute.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, lz_serialize_o, $(SRC_DIR)/coding/lz_serialize.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, lz_deserialize_o, $(SRC_DIR)/coding/lz_deserialize.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, lz_window_o, $(SRC_DIR)/coding/lz_window.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 
-$(OBJ_DIR)/$(TESTS_DIR)/%.o: $(TESTS_DIR)/%.c
-	mkdir -p $(OBJ_DIR)/$(TESTS_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@ -I src -I $(TESTS_DIR)
+coding_o = $(lzss_o) \
+		  $(lz_match_brute_o) \
+		  $(lz_serialize_o) \
+		  $(lz_deserialize_o) \
+		  $(lz_window_o)
 
-# ----------------------
-# Targets
-# ----------------------
-build/$(TARGET): $(OBJ_DIR)/main.o common_MODULE
-	mkdir -p build
-	$(CC) $(CFLAGS) -o $@ $(OBJ_DIR)/main.o $(COMMON_MODULE_OBJS) $(LDFLAGS)
+# Main
+CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS) $(WINDOW_CFLAGS)
+$(eval $(call make_object, main_o, $(SRC_DIR)/main.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 
-build/$(TEST_TARGET): test_MODULE
-	mkdir -p build
-	$(CC) $(CFLAGS) -o $@ $(TEST_MODULE_OBJS) $(COMMON_MODULE_OBJS) $(LDFLAGS)
+CURRENT_LFLAGS := $(WINDOW_LFLAGS)
+$(eval $(call make_executable, main, $(common_o) $(window_o) $(coding_o) $(main_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
+main: $(main)
 
-# Include dependencies
--include $(MAIN_DEPS)
--include $(TEST_DEPS)
+# Tests
 
-all: build/$(TARGET) build/$(TEST_TARGET)
+CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS) $(WINDOW_CFLAGS)
+$(eval $(call make_object, all_tests_o, $(TESTS_DIR)/all_tests.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, test_mem_o, $(TESTS_DIR)/test_mem.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, test_stack_alloc_o, $(TESTS_DIR)/test_stack_alloc.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, test_win_x11_o, $(TESTS_DIR)/test_win_x11.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, test_file_o, $(TESTS_DIR)/test_file.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, test_print_o, $(TESTS_DIR)/test_print.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, test_temp_dir_o, $(TESTS_DIR)/test_temp_dir.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, test_framework_o, $(TESTS_DIR)/test_framework.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, test_backtrace_o, $(TESTS_DIR)/test_backtrace.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, test_lzss_o, $(TESTS_DIR)/test_lzss.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, test_fps_ticker_o, $(TESTS_DIR)/test_fps_ticker.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 
-myapp: build/$(TARGET)
-	./build/$(TARGET)
+tests_o = $(all_tests_o) \
+	 	 $(test_mem_o) \
+	 	 $(test_stack_alloc_o) \
+	 	 $(test_win_x11_o) \
+	 	 $(test_file_o) \
+	 	 $(test_print_o) \
+	 	 $(test_temp_dir_o) \
+	 	 $(test_framework_o) \
+	 	 $(test_backtrace_o) \
+	 	 $(test_lzss_o) \
+	 	 $(test_fps_ticker_o)
 
-test: build/$(TEST_TARGET)
-	./build/$(TEST_TARGET)
+CURRENT_LFLAGS := $(WINDOW_LFLAGS)
+$(eval $(call make_executable, test_runner, $(common_o) $(window_o) $(coding_o) $(tests_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
+test_runner: $(test_runner)
+
+all: main test_runner
 
 clean:
-	rm -rf build
+	rm -rf $(BUILD_DIR)
 	rm -rf $(SRC_DIR)/elibs/X11
-	mkdir build
+	mkdir $(BUILD_DIR)
 	./generate_compile_commands.sh
