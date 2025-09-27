@@ -24,21 +24,15 @@ $(eval BUILD_DIR := $5)
 $(eval OUT_DIR := $(BUILD_DIR)/$(call get-dir,$(SRC_FILE)))
 $(eval OUT_BASE_FILE_NO_EXTENSION := $(OUT_DIR)/$(call get-basename,$(SRC_FILE)))
 $(eval OBJ_FILE := $(OUT_BASE_FILE_NO_EXTENSION).o)
-$(eval CFLAGS_FILE := $(OUT_BASE_FILE_NO_EXTENSION).cflags)
 $(eval DEP_FILE := $(OUT_BASE_FILE_NO_EXTENSION).d)
 
-# store cflags to recompile on flag changes
-$(CFLAGS_FILE): Makefile
-	@mkdir -p $(OUT_DIR)
-	$(call write_if_different, $(CFLAGS_FILE), "$(CC) $(FLAGS)")
-
 # build the dependency
-$(DEP_FILE): $(SRC_FILE) $(CFLAGS_FILE)
+$(DEP_FILE): $(SRC_FILE)
 	mkdir -p $(OUT_DIR)
 	$(CC) $(FLAGS) -MM $(SRC_FILE) -MF $(DEP_FILE) -MT $(DEP_FILE)
 
 # build the object
-$(OBJ_FILE): $(SRC_FILE) $(CFLAGS_FILE) $(ADDITIONAL_DEPENDENCIES)
+$(OBJ_FILE): $(SRC_FILE) $(ADDITIONAL_DEPENDENCIES)
 	$(CC) $(FLAGS) -c $(SRC_FILE) -o $(OBJ_FILE)
 
 -include $(DEP_FILE)
@@ -58,14 +52,8 @@ $(eval OUT_DIR := $(BUILD_DIR))
 $(eval OUT_BASE_FILE_NO_EXTENSION := $(OUT_DIR)/$(NAME))
 
 $(eval EXECUTABLE_FILE := $(OUT_BASE_FILE_NO_EXTENSION))
-$(eval LFLAGS_FILE := $(OUT_BASE_FILE_NO_EXTENSION).lflags)
 
-# store cflags to recompile on flag changes
-$(LFLAGS_FILE): Makefile
-	@mkdir -p $(OUT_DIR)
-	$(call write_if_different, $(LFLAGS_FILE), "$(CC) $(FLAGS)")
-
-$(EXECUTABLE_FILE): $(OBJECTS) $(LFLAGS_FILE)
+$(EXECUTABLE_FILE): $(OBJECTS)
 	$(CC) $(OBJECTS) $(FLAGS) -o $(EXECUTABLE_FILE)
 
 $(NAME) = $(EXECUTABLE_FILE)
@@ -73,7 +61,7 @@ $(NAME) = $(EXECUTABLE_FILE)
 endef
 
 CC:=gcc
-LDFLAGS:=
+LFLAGS:=-no-pie
 SRC_DIR:=src
 ELIBS_DIR:=elibs
 TESTS_DIR:=tests
@@ -84,7 +72,7 @@ CFLAGS:=
 CFLAGS_SHARED := -Wall -Wextra -Werror -pedantic
 FLAVOR ?= DEBUG
 ifeq ($(FLAVOR),DEBUG)
-    CFLAGS := $(CFLAGS_SHARED) -O0 -g -no-pie -DDEBUG_ASSERTIONS_ENABLED=1
+    CFLAGS := $(CFLAGS_SHARED) -O0 -g -DDEBUG_ASSERTIONS_ENABLED=1
 else ifeq ($(FLAVOR),RELEASE)
     CFLAGS := $(CFLAGS_SHARED) -O3 -DNDEBUG -DDEBUG_ASSERTIONS_ENABLED=0
 else
@@ -162,7 +150,7 @@ coding_o = $(lzss_o) \
 CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS) $(WINDOW_CFLAGS)
 $(eval $(call make_object, main_o, $(SRC_DIR)/main.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 
-CURRENT_LFLAGS := $(WINDOW_LFLAGS)
+CURRENT_LFLAGS := $(LFLAGS) $(WINDOW_LFLAGS)
 $(eval $(call make_executable, main, $(common_o) $(window_o) $(coding_o) $(main_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
 main: $(main)
 
@@ -193,7 +181,7 @@ tests_o = $(all_tests_o) \
 	 	 $(test_lzss_o) \
 	 	 $(test_fps_ticker_o)
 
-CURRENT_LFLAGS := $(WINDOW_LFLAGS)
+CURRENT_LFLAGS := $(LFLAGS) $(WINDOW_LFLAGS)
 $(eval $(call make_executable, test_runner, $(common_o) $(window_o) $(coding_o) $(tests_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
 test_runner: $(test_runner)
 
