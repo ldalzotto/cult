@@ -1,8 +1,4 @@
 
-define write_if_different
-  @echo "$2" | cmp -s - $1 2>/dev/null || echo "$2" > $1
-endef
-
 # returns directory without trailing slash
 define get-dir
 $(patsubst %/,%,$(dir $1))
