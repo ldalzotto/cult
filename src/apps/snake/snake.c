@@ -31,18 +31,23 @@ void snake_update(snake* s, u64 frame_ms, stack_alloc* alloc) {
     unused(alloc);
 }
 
-u32 snake_get_grid_width(const snake* s) {
-    return s->grid_width;
-}
+draw_command* snake_render(snake* s, u32 screen_width, u32 screen_height, u32* command_count, stack_alloc* alloc) {
+    draw_command* cmds = sa_alloc(alloc, 2 * sizeof(draw_command));
+    *command_count = 2;
 
-u32 snake_get_grid_height(const snake* s) {
-    return s->grid_height;
-}
+    // Clear background
+    cmds[0].type = DRAW_COMMAND_CLEAR_BACKGROUND;
+    cmds[0].data.clear_bg.color = 0x00000000; // Black
 
-u32 snake_get_head_x(const snake* s) {
-    return s->head_x;
-}
+    // Draw snake head rectangle
+    i32 cell_size_x = screen_width / s->grid_width;
+    i32 cell_size_y = screen_height / s->grid_height;
+    cmds[1].type = DRAW_COMMAND_DRAW_RECTANGLE;
+    cmds[1].data.rect.x = (i32)s->head_x * cell_size_x;
+    cmds[1].data.rect.y = (i32)s->head_y * cell_size_y;
+    cmds[1].data.rect.w = cell_size_x;
+    cmds[1].data.rect.h = cell_size_y;
+    cmds[1].data.rect.color = 0x00FFFFFF; // White
 
-u32 snake_get_head_y(const snake* s) {
-    return s->head_y;
+    return cmds;
 }

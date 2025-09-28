@@ -76,27 +76,34 @@ i32 main(void) {
         win_buffer buffer = win_x11_get_pixel_buffer(win_ctx);
         debug_assert(bytesize(buffer.begin, buffer.end) % sizeof(i32) == 0);
 
-        // Clear buffer to black
-        for (i32* pixel = (i32*)buffer.begin; pixel < (i32*)buffer.end; ++pixel) {
-            *pixel = 0x00000000; // Black
-        }
+        // Render snake to commands
+        u32 command_count;
+        draw_command* cmds = snake_render(s, WIDTH, HEIGHT, &command_count, &win_alloc);
 
-        // Draw snake head
-        i32 grid_width = snake_get_grid_width(s);
-        i32 grid_height = snake_get_grid_height(s);
-        i32 cell_size_x = WIDTH / grid_width;
-        i32 cell_size_y = HEIGHT / grid_height;
-        i32 start_x = snake_get_head_x(s) * cell_size_x;
-        i32 start_y = snake_get_head_y(s) * cell_size_y;
-        for (i32 dy = 0; dy < cell_size_y; ++dy) {
-            for (i32 dx = 0; dx < cell_size_x; ++dx) {
-                i32 px = start_x + dx;
-                i32 py = start_y + dy;
-                if (px >= 0 && px < WIDTH && py >= 0 && py < HEIGHT) {
-                    ((i32*)buffer.begin)[py * WIDTH + px] = 0x00FFFFFF; // White
+        // Execute draw commands
+        for (u32 i = 0; i < command_count; ++i) {
+            draw_command cmd = cmds[i];
+            if (cmd.type == DRAW_COMMAND_CLEAR_BACKGROUND) {
+                // Clear buffer to the specified color
+                for (i32* pixel = (i32*)buffer.begin; pixel < (i32*)buffer.end; ++pixel) {
+                    *pixel = (i32)cmd.data.clear_bg.color;
+                }
+            } else if (cmd.type == DRAW_COMMAND_DRAW_RECTANGLE) {
+                // Draw rectangle
+                for (i32 dy = 0; dy < cmd.data.rect.h; ++dy) {
+                    for (i32 dx = 0; dx < cmd.data.rect.w; ++dx) {
+                        i32 px = cmd.data.rect.x + dx;
+                        i32 py = cmd.data.rect.y + dy;
+                        if (px >= 0 && px < WIDTH && py >= 0 && py < HEIGHT) {
+                            ((i32*)buffer.begin)[py * WIDTH + px] = (i32)cmd.data.rect.color;
+                        }
+                    }
                 }
             }
         }
+
+        // Free the commands
+        sa_free(&win_alloc, cmds);
 
         win_x11_present(win_ctx);
 

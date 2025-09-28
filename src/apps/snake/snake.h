@@ -8,9 +8,28 @@ snake* snake_init(stack_alloc* alloc);
 void snake_deinit(snake* s, stack_alloc* alloc);
 void snake_update(snake* s, u64 frame_ms, stack_alloc* alloc);
 
-u32 snake_get_grid_width(const snake* s);
-u32 snake_get_grid_height(const snake* s);
-u32 snake_get_head_x(const snake* s);
-u32 snake_get_head_y(const snake* s);
+typedef enum {
+    DRAW_COMMAND_CLEAR_BACKGROUND,
+    DRAW_COMMAND_DRAW_RECTANGLE
+} draw_command_type;
+
+typedef struct draw_clear_background {
+    u32 color; // RGBA
+} draw_clear_background;
+
+typedef struct draw_rectangle {
+    i32 x, y, w, h;
+    u32 color;
+} draw_rectangle;
+
+typedef struct draw_command {
+    draw_command_type type;
+    union {
+        draw_clear_background clear_bg;
+        draw_rectangle rect;
+    } data;
+} draw_command;
+
+draw_command* snake_render(snake* s, u32 screen_width, u32 screen_height, u32* command_count, stack_alloc* alloc);
 
 #endif /*SNAKE_H*/
