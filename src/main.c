@@ -58,7 +58,7 @@ i32 main(void) {
 
         for (win_event* event = event_begin; event < event_end; ++event) {
             print_format(file_stdout(), STRING("Received event type: %d\n"), event->type);
-            if (event->type == 2) { // Close event
+            if (event->type == WIN_EVENT_TYPE_RELEASED) { // Close event
                 should_exit = 1;
             }
         }

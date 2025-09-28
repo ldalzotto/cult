@@ -15,6 +15,7 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/keysym.h>
 #include "assert.h"
 #include "stack_alloc.h"
 #include "primitive.h"
@@ -143,7 +144,7 @@ i32 win_x11_open_window(win_x11* win, const char* title, i32 width, i32 height, 
     XStoreName(win->display, win->window, title);
 
     // Select input events
-    XSelectInput(win->display, win->window, ExposureMask | KeyPressMask);
+    XSelectInput(win->display, win->window, KeyPressMask | KeyReleaseMask);
 
     // Make window visible
     XMapWindow(win->display, win->window);
@@ -223,11 +224,29 @@ win_event* win_x11_poll_events(win_x11* win, stack_alloc* alloc) {
 
     // Poll all pending events using while loop
     while (XPending(win->display) > 0) {
-        win_event* event = sa_alloc(alloc, sizeof(*event));
-        debug_assert(event != NULL);
         XEvent xevent;
         XNextEvent(win->display, &xevent);
-        event->type = xevent.type;
+        if (xevent.type != KeyPress && xevent.type != KeyRelease) {
+            continue;
+        }
+        win_event* event = sa_alloc(alloc, sizeof(*event));
+        debug_assert(event != NULL);
+        KeySym keysym = XLookupKeysym(&xevent.xkey, 0);
+        win_key mapped_key;
+        switch (keysym) {
+            case XK_Up: mapped_key = WIN_KEY_UP; break;
+            case XK_Down: mapped_key = WIN_KEY_DOWN; break;
+            case XK_Left: mapped_key = WIN_KEY_LEFT; break;
+            case XK_Right: mapped_key = WIN_KEY_RIGHT; break;
+            default: mapped_key = WIN_KEY_UNKNOWN; break;
+        }
+        event->key = mapped_key;
+        event->type = WIN_EVENT_TYPE_UNKNOWN;
+        if (xevent.type == KeyPress) {
+            event->type = WIN_EVENT_TYPE_PRESSED;
+        } else if (xevent.type == KeyRelease) {
+            event->type = WIN_EVENT_TYPE_RELEASED;
+        }
     }
 
     return events_start;
