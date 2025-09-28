@@ -6,7 +6,13 @@
 typedef struct snake snake;
 snake* snake_init(stack_alloc* alloc);
 void snake_deinit(snake* s, stack_alloc* alloc);
-void snake_update(snake* s, u64 frame_ms, stack_alloc* alloc);
+
+typedef struct {
+    /* Input direction. */
+    u8 left, right, up, down;
+} snake_input;
+
+void snake_update(snake* s, snake_input input, u64 frame_ms, stack_alloc* alloc);
 
 typedef enum {
     DRAW_COMMAND_CLEAR_BACKGROUND,

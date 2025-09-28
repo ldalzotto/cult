@@ -2,33 +2,43 @@
 #include "primitive.h"
 
 struct snake {
-    u32 head_x;
-    u32 head_y;
-    u32 grid_width;
-    u32 grid_height;
-    u8* grid;
+    i32 head_x;
+    i32 head_y;
+    i32 grid_width;
+    i32 grid_height;
 };
-
 
 snake* snake_init(stack_alloc* alloc) {
     snake* s = sa_alloc(alloc, sizeof(*s));
-    s->grid_width = 10;
-    s->grid_height = 10;
-    s->grid = sa_alloc(alloc, s->grid_width * s->grid_height * sizeof(u8));
+    s->grid_width = 20;
+    s->grid_height = 20;
     s->head_x = s->grid_width / 2;
     s->head_y = s->grid_height / 2;
     return s;
 }
 
 void snake_deinit(snake* s, stack_alloc* alloc) {
-    sa_free(alloc, s->grid);
     sa_free(alloc, s);
 }
 
-void snake_update(snake* s, u64 frame_ms, stack_alloc* alloc) {
-    unused(s);
+void snake_update(snake* s, snake_input input, u64 frame_ms, stack_alloc* alloc) {
     unused(frame_ms);
     unused(alloc);
+    if (input.left) {
+        s->head_x--;
+    } else if (input.right) {
+        s->head_x++;
+    } else if (input.up) {
+        s->head_y--;
+    } else if (input.down) {
+        s->head_y++;
+    }
+
+    /* Ensure the position stays inside the grid */
+    if (s->head_x >= s->grid_width) s->head_x = s->grid_width - 1;
+    if (s->head_x < 0) s->head_x = 0;
+    if (s->head_y >= s->grid_height) s->head_y = s->grid_height - 1;
+    if (s->head_y < 0) s->head_y = 0;
 }
 
 draw_command* snake_render(snake* s, u32 screen_width, u32 screen_height, u32* command_count, stack_alloc* alloc) {

@@ -62,15 +62,35 @@ i32 main(void) {
         win_event* event_end = win_alloc.cursor;
         u8 should_exit = 0;
 
+        snake_input input = {.down = 0, .left = 0,.right = 0,.up = 0};
+
         for (win_event* event = event_begin; event < event_end; ++event) {
-            if (event->type == WIN_EVENT_TYPE_RELEASED) { // Close event
-                should_exit = 1;
+            if (event->type == WIN_EVENT_TYPE_PRESSED) {
+                switch (event->key) {
+                    case WIN_KEY_LEFT: input.left = 1; break;
+                    case WIN_KEY_RIGHT: input.right = 1; break;
+                    case WIN_KEY_UP: input.up = 1; break;
+                    case WIN_KEY_DOWN: input.down = 1; break;
+                    default: break;
+                }
+            } else if (event->type == WIN_EVENT_TYPE_RELEASED) {
+                switch (event->key) {
+                    case WIN_KEY_LEFT: input.left = 0; break;
+                    case WIN_KEY_RIGHT: input.right = 0; break;
+                    case WIN_KEY_UP: input.up = 0; break;
+                    case WIN_KEY_DOWN: input.down = 0; break;
+                    default:
+                        if (event->key == WIN_KEY_UNKNOWN) { // Close event
+                            should_exit = 1;
+                        }
+                        break;
+                }
             }
         }
         sa_free(&win_alloc, event_begin);
 
         // Update snake
-        snake_update(s, ticker.preferred_frame_us, &win_alloc);
+        snake_update(s, input, ticker.preferred_frame_us, &win_alloc);
 
         // Get buffer and render
         win_buffer buffer = win_x11_get_pixel_buffer(win_ctx);

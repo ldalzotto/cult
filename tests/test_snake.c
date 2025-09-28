@@ -21,8 +21,8 @@ void test_render(test_context* t) {
     TEST_ASSERT_EQUAL(t, cmds[1].type, DRAW_COMMAND_DRAW_RECTANGLE);
     TEST_ASSERT_EQUAL(t, cmds[1].data.rect.x, 50);
     TEST_ASSERT_EQUAL(t, cmds[1].data.rect.y, 50);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.w, 10);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.h, 10);
+    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.w, 5);
+    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.h, 5);
     TEST_ASSERT_EQUAL(t, cmds[1].data.rect.color, 0x00FFFFFF);
 
     snake_deinit(s, alloc);
