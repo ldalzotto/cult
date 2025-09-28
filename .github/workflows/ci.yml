@@ -16,5 +16,8 @@ jobs:
     - name: Clean
       run: make clean
 
-    - name: Run tests
+    - name: Build tests
       run: make test
+    
+    - name: Run tests
+      run: ./build/test

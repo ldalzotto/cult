@@ -178,10 +178,10 @@ tests_o = $(all_tests_o) \
 	 	 $(test_fps_ticker_o)
 
 CURRENT_LFLAGS := $(LFLAGS) $(WINDOW_LFLAGS)
-$(eval $(call make_executable, test_runner, $(common_o) $(window_o) $(coding_o) $(tests_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
-test_runner: $(test_runner)
+$(eval $(call make_executable, test, $(common_o) $(window_o) $(coding_o) $(tests_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
+test: $(test)
 
-all: main test_runner
+all: main test
 
 clean:
 	rm -rf $(BUILD_DIR)
