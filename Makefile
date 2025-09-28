@@ -107,6 +107,9 @@ common_o = $(mem_o) \
 
 # Extract X11 headers
 
+# We may want to cache this
+USE_X11 := $(shell pkg-config --exists x11 && echo 1 || echo 0)
+
 X11_EXTRACTED_DIR := $(SRC_DIR)/elibs/X11
 X11_MARKER := $(SRC_DIR)/elibs/X11/.x11_extracted
 
@@ -118,14 +121,19 @@ $(X11_MARKER): $(ELIBS_DIR)/x11_headers.tar.gz
 	touch $@
 
 WINDOW_CFLAGS := -I$(SRC_DIR)/elibs
-WINDOW_LFLAGS := -lX11
+WINDOW_LFLAGS := 
+ifeq ($(USE_X11), 1)
+	WINDOW_LFLAGS += -lX11
+endif
 CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS) $(WINDOW_CFLAGS)
 
 $(eval $(call make_object, win_x11_o, $(SRC_DIR)/window/win_x11.c, $(CURRENT_CFLAGS), $(X11_MARKER), $(BUILD_DIR)))
 $(eval $(call make_object, x11_stub_o, $(SRC_DIR)/window/x11_stub.c, $(CURRENT_CFLAGS), $(X11_MARKER), $(BUILD_DIR)))
 
 window_o = $(win_x11_o)
-
+ifeq ($(USE_X11), 0)
+	window_o += $(x11_stub_o)
+endif
 
 # Coding
 
