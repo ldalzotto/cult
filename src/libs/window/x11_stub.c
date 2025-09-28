@@ -1,5 +1,6 @@
 
 #include <X11/Xlib.h>
+#include <X11/keysymdef.h>
 #include "mem.h"
 #include "stack_alloc.h"
 #include "assert.h"
@@ -435,4 +436,13 @@ int XNextEvent(
     display_sanitize(display);
     unused(event_return);
     return 0;
+}
+
+KeySym XLookupKeysym(
+    XKeyEvent* key_event,
+    int index
+) {
+    unused(key_event);
+    unused(index);
+    return XK_VoidSymbol;
 }
