@@ -162,9 +162,11 @@ dummy: $(dummy)
 CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS) $(WINDOW_CFLAGS)
 $(eval $(call make_object, snake_o, $(SRC_DIR)/apps/snake/snake.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, snake_loop_o, $(SRC_DIR)/apps/snake/snake_loop.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, snake_grid_o, $(SRC_DIR)/apps/snake/snake_grid.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 
 snake_module_o = $(snake_o) \
-		 $(snake_loop_o)
+		 $(snake_loop_o) \
+		 $(snake_grid_o)
 
 CURRENT_LFLAGS := $(LFLAGS) $(WINDOW_LFLAGS)
 $(eval $(call make_executable, snake, $(common_o) $(window_o) $(coding_o) $(snake_module_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
@@ -200,7 +202,7 @@ tests_o = $(all_tests_o) \
 		 $(test_snake_o)
 
 CURRENT_LFLAGS := $(LFLAGS) $(WINDOW_LFLAGS)
-$(eval $(call make_executable, test, $(common_o) $(window_o) $(coding_o) $(snake_o) $(tests_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
+$(eval $(call make_executable, test, $(common_o) $(window_o) $(coding_o) $(snake_o) $(snake_grid_o) $(tests_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
 test: $(test)
 
 all: snake dummy test
