@@ -117,7 +117,7 @@ $(X11_MARKER): $(ELIBS_DIR)/x11_headers.tar.gz
 	tar -xzvf $< -C $(SRC_DIR)/elibs
 	touch $@
 
-WINDOW_CFLAGS := -I$(ELIBS_DIR)
+WINDOW_CFLAGS := -I$(SRC_DIR)/elibs
 WINDOW_LFLAGS := -lX11
 CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS) $(WINDOW_CFLAGS)
 
