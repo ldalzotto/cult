@@ -1,5 +1,5 @@
 .cache
 .vscode
 build
-src/elibs/X11
+src/libs/elibs/X11
 test_temp/

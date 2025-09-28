@@ -77,19 +77,19 @@ endif
 
 # Common
 
-COMMON_CFLAGS := -I$(SRC_DIR)
+COMMON_CFLAGS := -I$(SRC_DIR)/libs
 CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS)
-$(eval $(call make_object, mem_o, $(SRC_DIR)/mem.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
-$(eval $(call make_object, stack_alloc_o, $(SRC_DIR)/stack_alloc.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
-$(eval $(call make_object, system_time_o, $(SRC_DIR)/system_time.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
-$(eval $(call make_object, time_o, $(SRC_DIR)/time.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
-$(eval $(call make_object, backtrace_o, $(SRC_DIR)/backtrace.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
-$(eval $(call make_object, assert_o, $(SRC_DIR)/assert.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
-$(eval $(call make_object, file_o, $(SRC_DIR)/file.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
-$(eval $(call make_object, print_o, $(SRC_DIR)/print.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
-$(eval $(call make_object, meta_iterator_o, $(SRC_DIR)/meta_iterator.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
-$(eval $(call make_object, format_iterator_o, $(SRC_DIR)/format_iterator.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
-$(eval $(call make_object, convert_o, $(SRC_DIR)/convert.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, mem_o, $(SRC_DIR)/libs/mem.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, stack_alloc_o, $(SRC_DIR)/libs/stack_alloc.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, system_time_o, $(SRC_DIR)/libs/system_time.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, time_o, $(SRC_DIR)/libs/time.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, backtrace_o, $(SRC_DIR)/libs/backtrace.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, assert_o, $(SRC_DIR)/libs/assert.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, file_o, $(SRC_DIR)/libs/file.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, print_o, $(SRC_DIR)/libs/print.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, meta_iterator_o, $(SRC_DIR)/libs/meta_iterator.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, format_iterator_o, $(SRC_DIR)/libs/format_iterator.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, convert_o, $(SRC_DIR)/libs/convert.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 
 common_o = $(mem_o) \
 		  $(stack_alloc_o) \
@@ -110,25 +110,25 @@ common_o = $(mem_o) \
 # We may want to cache this
 USE_X11 := $(shell pkg-config --exists x11 && echo 1 || echo 0)
 
-X11_EXTRACTED_DIR := $(SRC_DIR)/elibs/X11
-X11_MARKER := $(SRC_DIR)/elibs/X11/.x11_extracted
+X11_EXTRACTED_DIR := $(SRC_DIR)/libs/elibs/X11
+X11_MARKER := $(SRC_DIR)/libs/elibs/X11/.x11_extracted
 
 $(X11_MARKER): $(ELIBS_DIR)/x11_headers.tar.gz
-	@echo "Extracting $< into $(SRC_DIR)/elibs/..."
-	mkdir -p $(SRC_DIR)/elibs
+	@echo "Extracting $< into $(SRC_DIR)/libs/elibs/..."
+	mkdir -p $(SRC_DIR)/libs/elibs
 	rm -rf $(X11_EXTRACTED_DIR)
-	tar -xzvf $< -C $(SRC_DIR)/elibs
+	tar -xzvf $< -C $(SRC_DIR)/libs/elibs
 	touch $@
 
-WINDOW_CFLAGS := -I$(SRC_DIR)/elibs
+WINDOW_CFLAGS := -I$(SRC_DIR)/libs/elibs
 WINDOW_LFLAGS := 
 ifeq ($(USE_X11), 1)
 	WINDOW_LFLAGS += -lX11
 endif
 CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS) $(WINDOW_CFLAGS)
 
-$(eval $(call make_object, win_x11_o, $(SRC_DIR)/window/win_x11.c, $(CURRENT_CFLAGS), $(X11_MARKER), $(BUILD_DIR)))
-$(eval $(call make_object, x11_stub_o, $(SRC_DIR)/window/x11_stub.c, $(CURRENT_CFLAGS), $(X11_MARKER), $(BUILD_DIR)))
+$(eval $(call make_object, win_x11_o, $(SRC_DIR)/libs/window/win_x11.c, $(CURRENT_CFLAGS), $(X11_MARKER), $(BUILD_DIR)))
+$(eval $(call make_object, x11_stub_o, $(SRC_DIR)/libs/window/x11_stub.c, $(CURRENT_CFLAGS), $(X11_MARKER), $(BUILD_DIR)))
 
 window_o = $(win_x11_o)
 ifeq ($(USE_X11), 0)
@@ -138,11 +138,11 @@ endif
 # Coding
 
 CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS)
-$(eval $(call make_object, lzss_o, $(SRC_DIR)/coding/lzss.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
-$(eval $(call make_object, lz_match_brute_o, $(SRC_DIR)/coding/lz_match_brute.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
-$(eval $(call make_object, lz_serialize_o, $(SRC_DIR)/coding/lz_serialize.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
-$(eval $(call make_object, lz_deserialize_o, $(SRC_DIR)/coding/lz_deserialize.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
-$(eval $(call make_object, lz_window_o, $(SRC_DIR)/coding/lz_window.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, lzss_o, $(SRC_DIR)/libs/coding/lzss.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, lz_match_brute_o, $(SRC_DIR)/libs/coding/lz_match_brute.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, lz_serialize_o, $(SRC_DIR)/libs/coding/lz_serialize.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, lz_deserialize_o, $(SRC_DIR)/libs/coding/lz_deserialize.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, lz_window_o, $(SRC_DIR)/libs/coding/lz_window.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 
 coding_o = $(lzss_o) \
 		  $(lz_match_brute_o) \
@@ -150,13 +150,13 @@ coding_o = $(lzss_o) \
 		  $(lz_deserialize_o) \
 		  $(lz_window_o)
 
-# Main
+# Dummy
 CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS) $(WINDOW_CFLAGS)
-$(eval $(call make_object, main_o, $(SRC_DIR)/main.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, dummy_o, $(SRC_DIR)/apps/dummy/dummy.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 
 CURRENT_LFLAGS := $(LFLAGS) $(WINDOW_LFLAGS)
-$(eval $(call make_executable, main, $(common_o) $(window_o) $(coding_o) $(main_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
-main: $(main)
+$(eval $(call make_executable, dummy, $(common_o) $(window_o) $(coding_o) $(dummy_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
+dummy: $(dummy)
 
 # Tests
 
@@ -189,10 +189,10 @@ CURRENT_LFLAGS := $(LFLAGS) $(WINDOW_LFLAGS)
 $(eval $(call make_executable, test, $(common_o) $(window_o) $(coding_o) $(tests_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
 test: $(test)
 
-all: main test
+all: dummy test
 
 clean:
 	rm -rf $(BUILD_DIR)
-	rm -rf $(SRC_DIR)/elibs/X11
+	rm -rf $(SRC_DIR)/libs/elibs/X11
 	mkdir $(BUILD_DIR)
 	./generate_compile_commands.sh
