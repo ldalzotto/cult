@@ -54,13 +54,23 @@ void* snake_end(snake* s) {
 
 void snake_update(snake* s, snake_input input, u64 frame_us, stack_alloc* alloc) {
     // Determine new direction from input
-    snake_direction next_dir = s->player_direction;
-    if (input.left) next_dir = SNAKE_DIR_LEFT;
-    else if (input.right) next_dir = SNAKE_DIR_RIGHT;
-    else if (input.up) next_dir = SNAKE_DIR_UP;
-    else if (input.down) next_dir = SNAKE_DIR_DOWN;
+    snake_direction direction_new = s->player_direction;
+    if (input.left) direction_new = SNAKE_DIR_LEFT;
+    else if (input.right) direction_new = SNAKE_DIR_RIGHT;
+    else if (input.up) direction_new = SNAKE_DIR_UP;
+    else if (input.down) direction_new = SNAKE_DIR_DOWN;
 
-    s->player_direction = next_dir;
+    // If the new direction is directly opposite to the old direction, ignore the
+    // change to prevent the snake from reversing into itself.
+    snake_direction direction_old = s->player_direction;
+    if ((direction_old == SNAKE_DIR_LEFT  && direction_new == SNAKE_DIR_RIGHT) ||
+        (direction_old == SNAKE_DIR_RIGHT && direction_new == SNAKE_DIR_LEFT)  ||
+        (direction_old == SNAKE_DIR_UP    && direction_new == SNAKE_DIR_DOWN) ||
+        (direction_old == SNAKE_DIR_DOWN  && direction_new == SNAKE_DIR_UP)) {
+        direction_new = direction_old;
+    }
+
+    s->player_direction = direction_new;
 
     // Accumulate time and perform update only when at least 1 second has elapsed
     const u64 delta_between_movement = 1000000 / 8;
@@ -71,8 +81,8 @@ void snake_update(snake* s, snake_input input, u64 frame_us, stack_alloc* alloc)
     s->time_accum_us -= delta_between_movement;
 
     position head_pos;
-    if (!snake_move_head(s->player_cells.begin, s->player_cells.end, next_dir, 
-            s->grid_width, s->grid_height, &head_pos)) {
+    if (!snake_move_head(s->player_cells.begin, s->player_cells.end, s->player_direction, 
+                            s->grid_width, s->grid_height, &head_pos)) {
         return;
     }
 
