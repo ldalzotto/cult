@@ -3,6 +3,13 @@
 #include "snake_grid.h"
 #include "assert.h"
 
+typedef enum {
+    SNAKE_DIR_LEFT,
+    SNAKE_DIR_RIGHT,
+    SNAKE_DIR_UP,
+    SNAKE_DIR_DOWN
+} snake_direction;
+
 struct snake {
     position reward;
     i32 score;
@@ -14,8 +21,11 @@ struct snake {
         position* begin;
         position* end;
     } player_cells;
-    /*[USER] We should hold a current direction state. Which says left,right,up,down*/
+    snake_direction player_direction;
     void* end;
+
+    // Time accumulator to perform updates at a fixed interval (1 second)
+    u64 time_accum_us;
 };
 
 snake* snake_init(stack_alloc* alloc) {
@@ -34,6 +44,8 @@ snake* snake_init(stack_alloc* alloc) {
     s->reward.y = s->grid_height / 3;
     s->score = 0;
     s->end = alloc->cursor;
+    s->player_direction = SNAKE_DIR_RIGHT;
+    s->time_accum_us = 0;
     return s;
 }
 
@@ -46,34 +58,40 @@ void* snake_end(snake* s) {
     return s->end;
 }
 
-void snake_update(snake* s, snake_input input, u64 frame_ms, stack_alloc* alloc) {
-    unused(frame_ms);
+void snake_update(snake* s, snake_input input, u64 frame_us, stack_alloc* alloc) {
+    // Determine new direction from input
+    snake_direction next_dir = s->player_direction;
+    if (input.left) next_dir = SNAKE_DIR_LEFT;
+    else if (input.right) next_dir = SNAKE_DIR_RIGHT;
+    else if (input.up) next_dir = SNAKE_DIR_UP;
+    else if (input.down) next_dir = SNAKE_DIR_DOWN;
 
-    /* Move the head of the snake based on input. The current implementation uses a single head
-    stored at player_cells.begin. We update that head position and clamp to grid. */
-    // Determine new head position
-    position head_pos = *s->player_cells.begin;
-    /*[USER] Update the direction state instead*/
-    u8 has_moved = 0;
-    if (input.left) {
-        has_moved = 1;
-        head_pos.x--;
-    } else if (input.right) {
-        has_moved = 1;
-        head_pos.x++;
-    } else if (input.up) {
-        has_moved = 1;
-        head_pos.y--;
-    } else if (input.down) {
-        has_moved = 1;
-        head_pos.y++;
+    s->player_direction = next_dir;
+
+    // Accumulate time and perform update only when at least 1 second has elapsed
+    const u64 delta_between_movement = 1000000 / 8;
+    s->time_accum_us += frame_us;
+    if (s->time_accum_us < delta_between_movement) {
+        return;
     }
+    s->time_accum_us -= delta_between_movement;
 
-
-    /*[USER] Use the direction state to compute the head_pos*/
+    // Compute new head position based on current direction
+    position head_pos = *s->player_cells.begin;
+    switch (s->player_direction) {
+        case SNAKE_DIR_LEFT: head_pos.x -= 1; break;
+        case SNAKE_DIR_RIGHT: head_pos.x += 1; break;
+        case SNAKE_DIR_UP: head_pos.y -= 1; break;
+        case SNAKE_DIR_DOWN: head_pos.y += 1; break;
+    }
 
     if (!snake_grid_inside(head_pos, s->grid_width, s->grid_height)) {
         return;
+    }
+
+    u8 has_moved = 0;
+    if (!snake_grid_equals(head_pos, *s->player_cells.begin)) {
+        has_moved = 1;
     }
 
     if (has_moved) {
