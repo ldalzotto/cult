@@ -90,7 +90,14 @@ i32 main(void) {
         sa_free(&win_alloc, event_begin);
 
         // Update snake
+        void* s_end_before = snake_end(s);
         snake_update(s, input, ticker.preferred_frame_us, &win_alloc);
+        if (snake_end(s) != s_end_before) {
+            /*
+                The memory layout changed.
+                Nothing to do for now. Because nothing is allocated past the snake module.
+            */
+        }
 
         // Get buffer and render
         win_buffer buffer = win_x11_get_pixel_buffer(win_ctx);

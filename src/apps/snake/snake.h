@@ -7,6 +7,9 @@ typedef struct snake snake;
 snake* snake_init(stack_alloc* alloc);
 void snake_deinit(snake* s, stack_alloc* alloc);
 
+// The end pointer of the snake module.
+void* snake_end(snake* s);
+
 typedef struct {
     /* Input direction. */
     u8 left, right, up, down;
