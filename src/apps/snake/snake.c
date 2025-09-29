@@ -14,6 +14,7 @@ struct snake {
         position* begin;
         position* end;
     } player_cells;
+    /*[USER] We should hold a current direction state. Which says left,right,up,down*/
     void* end;
 };
 
@@ -47,12 +48,12 @@ void* snake_end(snake* s) {
 
 void snake_update(snake* s, snake_input input, u64 frame_ms, stack_alloc* alloc) {
     unused(frame_ms);
-    unused(alloc);
 
     /* Move the head of the snake based on input. The current implementation uses a single head
     stored at player_cells.begin. We update that head position and clamp to grid. */
     // Determine new head position
     position head_pos = *s->player_cells.begin;
+    /*[USER] Update the direction state instead*/
     u8 has_moved = 0;
     if (input.left) {
         has_moved = 1;
@@ -68,8 +69,21 @@ void snake_update(snake* s, snake_input input, u64 frame_ms, stack_alloc* alloc)
         head_pos.y++;
     }
 
+
+    /*[USER] Use the direction state to compute the head_pos*/
+
     if (!snake_grid_inside(head_pos, s->grid_width, s->grid_height)) {
         return;
+    }
+
+    if (has_moved) {
+        // Exclude the tail because the player hasn't moved yet
+        for (position* cell = s->player_cells.begin; cell < s->player_cells.end - 1; ++cell) {
+            if (snake_grid_equals(head_pos, *cell)) {
+                // Self-intersection detected; abort update
+                return;
+            }
+        }
     }
 
     /* Check for reward collection and update reward position deterministically within bounds. */
@@ -86,9 +100,6 @@ void snake_update(snake* s, snake_input input, u64 frame_ms, stack_alloc* alloc)
         debug_assert(s->player_cells.end == alloc->cursor);
         void* next_player_cells_end = byteoffset(s->player_cells.end, sizeof(*s->player_cells.begin));
         {
-            // sa_alloc(alloc, sizeof(*s->player_cells.begin));
-            // sa_move(alloc, s->player_cells.end, next_player_cells_end, sizeof(*s->player_cells.begin));
-
             sa_insert(alloc, s->player_cells.end, sizeof(*s->player_cells.begin));
         }
 
