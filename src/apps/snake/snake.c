@@ -2,13 +2,7 @@
 #include "primitive.h"
 #include "snake_grid.h"
 #include "assert.h"
-
-typedef enum {
-    SNAKE_DIR_LEFT,
-    SNAKE_DIR_RIGHT,
-    SNAKE_DIR_UP,
-    SNAKE_DIR_DOWN
-} snake_direction;
+#include "snake_move.h"
 
 struct snake {
     position reward;
@@ -22,10 +16,10 @@ struct snake {
         position* end;
     } player_cells;
     snake_direction player_direction;
-    void* end;
-
-    // Time accumulator to perform updates at a fixed interval (1 second)
+    // Time accumulator to perform updates at a fixed interval
     u64 time_accum_us;
+    
+    void* end;
 };
 
 snake* snake_init(stack_alloc* alloc) {
@@ -76,32 +70,10 @@ void snake_update(snake* s, snake_input input, u64 frame_us, stack_alloc* alloc)
     }
     s->time_accum_us -= delta_between_movement;
 
-    // Compute new head position based on current direction
-    position head_pos = *s->player_cells.begin;
-    switch (s->player_direction) {
-        case SNAKE_DIR_LEFT: head_pos.x -= 1; break;
-        case SNAKE_DIR_RIGHT: head_pos.x += 1; break;
-        case SNAKE_DIR_UP: head_pos.y -= 1; break;
-        case SNAKE_DIR_DOWN: head_pos.y += 1; break;
-    }
-
-    if (!snake_grid_inside(head_pos, s->grid_width, s->grid_height)) {
+    position head_pos;
+    if (!snake_move_head(s->player_cells.begin, s->player_cells.end, next_dir, 
+            s->grid_width, s->grid_height, &head_pos)) {
         return;
-    }
-
-    u8 has_moved = 0;
-    if (!snake_grid_equals(head_pos, *s->player_cells.begin)) {
-        has_moved = 1;
-    }
-
-    if (has_moved) {
-        // Exclude the tail because the player hasn't moved yet
-        for (position* cell = s->player_cells.begin; cell < s->player_cells.end - 1; ++cell) {
-            if (snake_grid_equals(head_pos, *cell)) {
-                // Self-intersection detected; abort update
-                return;
-            }
-        }
     }
 
     /* Check for reward collection and update reward position deterministically within bounds. */
@@ -130,7 +102,7 @@ void snake_update(snake* s, snake_input input, u64 frame_us, stack_alloc* alloc)
         }
 
         *s->player_cells.begin = head_pos;
-    } else if (has_moved) {
+    } else {
         // Shift existing cells to follow the head within the current length
         for (position* cell = s->player_cells.end - 1; cell > s->player_cells.begin; --cell) {
             *cell = *(cell - 1);
