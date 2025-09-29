@@ -89,15 +89,22 @@ i32 main(void) {
         }
         sa_free(&win_alloc, event_begin);
 
-        // Update snake
+        // If the snake reports STOP, restart the game
         void* s_end_before = snake_end(s);
-        snake_update(s, input, ticker.preferred_frame_us, &win_alloc);
+        snake_update_result upd = snake_update(s, input, ticker.preferred_frame_us, &win_alloc);
         if (snake_end(s) != s_end_before) {
             print_string(file_stdout(), STRING("Memory layout changed\n"));
             /*
                 The memory layout changed.
                 Nothing to do for now. Because nothing is allocated past the snake module.
             */
+        }
+        if (upd == SNAKE_UPDATE_STOP) {
+            // Restart the game
+            snake_deinit(s, &win_alloc);
+            s = snake_init(&win_alloc);
+            // Skip rendering this frame after restart
+            continue;
         }
 
         // Get buffer and render

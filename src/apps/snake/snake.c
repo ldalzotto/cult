@@ -52,7 +52,7 @@ void* snake_end(snake* s) {
     return s->end;
 }
 
-void snake_update(snake* s, snake_input input, u64 frame_us, stack_alloc* alloc) {
+snake_update_result snake_update(snake* s, snake_input input, u64 frame_us, stack_alloc* alloc) {
     // Determine new direction from input
     snake_direction direction_new = s->player_direction;
     if (input.left) direction_new = SNAKE_DIR_LEFT;
@@ -76,14 +76,15 @@ void snake_update(snake* s, snake_input input, u64 frame_us, stack_alloc* alloc)
     const u64 delta_between_movement = 1000000 / 8;
     s->time_accum_us += frame_us;
     if (s->time_accum_us < delta_between_movement) {
-        return;
+        return SNAKE_UPDATE_CONTINUE;
     }
     s->time_accum_us -= delta_between_movement;
 
     position head_pos;
     if (!snake_move_head(s->player_cells.begin, s->player_cells.end, s->player_direction, 
                             s->grid_width, s->grid_height, &head_pos)) {
-        return;
+        // No valid movement found -> stop game
+        return SNAKE_UPDATE_STOP;
     }
 
     /* Check for reward collection and update reward position deterministically within bounds. */
@@ -119,6 +120,8 @@ void snake_update(snake* s, snake_input input, u64 frame_us, stack_alloc* alloc)
         }
         *s->player_cells.begin = head_pos;
     }
+
+    return SNAKE_UPDATE_CONTINUE;
 }
 
 draw_command* snake_render(snake* s, u32 screen_width, u32 screen_height, u32* command_count, stack_alloc* alloc) {

@@ -15,7 +15,12 @@ typedef struct {
     u8 left, right, up, down;
 } snake_input;
 
-void snake_update(snake* s, snake_input input, u64 frame_us, stack_alloc* alloc);
+typedef enum {
+    SNAKE_UPDATE_CONTINUE,
+    SNAKE_UPDATE_STOP
+} snake_update_result;
+
+snake_update_result snake_update(snake* s, snake_input input, u64 frame_us, stack_alloc* alloc);
 
 typedef enum {
     DRAW_COMMAND_CLEAR_BACKGROUND,
