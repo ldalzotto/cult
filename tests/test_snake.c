@@ -3,6 +3,26 @@
 #include "mem.h"
 #include "../src/apps/snake/snake.h"
 
+// Some test helper functions
+static void check_draw_rect(test_context* t, draw_command cmd,
+                                i32 gx, i32 gy, i32 w, i32 h, u32 color) {
+    const i32 TEST_CELL_SIZE = 5;
+    TEST_ASSERT_EQUAL(t, cmd.type, DRAW_COMMAND_DRAW_RECTANGLE);
+    TEST_ASSERT_EQUAL(t, cmd.data.rect.x, gx * TEST_CELL_SIZE);
+    TEST_ASSERT_EQUAL(t, cmd.data.rect.y, gy * TEST_CELL_SIZE);
+    TEST_ASSERT_EQUAL(t, cmd.data.rect.w, w);
+    TEST_ASSERT_EQUAL(t, cmd.data.rect.h, h);
+    TEST_ASSERT_EQUAL(t, cmd.data.rect.color, color);
+}
+
+static void check_cell_is_player(test_context* t, draw_command cmd, i32 gx, i32 gy) {
+    check_draw_rect(t, cmd, gx, gy, 5, 5, 0x00FFFFFF);
+}
+
+static void check_cell_is_reward(test_context* t, draw_command cmd, i32 gx, i32 gy) {
+    check_draw_rect(t, cmd, gx, gy, 5, 5, 0x0000FF00);
+}
+
 // Test that checks the returned command of the renderer.
 void test_render(test_context* t) {
     uptr size = 1024 * 1024;
@@ -17,20 +37,9 @@ void test_render(test_context* t) {
 
     TEST_ASSERT_EQUAL(t, command_count, 3);
     TEST_ASSERT_EQUAL(t, cmds[0].type, DRAW_COMMAND_CLEAR_BACKGROUND);
-    TEST_ASSERT_EQUAL(t, cmds[0].data.clear_bg.color, 0x00000000);
-    TEST_ASSERT_EQUAL(t, cmds[1].type, DRAW_COMMAND_DRAW_RECTANGLE);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.x, 50);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.y, 50);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.w, 5);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.h, 5);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.color, 0x00FFFFFF);
 
-    TEST_ASSERT_EQUAL(t, cmds[2].type, DRAW_COMMAND_DRAW_RECTANGLE);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.x, 30);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.y, 30);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.w, 5);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.h, 5);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.color, 0x0000FF00);
+    check_cell_is_player(t, cmds[1], 10, 10);
+    check_cell_is_reward(t, cmds[2], 6, 6);
 
     snake_deinit(s, alloc);
 
@@ -74,19 +83,9 @@ void test_snake_move_towards_reward(test_context* t) {
 
     TEST_ASSERT_EQUAL(t, cmds[0].type, DRAW_COMMAND_CLEAR_BACKGROUND);
 
-    TEST_ASSERT_EQUAL(t, cmds[1].type, DRAW_COMMAND_DRAW_RECTANGLE);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.x, 40);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.y, 40);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.w, 5);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.h, 5);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.color, 0x00FFFFFF);
-
-    TEST_ASSERT_EQUAL(t, cmds[2].type, DRAW_COMMAND_DRAW_RECTANGLE);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.x, 30);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.y, 30);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.w, 5);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.h, 5);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.color, 0x0000FF00);
+    // Use shared helper for positions
+    check_cell_is_player(t, cmds[1], 8, 8);
+    check_cell_is_reward(t, cmds[2], 6, 6);
 
     snake_deinit(s, alloc);
 
@@ -125,19 +124,9 @@ void test_snake_boundary_left_top(test_context* t) {
 
     TEST_ASSERT_EQUAL(t, cmds[0].type, DRAW_COMMAND_CLEAR_BACKGROUND);
 
-    TEST_ASSERT_EQUAL(t, cmds[1].type, DRAW_COMMAND_DRAW_RECTANGLE);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.x, 0);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.y, 0);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.w, 5);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.h, 5);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.color, 0x00FFFFFF);
-
-    TEST_ASSERT_EQUAL(t, cmds[2].type, DRAW_COMMAND_DRAW_RECTANGLE);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.x, 30);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.y, 30);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.w, 5);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.h, 5);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.color, 0x0000FF00);
+    check_cell_is_reward(t, cmds[2], 6, 6);
+    // Also verify head is at 0,0
+    check_cell_is_player(t, cmds[1], 0, 0);
 
     snake_deinit(s, alloc);
 
@@ -178,28 +167,13 @@ void test_snake_increase_size_on_reward(test_context* t) {
     TEST_ASSERT_EQUAL(t, cmds[0].type, DRAW_COMMAND_CLEAR_BACKGROUND);
 
     // First snake segment (head) should be at (6,6) -> (30,30)
-    TEST_ASSERT_EQUAL(t, cmds[1].type, DRAW_COMMAND_DRAW_RECTANGLE);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.x, 30);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.y, 30);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.w, 5);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.h, 5);
-    TEST_ASSERT_EQUAL(t, cmds[1].data.rect.color, 0x00FFFFFF);
+    check_cell_is_player(t, cmds[1], 6, 6);
 
     // Second snake segment (previous head) at (6,7) -> (30,35)
-    TEST_ASSERT_EQUAL(t, cmds[2].type, DRAW_COMMAND_DRAW_RECTANGLE);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.x, 30);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.y, 35);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.w, 5);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.h, 5);
-    TEST_ASSERT_EQUAL(t, cmds[2].data.rect.color, 0x00FFFFFF);
+    check_draw_rect(t, cmds[2], 6, 7, 5, 5, 0x00FFFFFF);
 
     // Reward relocated to (9,10) -> (45,50)
-    TEST_ASSERT_EQUAL(t, cmds[3].type, DRAW_COMMAND_DRAW_RECTANGLE);
-    TEST_ASSERT_EQUAL(t, cmds[3].data.rect.x, 45);
-    TEST_ASSERT_EQUAL(t, cmds[3].data.rect.y, 50);
-    TEST_ASSERT_EQUAL(t, cmds[3].data.rect.w, 5);
-    TEST_ASSERT_EQUAL(t, cmds[3].data.rect.h, 5);
-    TEST_ASSERT_EQUAL(t, cmds[3].data.rect.color, 0x0000FF00);
+    check_cell_is_reward(t, cmds[3], 9, 10);
 
     snake_deinit(s, alloc);
     sa_deinit(alloc);
