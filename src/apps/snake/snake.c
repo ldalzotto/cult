@@ -6,7 +6,6 @@
 
 struct snake {
     position reward;
-    i32 score;
     
     i32 grid_width;
     i32 grid_height;
@@ -36,7 +35,6 @@ snake* snake_init(stack_alloc* alloc) {
 
     s->reward.x = s->grid_width / 3;
     s->reward.y = s->grid_height / 3;
-    s->score = 0;
     s->end = alloc->cursor;
     s->player_direction = SNAKE_DIR_RIGHT;
     s->time_accum_us = 0;
@@ -90,7 +88,6 @@ snake_update_result snake_update(snake* s, snake_input input, u64 frame_us, stac
     /* Check for reward collection and update reward position deterministically within bounds. */
     u8 should_extend = 0;
     if (snake_grid_equals(head_pos, s->reward)) {
-        s->score++;
         s->reward.x = (s->reward.x + 3) % s->grid_width;
         s->reward.y = (s->reward.y + 4) % s->grid_height;
         should_extend = 1;
