@@ -1,6 +1,7 @@
 #include "snake.h"
 #include "primitive.h"
 #include "snake_grid.h"
+#include "assert.h"
 
 struct snake {
     position reward;
@@ -50,19 +51,26 @@ void snake_update(snake* s, snake_input input, u64 frame_ms, stack_alloc* alloc)
 
     /* Move the head of the snake based on input. The current implementation uses a single head
     stored at player_cells.begin. We update that head position and clamp to grid. */
+    // Determine new head position
     position head_pos = *s->player_cells.begin;
+    u8 has_moved = 0;
     if (input.left) {
+        has_moved = 1;
         head_pos.x--;
     } else if (input.right) {
+        has_moved = 1;
         head_pos.x++;
     } else if (input.up) {
+        has_moved = 1;
         head_pos.y--;
     } else if (input.down) {
+        has_moved = 1;
         head_pos.y++;
     }
 
-    head_pos = snake_grid_clamp(head_pos, s->grid_width, s->grid_height);
-    *s->player_cells.begin = head_pos;
+    if (!snake_grid_inside(head_pos, s->grid_width, s->grid_height)) {
+        return;
+    }
 
     /* Check for reward collection and update reward position deterministically within bounds. */
     u8 should_extend = 0;
@@ -73,39 +81,70 @@ void snake_update(snake* s, snake_input input, u64 frame_ms, stack_alloc* alloc)
         should_extend = 1;
     }
 
-    // Growth not implemented: keeping single-segment snake. If growth is required, more memory and
-    // data structure updates would be needed.
+    // Implement basic multi-cell support
     if (should_extend) {
-        // No extension logic implemented yet
-    }
+        debug_assert(s->player_cells.end == alloc->cursor);
+        void* next_player_cells_end = byteoffset(s->player_cells.end, sizeof(*s->player_cells.begin));
+        {
+            // sa_alloc(alloc, sizeof(*s->player_cells.begin));
+            // sa_move(alloc, s->player_cells.end, next_player_cells_end, sizeof(*s->player_cells.begin));
 
+            sa_insert(alloc, s->player_cells.end, sizeof(*s->player_cells.begin));
+        }
+
+        s->player_cells.end = next_player_cells_end;
+        s->end = byteoffset(s->end, sizeof(*s->player_cells.begin));
+
+        // Shift existing cells to follow the head within the current length
+        for (position* cell = s->player_cells.end - 1; cell > s->player_cells.begin; --cell) {
+            *cell = *(cell - 1);
+        }
+
+        *s->player_cells.begin = head_pos;
+    } else if (has_moved) {
+        // Shift existing cells to follow the head within the current length
+        for (position* cell = s->player_cells.end - 1; cell > s->player_cells.begin; --cell) {
+            *cell = *(cell - 1);
+        }
+        *s->player_cells.begin = head_pos;
+    }
 }
 
 draw_command* snake_render(snake* s, u32 screen_width, u32 screen_height, u32* command_count, stack_alloc* alloc) {
-    draw_command* cmds = sa_alloc(alloc, 3 * sizeof(draw_command));
-    *command_count = 3;
-
+    draw_command* cmds = alloc->cursor;
+    
     // Clear background
-    cmds[0].type = DRAW_COMMAND_CLEAR_BACKGROUND;
-    cmds[0].data.clear_bg.color = 0x00000000; // Black
+    {
+        draw_command* c = sa_alloc(alloc, sizeof(*c));
+        c->type = DRAW_COMMAND_CLEAR_BACKGROUND;
+        c->data.clear_bg.color = 0x00000000; // Black
+    }
 
     // Draw snake head rectangle
     i32 cell_size_x = screen_width / s->grid_width;
     i32 cell_size_y = screen_height / s->grid_height;
-    cmds[1].type = DRAW_COMMAND_DRAW_RECTANGLE;
-    cmds[1].data.rect.x = (i32)s->player_cells.begin->x * cell_size_x;
-    cmds[1].data.rect.y = (i32)s->player_cells.begin->y * cell_size_y;
-    cmds[1].data.rect.w = cell_size_x;
-    cmds[1].data.rect.h = cell_size_y;
-    cmds[1].data.rect.color = 0x00FFFFFF; // White
+    for (position* cell = s->player_cells.begin; cell < s->player_cells.end; ++cell) {
+        draw_command* c = sa_alloc(alloc, sizeof(*c));
+        c->type = DRAW_COMMAND_DRAW_RECTANGLE;
+        c->data.rect.x = (i32)cell->x * cell_size_x;
+        c->data.rect.y = (i32)cell->y * cell_size_y;
+        c->data.rect.w = cell_size_x;
+        c->data.rect.h = cell_size_y;
+        c->data.rect.color = 0x00FFFFFF; // White
+    }
+    
+    // Render the reward rectangle
+    {
+        draw_command* c = sa_alloc(alloc, sizeof(*c));
+        c->type = DRAW_COMMAND_DRAW_RECTANGLE;
+        c->data.rect.x = (i32)s->reward.x * cell_size_x;
+        c->data.rect.y = (i32)s->reward.y * cell_size_y;
+        c->data.rect.w = cell_size_x;
+        c->data.rect.h = cell_size_y;
+        c->data.rect.color = 0x0000FF00; // Green
+    }
 
-        // Render the reward rectangle
-    cmds[2].type = DRAW_COMMAND_DRAW_RECTANGLE;
-    cmds[2].data.rect.x = (i32)s->reward.x * cell_size_x;
-    cmds[2].data.rect.y = (i32)s->reward.y * cell_size_y;
-    cmds[2].data.rect.w = cell_size_x;
-    cmds[2].data.rect.h = cell_size_y;
-    cmds[2].data.rect.color = 0x0000FF00; // Green
+    *command_count = bytesize(cmds, alloc->cursor) / sizeof(draw_command);
 
     return cmds;
 }

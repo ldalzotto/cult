@@ -28,6 +28,17 @@ void* sa_alloc(stack_alloc* alloc, uptr size) {
     return result;
 }
 
+// Insert a new block of memory of 'size' bytes at the address 'at' by shifting the tail.
+void sa_insert(stack_alloc* alloc, void* at, uptr size) {
+    // Record current end of allocated region
+    void* old_cursor = alloc->cursor;
+    // Reserve space for the new block
+    sa_alloc(alloc, size);
+    // Move the existing tail starting at 'at' forward by 'size' bytes
+    uptr move_len = bytesize(at, old_cursor);
+    sa_move(alloc, at, byteoffset(at, size), move_len);
+}
+
 // Free memory by rolling back the current allocation pointer to the specified pointer
 void sa_free(stack_alloc* alloc, void* pointer) {
     debug_assert((uptr)pointer <= (uptr)alloc->cursor);
