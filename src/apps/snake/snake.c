@@ -10,13 +10,15 @@ struct snake {
     i32 grid_width;
     i32 grid_height;
 
+    // Time accumulator to perform updates at a fixed interval
+    u64 time_accum_us;
+    u64 delta_time_between_movement;
+
     struct {
         position* begin;
         position* end;
     } player_cells;
     snake_direction player_direction;
-    // Time accumulator to perform updates at a fixed interval
-    u64 time_accum_us;
     
     void* end;
 };
@@ -38,6 +40,7 @@ snake* snake_init(stack_alloc* alloc) {
     s->end = alloc->cursor;
     s->player_direction = SNAKE_DIR_RIGHT;
     s->time_accum_us = 0;
+    s->delta_time_between_movement = 1000000 / 8;
     return s;
 }
 
@@ -48,6 +51,10 @@ void snake_deinit(snake* s, stack_alloc* alloc) {
 
 void* snake_end(snake* s) {
     return s->end;
+}
+
+void snake_set_config(snake* s, snake_config config) {
+    s->delta_time_between_movement = config.delta_time_between_movement;
 }
 
 snake_update_result snake_update(snake* s, snake_input input, u64 frame_us, stack_alloc* alloc) {
@@ -71,12 +78,12 @@ snake_update_result snake_update(snake* s, snake_input input, u64 frame_us, stac
     s->player_direction = direction_new;
 
     // Accumulate time and perform update only when at least 1 second has elapsed
-    const u64 delta_between_movement = 1000000 / 8;
+    
     s->time_accum_us += frame_us;
-    if (s->time_accum_us < delta_between_movement) {
+    if (s->time_accum_us < s->delta_time_between_movement) {
         return SNAKE_UPDATE_CONTINUE;
     }
-    s->time_accum_us -= delta_between_movement;
+    s->time_accum_us -= s->delta_time_between_movement;
 
     position head_pos;
     if (!snake_move_head(s->player_cells.begin, s->player_cells.end, s->player_direction, 

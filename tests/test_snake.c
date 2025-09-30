@@ -3,6 +3,12 @@
 #include "mem.h"
 #include "../src/apps/snake/snake.h"
 
+/*
+    The snake module performs a movement only when enough time us has been elapsed
+    when calling snake_update(s, ..., delta_us, ...)
+    This can be configured by using snake_set_config
+*/
+
 // Some test helper functions
 static void check_draw_rect(test_context* t, draw_command cmd,
                                 i32 gx, i32 gy, i32 w, i32 h, u32 color) {
@@ -59,18 +65,19 @@ void test_snake_move_towards_reward(test_context* t) {
     stack_alloc* alloc = &_alloc;
     sa_init(alloc, pointer, byteoffset(pointer, size));
     snake* s = snake_init(alloc);
+    snake_set_config(s, (snake_config){ .delta_time_between_movement = 1});
 
-    // Move left twice
-    for (int i = 0; i < 2; ++i) {
-        snake_input input = {0};
-        input.left = 1;
-        snake_update(s, input, 16, alloc);
-    }
     // Move up twice
     for (int i = 0; i < 2; ++i) {
         snake_input input = {0};
         input.up = 1;
-        snake_update(s, input, 16, alloc);
+        snake_update(s, input, 1, alloc);
+    }
+    // Move left twice
+    for (int i = 0; i < 2; ++i) {
+        snake_input input = {0};
+        input.left = 1;
+        snake_update(s, input, 1, alloc);
     }
 
     u32 command_count;
@@ -102,18 +109,19 @@ void test_snake_boundary_left_top(test_context* t) {
     stack_alloc* alloc = &_alloc;
     sa_init(alloc, pointer, byteoffset(pointer, size));
     snake* s = snake_init(alloc);
+    snake_set_config(s, (snake_config){ .delta_time_between_movement = 1});
 
-    // Move left towards the left boundary (0,0)
-    for (int i = 0; i < 20; ++i) {
-        snake_input input = {0};
-        input.left = 1;
-        snake_update(s, input, 16, alloc);
-    }
     // Move up towards the top boundary
     for (int i = 0; i < 20; ++i) {
         snake_input input = {0};
         input.up = 1;
-        snake_update(s, input, 16, alloc);
+        snake_update(s, input, 1, alloc);
+    }
+    // Move left towards the left boundary (0,0)
+    for (int i = 0; i < 20; ++i) {
+        snake_input input = {0};
+        input.left = 1;
+        snake_update(s, input, 1, alloc);
     }
 
     u32 command_count;
@@ -142,18 +150,19 @@ void test_snake_increase_size_on_reward(test_context* t) {
     stack_alloc* alloc = &_alloc;
     sa_init(alloc, pointer, byteoffset(pointer, size));
     snake* s = snake_init(alloc);
+    snake_set_config(s, (snake_config){ .delta_time_between_movement = 1});
 
-    // Move left 4 times: (10,10) -> (6,10)
-    for (int i = 0; i < 4; ++i) {
-        snake_input input = {0};
-        input.left = 1;
-        snake_update(s, input, 16, alloc);
-    }
-    // Move up 4 times: (6,10) -> (6,6) -> eat reward
+    // Move up 4 times: (6,6) -> (6,10)
     for (int i = 0; i < 4; ++i) {
         snake_input input = {0};
         input.up = 1;
-        snake_update(s, input, 16, alloc);
+        snake_update(s, input, 1, alloc);
+    }
+    // Move left 4 times: (6,10) -> (10,10) -> eat reward
+    for (int i = 0; i < 4; ++i) {
+        snake_input input = {0};
+        input.left = 1;
+        snake_update(s, input, 1, alloc);
     }
 
     u32 command_count;
@@ -170,7 +179,7 @@ void test_snake_increase_size_on_reward(test_context* t) {
     check_cell_is_player(t, cmds[1], 6, 6);
 
     // Second snake segment (previous head) at (6,7) -> (30,35)
-    check_draw_rect(t, cmds[2], 6, 7, 5, 5, 0x00FFFFFF);
+    check_draw_rect(t, cmds[2], 7, 6, 5, 5, 0x00FFFFFF);
 
     // Reward relocated to (9,10) -> (45,50)
     check_cell_is_reward(t, cmds[3], 9, 10);

@@ -11,6 +11,11 @@ void snake_deinit(snake* s, stack_alloc* alloc);
 void* snake_end(snake* s);
 
 typedef struct {
+    u64 delta_time_between_movement;
+} snake_config;
+void snake_set_config(snake* s, snake_config config);
+
+typedef struct {
     /* Input direction. */
     u8 left, right, up, down;
 } snake_input;
