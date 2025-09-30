@@ -125,7 +125,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
                     sa_copy(&iter->text_format_alloc, unknown.begin, result, bytesize(unknown.begin, unknown.end));
                     break;
                 }
-                    
+                
             }
             return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->text_format_alloc.cursor}};
         } else {
@@ -142,7 +142,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
                 sa_copy(&iter->text_format_alloc, result.fields_current->field_name.begin, cursor, field_len);
                 cursor = sa_alloc(&iter->text_format_alloc, 2);
                 sa_copy(&iter->text_format_alloc, ": ", cursor, 2);
-                iter->offset += result.fields_current->offset;
+                iter->offset = result.fields_current->offset;
             } else if (result.fields_current == result.meta->fields.end) {
                 void* cursor = sa_alloc(&iter->text_format_alloc, 1);
                 sa_copy(&iter->text_format_alloc, "}", cursor, 1);
@@ -155,7 +155,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
                 sa_copy(&iter->text_format_alloc, result.fields_current->field_name.begin, cursor, field_len);;
                 cursor = sa_alloc(&iter->text_format_alloc, 2);
                 sa_copy(&iter->text_format_alloc, ": ", cursor, 2);
-                iter->offset += result.fields_current->offset;
+                iter->offset = result.fields_current->offset;
             }
             return (format_iteration){FORMAT_ITERATION_LITERAL, {start, iter->text_format_alloc.cursor}};
         }
