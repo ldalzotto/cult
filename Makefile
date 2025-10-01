@@ -164,10 +164,12 @@ $(eval $(call make_object, snake_o, $(SRC_DIR)/apps/snake/snake.c, $(CURRENT_CFL
 $(eval $(call make_object, snake_loop_o, $(SRC_DIR)/apps/snake/snake_loop.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, snake_grid_o, $(SRC_DIR)/apps/snake/snake_grid.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, snake_move_o, $(SRC_DIR)/apps/snake/snake_move.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, snake_reward_o, $(SRC_DIR)/apps/snake/snake_reward.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 
 snake_module_o = $(snake_o)\
 		 $(snake_grid_o) \
-		 $(snake_move_o)
+		 $(snake_move_o) \
+		 $(snake_reward_o)
 
 snake_executable_o = $(snake_loop_o)
 

@@ -3,6 +3,7 @@
 #include "snake_grid.h"
 #include "assert.h"
 #include "snake_move.h"
+#include "snake_reward.h"
 
 struct snake {
     position reward;
@@ -95,8 +96,6 @@ snake_update_result snake_update(snake* s, snake_input input, u64 frame_us, stac
     /* Check for reward collection and update reward position deterministically within bounds. */
     u8 should_extend = 0;
     if (snake_grid_equals(head_pos, s->reward)) {
-        s->reward.x = (s->reward.x + 3) % s->grid_width;
-        s->reward.y = (s->reward.y + 4) % s->grid_height;
         should_extend = 1;
     }
 
@@ -123,6 +122,15 @@ snake_update_result snake_update(snake* s, snake_input input, u64 frame_us, stac
             *cell = *(cell - 1);
         }
         *s->player_cells.begin = head_pos;
+    }
+
+    // TODO: add a test about that
+    // Generate new reward position
+    if (should_extend) {
+        position cand = generate_next_reward_position(s->reward, s->player_cells.begin, s->player_cells.end,
+            s->grid_width, s->grid_height);
+        s->reward =  ensure_reward_position_not_on_player(cand, s->player_cells.begin, s->player_cells.end,
+            s->grid_width, s->grid_height);
     }
 
     return SNAKE_UPDATE_CONTINUE;
