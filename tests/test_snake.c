@@ -14,14 +14,15 @@ typedef struct snake_test_env {
     void* pointer;
     uptr size;
     stack_alloc alloc;
-    snake* s;
+    snake_config config;
     i32 screen_w;
     i32 screen_h;
     i32 cell_size;
+    snake* s;
 } snake_test_env;
 
 /* Create a reusable snake test environment (default 1MB pool) */
-static snake_test_env snake_test_env_init(void) {
+static snake_test_env env_init(void) {
     snake_test_env env;
 
     uptr size = 1024 * 1024;
@@ -35,7 +36,8 @@ static snake_test_env snake_test_env_init(void) {
     env.size = size;
     env.alloc = alloc;
 
-    snake_set_config(env.s, (snake_config){ .delta_time_between_movement = 1 });
+    env.config = (snake_config){ .delta_time_between_movement = 1 };
+    snake_set_config(env.s, env.config);
 
     // Default screen dimensions
     env.screen_w = 100;
@@ -48,14 +50,18 @@ static snake_test_env snake_test_env_init(void) {
 }
 
 /* Destroy a previously created test environment */
-static void snake_test_env_deinit(snake_test_env* env) {
+static void env_deinit(snake_test_env* env) {
     snake_deinit(env->s, &env->alloc);
     sa_deinit(&env->alloc);
     mem_unmap(env->pointer, env->size);
 }
 
+static void env_update(snake_test_env* env, snake_input input) {
+    snake_update(env->s, input, env->config.delta_time_between_movement, &env->alloc);
+}
+
 /* Render using the provided or internal allocator */
-static draw_command* snake_test_env_render(snake_test_env* env, u32* command_count) {
+static draw_command* env_render(snake_test_env* env, u32* command_count) {
     return snake_render(env->s, env->screen_w, env->screen_h, command_count, &env->alloc);
 }
 
@@ -88,9 +94,9 @@ static void check_cell_is_reward(test_context* t, snake_test_env* env, draw_comm
 // Test that checks the returned command of the renderer.
 static void test_render(test_context* t) {
     // Create a new test environment
-    snake_test_env env = snake_test_env_init();
+    snake_test_env env = env_init();
     u32 command_count;
-    draw_command* cmds = snake_test_env_render(&env, &command_count);
+    draw_command* cmds = env_render(&env, &command_count);
 
     TEST_ASSERT_EQUAL(t, command_count, 3);
     TEST_ASSERT_EQUAL(t, cmds[0].type, DRAW_COMMAND_CLEAR_BACKGROUND);
@@ -99,7 +105,7 @@ static void test_render(test_context* t) {
     check_cell_is_reward(t, &env, cmds[2], 6, 6);
 
     // Cleanup
-    snake_test_env_deinit(&env);
+    env_deinit(&env);
 }
 
 
@@ -108,23 +114,23 @@ static void test_render(test_context* t) {
 // We perform 2 left moves and 2 up moves to end at (8,8). With screen 100x100 and grid 20x20,
 // cell size is env.cell_size pixels, so head rect at (40,40) and reward rect at (30,30) in pixels.
 static void test_snake_move_towards_reward(test_context* t) {
-    snake_test_env env = snake_test_env_init();
+    snake_test_env env = env_init();
 
     // Move up twice
     for (int i = 0; i < 2; ++i) {
         snake_input input = {0};
         input.up = 1;
-        snake_update(env.s, input, 1, &env.alloc);
+        env_update(&env, input);
     }
     // Move left twice
     for (int i = 0; i < 2; ++i) {
         snake_input input = {0};
         input.left = 1;
-        snake_update(env.s, input, 1, &env.alloc);
+        env_update(&env, input);
     }
 
     u32 command_count;
-    draw_command* cmds = snake_test_env_render(&env, &command_count);
+    draw_command* cmds = env_render(&env, &command_count);
 
     // Expected positions
     // Head: (10 - 2, 10 - 2) = (8, 8) -> 8 * 5 = 40
@@ -137,29 +143,29 @@ static void test_snake_move_towards_reward(test_context* t) {
     check_cell_is_player(t, &env, cmds[1], 8, 8);
     check_cell_is_reward(t, &env, cmds[2], 6, 6);
 
-    snake_test_env_deinit(&env);
+    env_deinit(&env);
 }
 
 // New test: boundary left/top
 // Move the snake left and then up to reach the (0,0) boundary and verify rendering coordinates are clamped.
 static void test_snake_boundary_left_top(test_context* t) {
-    snake_test_env env = snake_test_env_init();
+    snake_test_env env = env_init();
 
     // Move up towards the top boundary
     for (int i = 0; i < 20; ++i) {
         snake_input input = {0};
         input.up = 1;
-        snake_update(env.s, input, 1, &env.alloc);
+        env_update(&env, input);
     }
     // Move left towards the left boundary (0,0)
     for (int i = 0; i < 20; ++i) {
         snake_input input = {0};
         input.left = 1;
-        snake_update(env.s, input, 1, &env.alloc);
+        env_update(&env, input);
     }
 
     u32 command_count;
-    draw_command* cmds = snake_test_env_render(&env, &command_count);
+    draw_command* cmds = env_render(&env, &command_count);
 
     // We expect head clamped at (0,0) and reward at initial (6,6) -> (30,30) in pixels
     TEST_ASSERT_EQUAL(t, command_count, 3);
@@ -170,28 +176,28 @@ static void test_snake_boundary_left_top(test_context* t) {
     // Also verify head is at 0,0
     check_cell_is_player(t, &env, cmds[1], 0, 0);
 
-    snake_test_env_deinit(&env);
+    env_deinit(&env);
 }
 
 // New test: ensure snake grows when a reward is eaten
 static void test_snake_increase_size_on_reward(test_context* t) {
-    snake_test_env env = snake_test_env_init();
+    snake_test_env env = env_init();
 
     // Move up 4 times: (6,6) -> (6,10)
     for (int i = 0; i < 4; ++i) {
         snake_input input = {0};
         input.up = 1;
-        snake_update(env.s, input, 1, &env.alloc);
+        env_update(&env, input);
     }
     // Move left 4 times: (6,10) -> (10,10) -> eat reward
     for (int i = 0; i < 4; ++i) {
         snake_input input = {0};
         input.left = 1;
-        snake_update(env.s, input, 1, &env.alloc);
+        env_update(&env, input);
     }
 
     u32 command_count;
-    draw_command* cmds = snake_test_env_render(&env, &command_count);
+    draw_command* cmds = env_render(&env, &command_count);
 
     // After consuming the reward, the snake length should be 2
     // Command layout: Clear, 2 snake rects, 1 reward rect => 4 commands
@@ -209,7 +215,7 @@ static void test_snake_increase_size_on_reward(test_context* t) {
     // Reward relocated to (9,10) -> (45,50)
     check_cell_is_reward(t, &env, cmds[3], 9, 10);
 
-    snake_test_env_deinit(&env);
+    env_deinit(&env);
 }
 
 void test_snake_module(test_context* t) {
