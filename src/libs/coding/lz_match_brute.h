@@ -11,7 +11,7 @@ typedef struct {
 
 typedef struct {
     lz_match* begin; lz_match* end;
-} lz_match_span;
+} lz_match_slice;
 
 u8 lz_match_has_value(lz_match match);
 u8 lz_match_is_large_enough(lz_match match, lzss_match_size_t match_size_min);

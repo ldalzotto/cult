@@ -50,4 +50,6 @@ STATIC_ASSERT(sizeof(u64) == 8);
 #endif
 #define offsetof __builtin_offsetof
 
+typedef struct {u8* begin; u8* end;} u8_slice;
+
 #endif /* PRIMITIVE_H */

@@ -1,13 +1,13 @@
 #ifndef LITTERAL_H
 #define LITTERAL_H
 
-// String span structure
+// String slice structure
 typedef struct {
     const void* begin;
     const void* end;
 } string;
 
-// Macro to create a string_span from a static string literal
+// Macro to create a string from a static string literal
 #define STR(str) {(str), (str) + sizeof(str) - 1}
 #define STRING(str) (string) STR(str)
 

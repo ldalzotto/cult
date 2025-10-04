@@ -32,7 +32,7 @@ static void allocate_match(stack_alloc* alloc, match* match) {
     *(u8*)sa_alloc(alloc, sizeof(u8)) = length;
 }
 
-u8* lz_serialize(u8* input_begin, u8* input_end, lz_match_span matches, lzss_match_size_t match_size_max, stack_alloc* alloc) {
+u8* lz_serialize(u8* input_begin, u8* input_end, lz_match_slice matches, lzss_match_size_t match_size_max, stack_alloc* alloc) {
     u8* output = alloc->cursor;
     u8* current = input_begin;
     for (lz_match* m = matches.begin; m != matches.end; ++m) {

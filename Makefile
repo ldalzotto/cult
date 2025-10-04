@@ -61,6 +61,7 @@ LFLAGS:=-no-pie
 SRC_DIR:=src
 ELIBS_DIR:=elibs
 TESTS_DIR:=tests
+TOOLS_DIR:=tools
 BUILD_DIR:=build
 
 # Update CFLAGS with flavor
@@ -210,7 +211,22 @@ CURRENT_LFLAGS := $(LFLAGS) $(WINDOW_LFLAGS)
 $(eval $(call make_executable, test, $(common_o) $(window_o) $(coding_o) $(snake_module_o) $(tests_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
 test: $(test)
 
-all: snake dummy test
+# Tools agent
+CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS)
+$(eval $(call make_object, agent_o, $(TOOLS_DIR)/agent/agent.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, user_content_read_o, $(TOOLS_DIR)/agent/user_content_read.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, agent_request_o, $(TOOLS_DIR)/agent/agent_request.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, agent_result_write_o, $(TOOLS_DIR)/agent/agent_result_write.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+all_agent_o = $(agent_o) \
+			$(user_content_read_o) \
+			$(agent_request_o) \
+			$(agent_result_write_o)
+
+CURRENT_LFLAGS := $(LFLAGS)
+$(eval $(call make_executable, agent, $(common_o) $(all_agent_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
+agent: $(agent)
+
+all: snake dummy test agent
 
 clean:
 	rm -rf $(BUILD_DIR)

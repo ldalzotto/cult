@@ -11,7 +11,7 @@ static void* compress(u8* begin, u8* end, lzss_config config, stack_alloc* alloc
         .lookahead_begin = begin,
         .end = end,
     };
-    lz_match_span matches;
+    lz_match_slice matches;
     matches.begin = alloc->cursor;
     while (!lz_window_end(window, config.match_size_min)) {
         lz_match match = lz_match_brute(window, config.match_size_max);
