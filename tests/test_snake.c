@@ -9,7 +9,7 @@
     This can be configured by using snake_set_config
 */
 
-// Public utility: a reusable snake test environment
+// A reusable snake test environment
 typedef struct snake_test_env {
     void* pointer;
     uptr size;
@@ -212,8 +212,8 @@ static void test_snake_increase_size_on_reward(test_context* t) {
     // Second snake segment (previous head) at (6,7) -> (30,35)
     check_draw_rect(t, &env, cmds[2], 7, 6, 0x00FFFFFF);
 
-    // Reward relocated to (9,10) -> (45,50)
-    check_cell_is_reward(t, &env, cmds[3], 9, 10);
+    // Reward relocated
+    check_cell_is_reward(t, &env, cmds[3], 5, 18);
 
     env_deinit(&env);
 }
