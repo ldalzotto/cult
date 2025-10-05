@@ -1,6 +1,4 @@
 #include "agent_request.h"
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "assert.h"
 #include "network/https/https_request.h"
@@ -45,16 +43,16 @@ static u8_slice extract_answer(u8_slice api_output) {
 
     // Patterns to search
     const u8 pat_output[] = "\"output\"";
-    const size_t pat_output_len = sizeof(pat_output) - 1;
+    const uptr pat_output_len = sizeof(pat_output) - 1;
     const u8 pat_text[] = "\"text\"";
-    const size_t pat_text_len = sizeof(pat_text) - 1;
+    const uptr pat_text_len = sizeof(pat_text) - 1;
 
     // Find "output"
     const u8* cur = begin;
     const u8* pos_output = end;
     while (cur < end) {
-        if ((size_t)(end - cur) < pat_output_len) break;
-        size_t i = 0;
+        if ((uptr)(end - cur) < pat_output_len) break;
+        uptr i = 0;
         while (i < pat_output_len && cur[i] == pat_output[i]) ++i;
         if (i == pat_output_len) { pos_output = cur; break; }
         ++cur;
@@ -67,8 +65,8 @@ static u8_slice extract_answer(u8_slice api_output) {
     cur = pos_output + pat_output_len;
     const u8* pos_text = end;
     while (cur < end) {
-        if ((size_t)(end - cur) < pat_text_len) break;
-        size_t i = 0;
+        if ((uptr)(end - cur) < pat_text_len) break;
+        uptr i = 0;
         while (i < pat_text_len && cur[i] == pat_text[i]) ++i;
         if (i == pat_text_len) { pos_text = cur; break; }
         ++cur;
@@ -116,14 +114,8 @@ static u8_slice extract_answer(u8_slice api_output) {
 
 /* ------------------------- Agent request ------------------------- */
 
-u8* agent_request(u8_slice user_content, stack_alloc* alloc) {
+u8* agent_request(u8_slice user_content, string api_key, stack_alloc* alloc) {
     void* begin = alloc->cursor;
-
-    const char* api_key_cstr = getenv("OPENAI_API_KEY");
-    if (!api_key_cstr) {
-        return alloc->cursor;
-    }
-    const string api_key = {api_key_cstr, byteoffset(api_key_cstr, mem_cstrlen((void*)api_key_cstr))};
 
     u8_slice user_content_formatted;
     user_content_formatted.begin = format_user_content(user_content, alloc);

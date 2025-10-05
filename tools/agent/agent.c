@@ -5,7 +5,6 @@
 #include "user_content_read.h"
 #include "agent_result_write.h"
 #include "agent_request.h"
-#include "print.h"
 
 i32 main(i32 argc, char** argv) {
 
@@ -16,6 +15,26 @@ i32 main(i32 argc, char** argv) {
     sa_init(alloc, memory, byteoffset(memory, size));
 
     string file_path;
+
+    string api_key;
+    api_key.begin = 0;
+    api_key.end = 0;
+
+    for (i32 i = 1; i < argc; ++i) {
+        const char* arg = (const char*)argv[i];
+
+        // --key value
+        if (arg[0] == '-' && arg[1] == '-' && arg[2] == 'k' && arg[3] == 'e' && arg[4] == 'y' && arg[5] == '\0') {
+            if (i + 1 < argc) {
+                const char* val = argv[i + 1];
+                api_key.begin = (u8*)val;
+                api_key.end = (u8*)val + mem_cstrlen((void*)val);
+                i++;
+                break;
+            }
+        }
+    }
+
     if (argc < 2) {
         sa_deinit(alloc);
         mem_unmap(memory, size);
@@ -41,10 +60,8 @@ i32 main(i32 argc, char** argv) {
     file_content.begin = 0;file_content.end = 0;
 
     u8_slice agent_result;
-    agent_result.begin = agent_request(user_content, alloc);
+    agent_result.begin = agent_request(user_content, api_key, alloc);
     agent_result.end = alloc->cursor;
-
-    print_format(file_stdout(), STRING("%s\n"), agent_result);
 
     agent_result_write(file, alloc, agent_result);
     file_close(file);
