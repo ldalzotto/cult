@@ -1,7 +1,9 @@
+
 #include "format_iterator.h"
 #include "convert.h"
 #include "meta_iterator.h"
 #include "stack_alloc.h"
+#include "assert.h"
 #include <stdarg.h>
 
 // Process a format specifier and get the result
@@ -40,6 +42,13 @@ static char* process_format_specifier(char specifier, va_list args, stack_alloc*
     }
 }
 
+// Shared text buffer and allocator used across chained format_iterators
+typedef struct {
+    void* text_buffer_begin;
+    void* text_buffer_end;
+    stack_alloc text_format_alloc;
+} format_shared_text;
+
 struct format_iterator {
     string format;
     struct {
@@ -70,20 +79,17 @@ struct format_iterator {
     const char* string_current;
     const char* string_end;
 
-    // A very small buffer that holds temporary data to be printed for each iteration
-    char _text_format_buffer[1024];
-    stack_alloc text_format_alloc;
+    // Shared temporary buffer management for all stacked iterators in a chain
+    format_shared_text* format_shared_text;
+    u8 owns_format_shared_text;
 };
 
-static format_iterator* format_iterator_init_wrapper(stack_alloc* alloc, string format, ...) {
-     va_list args;
-    va_start(args, format);
-    format_iterator* iterator = format_iterator_init(alloc, format, args);
-    va_end(args);
-    return iterator;
-}
-
-format_iterator* format_iterator_init(stack_alloc* alloc, string format, va_list args) {
+static format_iterator* format_iterator_init_extented(
+        stack_alloc* alloc, 
+        string format, va_list args, 
+        format_shared_text* format_shared_text,
+        u8 owns_format_shared_text
+) {
     format_iterator* iter = sa_alloc(alloc, sizeof(format_iterator));
     iter->format = format;
     iter->format_current = format.begin;
@@ -107,18 +113,48 @@ format_iterator* format_iterator_init(stack_alloc* alloc, string format, va_list
     iter->in_string = 0;
     iter->string_current = 0;
     iter->string_end = 0;
+
     va_copy(iter->args, args);
-    sa_init(&iter->text_format_alloc, iter->_text_format_buffer, byteoffset(iter->_text_format_buffer, sizeof(iter->_text_format_buffer)));
+
+    iter->format_shared_text = format_shared_text;
+    iter->owns_format_shared_text = owns_format_shared_text;
     return iter;
 }
 
+// [TASK] This doesn't work properly when adding array token litterals? "[", ",", "]"
+static format_iterator* format_iterator_init_wrapper_shared(format_iterator* parent, string format, ...) {
+    va_list args;
+    va_start(args, format);
+    format_iterator* iterator = format_iterator_init_extented(parent->alloc, format, args, 
+            parent->format_shared_text, /*owns_format_shared_text=*/ 0);
+    va_end(args);
+    return iterator;
+}
+
+format_iterator* format_iterator_init(stack_alloc* alloc, string format, va_list args) {
+    
+    format_shared_text* shared_text = sa_alloc(alloc, sizeof(*shared_text));
+    shared_text->text_buffer_begin = sa_alloc(alloc, 1024);
+    shared_text->text_buffer_end = alloc->cursor;
+    sa_init(&shared_text->text_format_alloc, shared_text->text_buffer_begin, shared_text->text_buffer_end);
+    
+    return format_iterator_init_extented(alloc, format, args, shared_text, /*owns_format_shared_text=*/ 1);
+}
+
 void format_iterator_deinit(stack_alloc* alloc, format_iterator* iterator) {
-    sa_deinit(&iterator->text_format_alloc);
+    format_shared_text* format_shared_text = iterator->format_shared_text;
+    
     sa_free(alloc, iterator);
+    if (iterator->owns_format_shared_text) {
+        sa_deinit(&format_shared_text->text_format_alloc);
+        sa_free(alloc, format_shared_text);
+    } else {
+        debug_assert(format_shared_text->text_format_alloc.begin == format_shared_text->text_format_alloc.cursor);
+    }
 }
 
 format_iteration format_iterator_next(format_iterator* iter) {
-    iter->text_format_alloc.cursor = iter->text_format_alloc.begin;
+    iter->format_shared_text->text_format_alloc.cursor = iter->format_shared_text->text_format_alloc.begin;
     if (iter->in_meta_array) {
         if (iter->meta_array_iterator != 0) {
             format_iteration iteration = format_iterator_next(iter->meta_array_iterator);
@@ -132,7 +168,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
             const meta* element_meta = iter->meta_array->array_element_meta;
             if (iter->meta_array_data_to_format_current == iter->meta_array_data_to_format_begin) {
                 // First
-                iter->meta_array_iterator = format_iterator_init_wrapper(iter->alloc, STRING("%m"), element_meta, iter->meta_array_data_to_format_current);
+                iter->meta_array_iterator = format_iterator_init_wrapper_shared(iter, STRING("%m"), element_meta, iter->meta_array_data_to_format_current);
                 iter->meta_array_data_to_format_current = byteoffset(iter->meta_array_data_to_format_current, element_meta->type_size);
                 /*[TASK] Write "[" litteral*/
                 return (format_iteration){FORMAT_ITERATION_CONTINUE, {0,0}};
@@ -141,7 +177,7 @@ format_iteration format_iterator_next(format_iterator* iter) {
                 /*[TASK] Write "]" litteral*/
                 return (format_iteration){FORMAT_ITERATION_CONTINUE, {0,0}};
             } else {
-                iter->meta_array_iterator = format_iterator_init_wrapper(iter->alloc, STRING("%m"), element_meta, iter->meta_array_data_to_format_current);
+                iter->meta_array_iterator = format_iterator_init_wrapper_shared(iter, STRING("%m"), element_meta, iter->meta_array_data_to_format_current);
                 iter->meta_array_data_to_format_current = byteoffset(iter->meta_array_data_to_format_current, element_meta->type_size);
                 /*[TASK] Write ", " litteral*/
                 return (format_iteration){FORMAT_ITERATION_CONTINUE, {0,0}};
@@ -170,55 +206,55 @@ format_iteration format_iterator_next(format_iterator* iter) {
             void* data_offset = byteoffset(iter->data_to_format, iter->offset);
             char* result;
             switch (current->pt) {
-                case PT_I8: result = convert_i8_to_string(*(i8*)data_offset, &iter->text_format_alloc); break;
-                case PT_U8: result = convert_u8_to_string(*(u8*)data_offset, &iter->text_format_alloc); break;
-                case PT_I16: result = convert_i16_to_string(*(i16*)data_offset, &iter->text_format_alloc); break;
-                case PT_U16: result = convert_u16_to_string(*(u16*)data_offset, &iter->text_format_alloc); break;
-                case PT_I32: result = convert_i32_to_string(*(i32*)data_offset, &iter->text_format_alloc); break;
-                case PT_U32: result = convert_u32_to_string(*(u32*)data_offset, &iter->text_format_alloc); break;
-                case PT_I64: result = convert_i64_to_string(*(i64*)data_offset, &iter->text_format_alloc); break;
-                case PT_U64: result = convert_u64_to_string(*(u64*)data_offset, &iter->text_format_alloc); break;
-                case PT_IPTR: result = convert_iptr_to_string(*(iptr*)data_offset, &iter->text_format_alloc); break;
-                case PT_UPTR: result = convert_uptr_to_string(*(uptr*)data_offset, &iter->text_format_alloc); break;
+                case PT_I8: result = convert_i8_to_string(*(i8*)data_offset, &iter->format_shared_text->text_format_alloc); break;
+                case PT_U8: result = convert_u8_to_string(*(u8*)data_offset, &iter->format_shared_text->text_format_alloc); break;
+                case PT_I16: result = convert_i16_to_string(*(i16*)data_offset, &iter->format_shared_text->text_format_alloc); break;
+                case PT_U16: result = convert_u16_to_string(*(u16*)data_offset, &iter->format_shared_text->text_format_alloc); break;
+                case PT_I32: result = convert_i32_to_string(*(i32*)data_offset, &iter->format_shared_text->text_format_alloc); break;
+                case PT_U32: result = convert_u32_to_string(*(u32*)data_offset, &iter->format_shared_text->text_format_alloc); break;
+                case PT_I64: result = convert_i64_to_string(*(i64*)data_offset, &iter->format_shared_text->text_format_alloc); break;
+                case PT_U64: result = convert_u64_to_string(*(u64*)data_offset, &iter->format_shared_text->text_format_alloc); break;
+                case PT_IPTR: result = convert_iptr_to_string(*(iptr*)data_offset, &iter->format_shared_text->text_format_alloc); break;
+                case PT_UPTR: result = convert_uptr_to_string(*(uptr*)data_offset, &iter->format_shared_text->text_format_alloc); break;
                 default: {
                     const string unknown = STR("<unknown primitive>");
-                    result = (char*)sa_alloc(&iter->text_format_alloc, bytesize(unknown.begin, unknown.end));
-                    sa_copy(&iter->text_format_alloc, unknown.begin, result, bytesize(unknown.begin, unknown.end));
+                    result = (char*)sa_alloc(&iter->format_shared_text->text_format_alloc, bytesize(unknown.begin, unknown.end));
+                    sa_copy(&iter->format_shared_text->text_format_alloc, unknown.begin, result, bytesize(unknown.begin, unknown.end));
                     break;
                 }
                 
             }
-            return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->text_format_alloc.cursor}};
+            return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->format_shared_text->text_format_alloc.cursor}};
         } else {
             // Struct
-            void* start = iter->text_format_alloc.cursor;
+            void* start = iter->format_shared_text->text_format_alloc.cursor;
             if (result.fields_current == result.meta->fields.begin) {
                 uptr name_len = bytesize(current->type_name.begin, current->type_name.end);
-                void* cursor = sa_alloc(&iter->text_format_alloc, name_len);
-                sa_copy(&iter->text_format_alloc, current->type_name.begin, cursor, name_len);
-                cursor = sa_alloc(&iter->text_format_alloc, 2);
-                sa_copy(&iter->text_format_alloc, " {", cursor, 2);
+                void* cursor = sa_alloc(&iter->format_shared_text->text_format_alloc, name_len);
+                sa_copy(&iter->format_shared_text->text_format_alloc, current->type_name.begin, cursor, name_len);
+                cursor = sa_alloc(&iter->format_shared_text->text_format_alloc, 2);
+                sa_copy(&iter->format_shared_text->text_format_alloc, " {", cursor, 2);
                 uptr field_len = bytesize(result.fields_current->field_name.begin, result.fields_current->field_name.end);
-                cursor = sa_alloc(&iter->text_format_alloc, field_len);
-                sa_copy(&iter->text_format_alloc, result.fields_current->field_name.begin, cursor, field_len);
-                cursor = sa_alloc(&iter->text_format_alloc, 2);
-                sa_copy(&iter->text_format_alloc, ": ", cursor, 2);
+                cursor = sa_alloc(&iter->format_shared_text->text_format_alloc, field_len);
+                sa_copy(&iter->format_shared_text->text_format_alloc, result.fields_current->field_name.begin, cursor, field_len);
+                cursor = sa_alloc(&iter->format_shared_text->text_format_alloc, 2);
+                sa_copy(&iter->format_shared_text->text_format_alloc, ": ", cursor, 2);
                 iter->offset = result.fields_current->offset;
             } else if (result.fields_current == result.meta->fields.end) {
-                void* cursor = sa_alloc(&iter->text_format_alloc, 1);
-                sa_copy(&iter->text_format_alloc, "}", cursor, 1);
+                void* cursor = sa_alloc(&iter->format_shared_text->text_format_alloc, 1);
+                sa_copy(&iter->format_shared_text->text_format_alloc, "}", cursor, 1);
                 iter->offset -= (result.meta->fields.end - 1)->offset;
             } else {
-                void* cursor = sa_alloc(&iter->text_format_alloc, 2);
-                sa_copy(&iter->text_format_alloc, ", ", cursor, 2);
+                void* cursor = sa_alloc(&iter->format_shared_text->text_format_alloc, 2);
+                sa_copy(&iter->format_shared_text->text_format_alloc, ", ", cursor, 2);
                 uptr field_len = bytesize(result.fields_current->field_name.begin, result.fields_current->field_name.end);
-                cursor = sa_alloc(&iter->text_format_alloc, field_len);
-                sa_copy(&iter->text_format_alloc, result.fields_current->field_name.begin, cursor, field_len);;
-                cursor = sa_alloc(&iter->text_format_alloc, 2);
-                sa_copy(&iter->text_format_alloc, ": ", cursor, 2);
+                cursor = sa_alloc(&iter->format_shared_text->text_format_alloc, field_len);
+                sa_copy(&iter->format_shared_text->text_format_alloc, result.fields_current->field_name.begin, cursor, field_len);;
+                cursor = sa_alloc(&iter->format_shared_text->text_format_alloc, 2);
+                sa_copy(&iter->format_shared_text->text_format_alloc, ": ", cursor, 2);
                 iter->offset = result.fields_current->offset;
             }
-            return (format_iteration){FORMAT_ITERATION_LITERAL, {start, iter->text_format_alloc.cursor}};
+            return (format_iteration){FORMAT_ITERATION_LITERAL, {start, iter->format_shared_text->text_format_alloc.cursor}};
         }
     } else if (iter->in_string) {
         if (iter->string_current == iter->string_end) {
@@ -226,12 +262,12 @@ format_iteration format_iterator_next(format_iterator* iter) {
             return (format_iteration){FORMAT_ITERATION_CONTINUE, {0,0}};
         }
         uptr remaining = (uptr)(iter->string_end - iter->string_current);
-        uptr available = (uptr)((char*)iter->text_format_alloc.end - (char*)iter->text_format_alloc.cursor);
+        uptr available = (uptr)((char*)iter->format_shared_text->text_format_alloc.end - (char*)iter->format_shared_text->text_format_alloc.cursor);
         uptr chunk_size = remaining < available ? remaining : available;
-        char* result = (char*)sa_alloc(&iter->text_format_alloc, chunk_size);
-        sa_copy(&iter->text_format_alloc, iter->string_current, result, chunk_size);
+        char* result = (char*)sa_alloc(&iter->format_shared_text->text_format_alloc, chunk_size);
+        sa_copy(&iter->format_shared_text->text_format_alloc, iter->string_current, result, chunk_size);
         iter->string_current += chunk_size;
-        return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->text_format_alloc.cursor}};
+        return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->format_shared_text->text_format_alloc.cursor}};
     } else {
         if (iter->format_current == iter->format.end) {
             return (format_iteration){FORMAT_ITERATION_END, {0, 0}};
@@ -266,14 +302,14 @@ format_iteration format_iterator_next(format_iterator* iter) {
                     // Handle null string
                     const string null_str = STR("(null)");
                     const uptr null_str_size = bytesize(null_str.begin, null_str.end);
-                    char* result = sa_alloc(&iter->text_format_alloc, null_str_size);
-                    sa_copy(&iter->text_format_alloc, null_str.begin, result, null_str_size);
-                    return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->text_format_alloc.cursor}};
+                    char* result = sa_alloc(&iter->format_shared_text->text_format_alloc, null_str_size);
+                    sa_copy(&iter->format_shared_text->text_format_alloc, null_str.begin, result, null_str_size);
+                    return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->format_shared_text->text_format_alloc.cursor}};
                 }
             } else {
                 // Process other specifiers
-                char* result = process_format_specifier(iter->specifier, iter->args, &iter->text_format_alloc);
-                return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->text_format_alloc.cursor}};
+                char* result = process_format_specifier(iter->specifier, iter->args, &iter->format_shared_text->text_format_alloc);
+                return (format_iteration){FORMAT_ITERATION_LITERAL, {result, iter->format_shared_text->text_format_alloc.cursor}};
             }
         } else {
             iter->format_segment.begin = iter->format_current;

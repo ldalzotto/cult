@@ -9,7 +9,7 @@ void print_string(file_t file, const string string) {
 
 // Print a formatted string with arguments to file
 void print_format(file_t file, string format, ...) {
-    u8 stack[2048 * 10];
+    u8 stack[2048];
     stack_alloc alloc;
     sa_init(&alloc, stack, byteoffset(stack, sizeof(stack)));
 
