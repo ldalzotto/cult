@@ -48,10 +48,19 @@ struct format_iterator {
     } format_segment;
     const char* format_current;
     char specifier;
+    
     u8 in_meta;
     const meta* meta;
     void* data_to_format;
     print_meta_iterator* meta_iter;
+
+    u8 in_meta_array;
+    const meta* meta_array;
+    void* meta_array_data_to_format_begin;
+    void* meta_array_data_to_format_end;
+    void* meta_array_data_to_format_current;
+    format_iterator* meta_array_iterator;
+    
     stack_alloc* alloc;
     uptr offset;
     va_list args;
@@ -66,6 +75,14 @@ struct format_iterator {
     stack_alloc text_format_alloc;
 };
 
+static format_iterator* format_iterator_init_wrapper(stack_alloc* alloc, string format, ...) {
+     va_list args;
+    va_start(args, format);
+    format_iterator* iterator = format_iterator_init(alloc, format, args);
+    va_end(args);
+    return iterator;
+}
+
 format_iterator* format_iterator_init(stack_alloc* alloc, string format, va_list args) {
     format_iterator* iter = sa_alloc(alloc, sizeof(format_iterator));
     iter->format = format;
@@ -77,6 +94,14 @@ format_iterator* format_iterator_init(stack_alloc* alloc, string format, va_list
     iter->meta = 0;
     iter->data_to_format = 0;
     iter->meta_iter = 0;
+
+    iter->in_meta_array = 0;
+    iter->meta_array = 0;
+    iter->meta_array_data_to_format_begin = 0;
+    iter->meta_array_data_to_format_end = 0;
+    iter->meta_array_data_to_format_current = 0;
+    iter->meta_array_iterator = 0;
+
     iter->alloc = alloc;
     iter->offset = 0;
     iter->in_string = 0;
@@ -94,7 +119,35 @@ void format_iterator_deinit(stack_alloc* alloc, format_iterator* iterator) {
 
 format_iteration format_iterator_next(format_iterator* iter) {
     iter->text_format_alloc.cursor = iter->text_format_alloc.begin;
-    if (iter->in_meta) {
+    if (iter->in_meta_array) {
+        if (iter->meta_array_iterator != 0) {
+            format_iteration iteration = format_iterator_next(iter->meta_array_iterator);
+            if (iteration.type == FORMAT_ITERATION_END) {
+                format_iterator_deinit(iter->alloc, iter->meta_array_iterator);
+                iter->meta_array_iterator = 0;
+                return (format_iteration){FORMAT_ITERATION_CONTINUE, {0,0}};
+            }
+            return iteration;
+        } else {
+            const meta* element_meta = iter->meta_array->array_element_meta;
+            if (iter->meta_array_data_to_format_current == iter->meta_array_data_to_format_begin) {
+                // First
+                iter->meta_array_iterator = format_iterator_init_wrapper(iter->alloc, STRING("%m"), element_meta, iter->meta_array_data_to_format_current);
+                iter->meta_array_data_to_format_current = byteoffset(iter->meta_array_data_to_format_current, element_meta->type_size);
+                /*[TASK] Write "[" litteral*/
+                return (format_iteration){FORMAT_ITERATION_CONTINUE, {0,0}};
+            } else if(iter->meta_array_data_to_format_current == iter->meta_array_data_to_format_end) {
+                iter->in_meta_array = 0;
+                /*[TASK] Write "]" litteral*/
+                return (format_iteration){FORMAT_ITERATION_CONTINUE, {0,0}};
+            } else {
+                iter->meta_array_iterator = format_iterator_init_wrapper(iter->alloc, STRING("%m"), element_meta, iter->meta_array_data_to_format_current);
+                iter->meta_array_data_to_format_current = byteoffset(iter->meta_array_data_to_format_current, element_meta->type_size);
+                /*[TASK] Write ", " litteral*/
+                return (format_iteration){FORMAT_ITERATION_CONTINUE, {0,0}};
+            }
+        }
+    } else if (iter->in_meta) {
         print_meta_iteration result = print_meta_iterator_next(iter->meta_iter);
         if (!result.meta) {
             iter->in_meta = 0;
@@ -105,6 +158,14 @@ format_iteration format_iterator_next(format_iterator* iter) {
         }
         const meta* current = result.meta;
         if (current->pt != PT_NONE) {
+            if (current->pt == PT_ARRAY) {
+                iter->in_meta_array = 1;
+                iter->meta_array = current;
+                iter->meta_array_data_to_format_begin = *(void**)(byteoffset(iter->data_to_format, iter->offset));
+                iter->meta_array_data_to_format_end = *(void**)(byteoffset(iter->data_to_format, iter->offset + sizeof(void*)));
+                iter->meta_array_data_to_format_current = iter->meta_array_data_to_format_begin;
+                return (format_iteration){FORMAT_ITERATION_CONTINUE, {0,0}};
+            }
             // Primitive
             void* data_offset = byteoffset(iter->data_to_format, iter->offset);
             char* result;

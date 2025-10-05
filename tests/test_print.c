@@ -31,7 +31,6 @@ const field_descriptor test_point_fields[] = {
 // Meta for test_point_t
 const meta test_point_meta = {
     .type_name = STR("test_point_t"),
-    .is_array = 0,
     .type_size = sizeof(test_point_t),
     .pt = PT_NONE,
     .fields = {
@@ -49,7 +48,6 @@ const field_descriptor complex_fields[] = {
 // Meta for complex_t
 const meta complex_meta = {
     .type_name = STR("complex_t"),
-    .is_array = 0,
     .type_size = sizeof(complex_t),
     .pt = PT_NONE,
     .fields = {
@@ -404,6 +402,139 @@ static void test_print_large_string(test_context* t) {
     TEST_ASSERT_TRUE(t, 1);
 }
 
+
+typedef struct {
+    complex_t* begin;
+    complex_t* end;
+} complex_array_t;
+
+static const meta complex_array_meta = {
+    .type_size = sizeof(complex_array_t),
+    .pt = PT_ARRAY,
+    .array_element_meta = &complex_meta
+};
+
+static void test_print_array_meta(test_context* t) {
+    // Define elements for the inner array
+    complex_t elements[3] = {
+        {{1, 2}, 3, 4},
+        {{5, 6}, 7, 8},
+        {{9, 10}, 11, 12}
+    };
+    complex_array_t ca = { elements, byteoffset(elements, sizeof(elements)) };
+
+    // Print to stdout (quick check)
+    print_format(file_stdout(), STRING("%m\n"), &complex_array_meta, &ca);
+
+    // Print to file
+    setup_test_temp_dir();
+
+    const uptr stack_size = 1024;
+    void* memory = mem_map(stack_size);
+    stack_alloc alloc;
+    sa_init(&alloc, memory, byteoffset(memory, stack_size));
+
+    file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
+
+    print_format(file, STRING("%m"), &complex_array_meta, &ca);
+    file_close(file);
+
+    // Read and verify content exists (not enforcing exact content)
+    file_t read_file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_READ);
+    TEST_ASSERT_NOT_EQUAL(t, read_file, file_invalid());
+
+    void* buffer;
+    uptr size = file_read_all(read_file, &buffer, &alloc);
+    TEST_ASSERT_TRUE(t, size > 0);
+
+    // TODO check the string
+
+    sa_free(&alloc, buffer);
+    file_close(read_file);
+
+    sa_deinit(&alloc);
+    mem_unmap(memory, stack_size);
+
+    cleanup_test_temp_dir();
+
+    TEST_ASSERT_TRUE(t, 1);
+}
+
+typedef struct {
+    i32 value_before;
+    complex_array_t arr;
+    i32 value_after;
+} nested_array_holder_t;
+
+static const field_descriptor nested_array_holder_fields[] = {
+    {STR("value_before"), offsetof(nested_array_holder_t, value_before), &i32_meta},
+    {STR("arr"), offsetof(nested_array_holder_t, arr), &complex_array_meta},
+    {STR("value_after"), offsetof(nested_array_holder_t, value_after), &i32_meta},
+};
+
+static const meta nested_array_holder_meta = {
+    .type_name = STR("nested_array_holder_t"),
+    .type_size = sizeof(nested_array_holder_t),
+    .pt = PT_NONE,
+    .fields = {
+        RANGE(nested_array_holder_fields)
+    }
+};
+
+static void test_print_nested_array_meta(test_context* t) {
+    // Define inner elements and create a complex_array_t descriptor
+    complex_t inner_elements[2] = {
+        {{1, 2}, 3, 4},
+        {{5, 6}, 7, 8}
+    };
+    complex_array_t ca = { inner_elements, byteoffset(inner_elements, sizeof(inner_elements)) };
+
+    // Holder containing the array
+    nested_array_holder_t holder = { 
+        .value_before = 10, 
+        .arr = ca,
+        .value_after = 20,
+    };
+
+    // Print to stdout for quick check
+    print_format(file_stdout(), STRING("%m\n"), &nested_array_holder_meta, &holder);
+
+    // Print to file
+    setup_test_temp_dir();
+
+    const uptr stack_size = 1024;
+    void* memory = mem_map(stack_size);
+    stack_alloc alloc;
+    sa_init(&alloc, memory, byteoffset(memory, stack_size));
+
+    file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
+
+    print_format(file, STRING("%m"), &nested_array_holder_meta, &holder);
+    file_close(file);
+
+    // Read back to verify some output
+    file_t read_file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_READ);
+    TEST_ASSERT_NOT_EQUAL(t, read_file, file_invalid());
+
+    void* buffer;
+    uptr size = file_read_all(read_file, &buffer, &alloc);
+    TEST_ASSERT_TRUE(t, size > 0);
+
+    // TODO check the string
+
+    sa_free(&alloc, buffer);
+    file_close(read_file);
+
+    sa_deinit(&alloc);
+    mem_unmap(memory, stack_size);
+
+    cleanup_test_temp_dir();
+
+    TEST_ASSERT_TRUE(t, 1);
+}
+
 void test_print_module(test_context* t) {
     REGISTER_TEST(t, "print_primitives", test_print_primitives);
     REGISTER_TEST(t, "print_struct", test_print_struct);
@@ -414,4 +545,6 @@ void test_print_module(test_context* t) {
     REGISTER_TEST(t, "print_format_multiple_meta", test_print_format_multiple_meta);
     REGISTER_TEST(t, "print_meta_iterator", test_print_meta_iterator);
     REGISTER_TEST(t, "print_large_string", test_print_large_string);
+    REGISTER_TEST(t, "print_array_meta", test_print_array_meta);
+    REGISTER_TEST(t, "print_nested_array_meta", test_print_nested_array_meta);
 }
