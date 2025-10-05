@@ -151,7 +151,19 @@ coding_o = $(lzss_o) \
 		  $(lz_deserialize_o) \
 		  $(lz_window_o)
 
+# Network
+
+CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS)
+$(eval $(call make_object, tcp_connection_o, $(SRC_DIR)/libs/network/tcp/tcp_connection.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, https_request_o, $(SRC_DIR)/libs/network/https/https_request.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+
+network_o = $(https_request_o) \
+			$(tcp_connection_o)
+
+NETWORK_LFLAGS := -lssl
+
 # Dummy
+
 CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS) $(WINDOW_CFLAGS)
 $(eval $(call make_object, dummy_o, $(SRC_DIR)/apps/dummy/dummy.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 
@@ -222,8 +234,8 @@ all_agent_o = $(agent_o) \
 			$(agent_request_o) \
 			$(agent_result_write_o)
 
-CURRENT_LFLAGS := $(LFLAGS)
-$(eval $(call make_executable, agent, $(common_o) $(all_agent_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
+CURRENT_LFLAGS := $(LFLAGS) $(NETWORK_LFLAGS)
+$(eval $(call make_executable, agent, $(common_o) $(network_o) $(all_agent_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
 agent: $(agent)
 
 all: snake dummy test agent
