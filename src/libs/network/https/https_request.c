@@ -1,7 +1,6 @@
 #include "https_request.h"
 #include "assert.h"
 #include "network/tcp/tcp_connection.h"
-#include "print.h"
 
 #include <openssl/ssl.h>
 
@@ -43,10 +42,6 @@ static void* ssl_read(stack_alloc* alloc, SSL* ssl) {
 
 void* https_request_sync(stack_alloc* alloc, u8_slice host, u8_slice port, u8_slice request) {
     void* begin = alloc->cursor;
-
-    print_string(file_stdout(), STRING("Request:\n"));
-    print_string(file_stdout(), (string){request.begin, request.end});
-    print_string(file_stdout(), STRING("----"));
 
     struct {void* begin; void* end;} response;
     response.begin = alloc->cursor;
@@ -99,8 +94,6 @@ void* https_request_sync(stack_alloc* alloc, u8_slice host, u8_slice port, u8_sl
     // Read the response
     response.begin = ssl_read(alloc, ssl);
     response.end = alloc->cursor;
-
-    // print_format(file_stdout(), STRING("%s\n"), (string){response.begin, response.end});
 
     SSL_shutdown(ssl);
 deinit_ssl_connect:
