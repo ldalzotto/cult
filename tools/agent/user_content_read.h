@@ -3,6 +3,6 @@
 
 #include "stack_alloc.h"
 
-u8_slice user_content_read(stack_alloc* alloc, u8_slice file_content);
+u8* user_content_read(stack_alloc* alloc, u8_slice file_content);
 
 #endif

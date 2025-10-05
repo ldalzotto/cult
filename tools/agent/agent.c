@@ -30,7 +30,16 @@ i32 main(i32 argc, char** argv) {
     file_read_all(file, (void**)&file_content.begin, alloc);
     file_content.end = alloc->cursor;
 
-    u8_slice user_content = user_content_read(alloc, file_content);
+    u8_slice user_content;
+    user_content.begin = user_content_read(alloc, file_content);
+    user_content.end = alloc->cursor;
+
+    sa_move_tail(alloc, user_content.begin, file_content.begin);
+    const uptr user_content_size = bytesize(user_content.begin, user_content.end);
+    user_content.begin = file_content.begin;
+    user_content.end = byteoffset(user_content.begin, user_content_size);
+    file_content.begin = 0;file_content.end = 0;
+
     u8_slice agent_result;
     agent_result.begin = agent_request(user_content, alloc);
     agent_result.end = alloc->cursor;
@@ -41,7 +50,7 @@ i32 main(i32 argc, char** argv) {
     file_close(file);
 
     sa_free(alloc, agent_result.begin);
-    sa_free(alloc, file_content.begin);
+    sa_free(alloc, user_content.begin);
 
     sa_deinit(alloc);
     mem_unmap(memory, size);
