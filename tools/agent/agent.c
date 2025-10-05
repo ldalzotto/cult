@@ -9,7 +9,7 @@
 
 i32 main(i32 argc, char** argv) {
 
-    uptr size = 1024 * 1024;
+    uptr size = 1024 * 1024 * 10;
     void* memory = mem_map(size);
     stack_alloc _alloc;
     stack_alloc* alloc = &_alloc;
