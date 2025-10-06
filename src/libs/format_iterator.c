@@ -165,7 +165,15 @@ format_iteration format_iterator_next(format_iterator* iter) {
             return iteration;
         } else {
             const meta* element_meta = iter->meta_array->array_element_meta;
-            if (iter->meta_array_data_to_format_current == iter->meta_array_data_to_format_begin) {
+            if (iter->meta_array_data_to_format_current == iter->meta_array_data_to_format_begin
+            && (iter->meta_array_data_to_format_current == iter->meta_array_data_to_format_end)) {
+                const string array_open_close = STR("[]");
+                void* cursor = sa_alloc(text_format_alloc, bytesize(array_open_close.begin, array_open_close.end));
+                sa_copy(text_format_alloc, array_open_close.begin, cursor, bytesize(array_open_close.begin, array_open_close.end));
+                iter->in_meta_array = 0;
+                return (format_iteration){FORMAT_ITERATION_LITERAL, {text_format_alloc->begin, text_format_alloc->cursor}};
+            } 
+            else if (iter->meta_array_data_to_format_current == iter->meta_array_data_to_format_begin) {
                 // First
                 const string array_open = STR("[");
                 void* cursor = sa_alloc(text_format_alloc, bytesize(array_open.begin, array_open.end));

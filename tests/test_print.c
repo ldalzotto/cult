@@ -538,6 +538,181 @@ static void test_print_nested_array_meta(test_context* t) {
     TEST_ASSERT_TRUE(t, 1);
 }
 
+// i32 array type for testing primitive arrays
+typedef struct {
+    i32* begin;
+    i32* end;
+} i32_array_t;
+
+static const meta i32_array_meta = {
+    .type_size = sizeof(i32_array_t),
+    .pt = PT_ARRAY,
+    .array_element_meta = &i32_meta
+};
+
+static void test_print_empty_array_meta(test_context* t) {
+    // Print to file and verify "[]"
+    setup_test_temp_dir();
+
+    const uptr stack_size = 1024;
+    void* memory = mem_map(stack_size);
+    stack_alloc alloc;
+    sa_init(&alloc, memory, byteoffset(memory, stack_size));
+
+    // Empty complex array: begin == end
+    complex_t* elements = alloc.cursor; // zero-length array
+    complex_array_t ca = { elements, elements }; // begin == end
+
+    file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
+
+    print_format(file, STRING("%m"), &complex_array_meta, &ca);
+    file_close(file);
+
+    file_t read_file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_READ);
+    TEST_ASSERT_NOT_EQUAL(t, read_file, file_invalid());
+
+    void* buffer;
+    uptr size = file_read_all(read_file, &buffer, &alloc);
+    TEST_ASSERT_TRUE(t, size > 0);
+
+    const string expected = STR("[]");
+    TEST_ASSERT_TRUE(t, sa_equals(&alloc, buffer, byteoffset(buffer, size), expected.begin, expected.end) == 1);
+
+    sa_free(&alloc, buffer);
+    file_close(read_file);
+
+    sa_deinit(&alloc);
+    mem_unmap(memory, stack_size);
+
+    cleanup_test_temp_dir();
+    TEST_ASSERT_TRUE(t, 1);
+}
+
+static void test_print_single_element_array_meta(test_context* t) {
+    complex_t elements[1] = {
+        {{1, 2}, 3, 4}
+    };
+    complex_array_t ca = { elements, byteoffset(elements, sizeof(elements)) };
+
+    // Write and verify single-element formatting (no trailing comma)
+    setup_test_temp_dir();
+
+    const uptr stack_size = 1024;
+    void* memory = mem_map(stack_size);
+    stack_alloc alloc;
+    sa_init(&alloc, memory, byteoffset(memory, stack_size));
+
+    file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
+
+    print_format(file, STRING("%m"), &complex_array_meta, &ca);
+    file_close(file);
+
+    file_t read_file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_READ);
+    TEST_ASSERT_NOT_EQUAL(t, read_file, file_invalid());
+
+    void* buffer;
+    uptr size = file_read_all(read_file, &buffer, &alloc);
+    TEST_ASSERT_TRUE(t, size > 0);
+
+    const string expected = STR("[complex_t {pos: test_point_t {x: 1, y: 2}, id: 3, id2: 4}]");
+    TEST_ASSERT_TRUE(t, sa_equals(&alloc, buffer, byteoffset(buffer, size), expected.begin, expected.end) == 1);
+
+    sa_free(&alloc, buffer);
+    file_close(read_file);
+
+    sa_deinit(&alloc);
+    mem_unmap(memory, stack_size);
+
+    cleanup_test_temp_dir();
+    TEST_ASSERT_TRUE(t, 1);
+}
+
+static void test_print_primitive_array_meta(test_context* t) {
+    i32 elements[3] = {1, 2, 3};
+    i32_array_t ia = { elements, byteoffset(elements, sizeof(elements)) };
+
+    // Write and verify primitive array formatting
+    setup_test_temp_dir();
+
+    const uptr stack_size = 1024;
+    void* memory = mem_map(stack_size);
+    stack_alloc alloc;
+    sa_init(&alloc, memory, byteoffset(memory, stack_size));
+
+    file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
+
+    print_format(file, STRING("%m"), &i32_array_meta, &ia);
+    file_close(file);
+
+    file_t read_file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_READ);
+    TEST_ASSERT_NOT_EQUAL(t, read_file, file_invalid());
+
+    void* buffer;
+    uptr size = file_read_all(read_file, &buffer, &alloc);
+    TEST_ASSERT_TRUE(t, size > 0);
+
+    const string expected = STR("[1, 2, 3]");
+    TEST_ASSERT_TRUE(t, sa_equals(&alloc, buffer, byteoffset(buffer, size), expected.begin, expected.end) == 1);
+
+    sa_free(&alloc, buffer);
+    file_close(read_file);
+
+    sa_deinit(&alloc);
+    mem_unmap(memory, stack_size);
+
+    cleanup_test_temp_dir();
+    TEST_ASSERT_TRUE(t, 1);
+}
+
+static void test_print_nested_empty_array_meta(test_context* t) {
+    
+    // Write and verify the nested empty array prints as arr: []
+    setup_test_temp_dir();
+
+    const uptr stack_size = 1024;
+    void* memory = mem_map(stack_size);
+    stack_alloc alloc;
+    sa_init(&alloc, memory, byteoffset(memory, stack_size));
+
+    // Create a nested holder where arr is empty
+    complex_t* inner_elements = alloc.cursor;
+    complex_array_t ca = { inner_elements, inner_elements };
+
+    nested_array_holder_t holder = {
+        .value_before = 10,
+        .arr = ca,
+        .value_after = 20
+    };
+
+    file_t file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_WRITE);
+    TEST_ASSERT_NOT_EQUAL(t, file, file_invalid());
+
+    print_format(file, STRING("%m"), &nested_array_holder_meta, &holder);
+    file_close(file);
+
+    file_t read_file = file_open(&alloc, path_test_output.begin, path_test_output.end, FILE_MODE_READ);
+    TEST_ASSERT_NOT_EQUAL(t, read_file, file_invalid());
+
+    void* buffer;
+    uptr size = file_read_all(read_file, &buffer, &alloc);
+    TEST_ASSERT_TRUE(t, size > 0);
+
+    const string expected = STR("nested_array_holder_t {value_before: 10, arr: [], value_after: 20}");
+    TEST_ASSERT_TRUE(t, sa_equals(&alloc, buffer, byteoffset(buffer, size), expected.begin, expected.end) == 1);
+
+    sa_free(&alloc, buffer);
+    file_close(read_file);
+
+    sa_deinit(&alloc);
+    mem_unmap(memory, stack_size);
+
+    cleanup_test_temp_dir();
+    TEST_ASSERT_TRUE(t, 1);
+}
+
 void test_print_module(test_context* t) {
     REGISTER_TEST(t, "print_primitives", test_print_primitives);
     REGISTER_TEST(t, "print_struct", test_print_struct);
@@ -550,4 +725,8 @@ void test_print_module(test_context* t) {
     REGISTER_TEST(t, "print_large_string", test_print_large_string);
     REGISTER_TEST(t, "print_array_meta", test_print_array_meta);
     REGISTER_TEST(t, "print_nested_array_meta", test_print_nested_array_meta);
+    REGISTER_TEST(t, "print_empty_array_meta", test_print_empty_array_meta);
+    REGISTER_TEST(t, "print_single_element_array_meta", test_print_single_element_array_meta);
+    REGISTER_TEST(t, "print_primitive_array_meta", test_print_primitive_array_meta);
+    REGISTER_TEST(t, "print_nested_empty_array_meta", test_print_nested_empty_array_meta);
 }
