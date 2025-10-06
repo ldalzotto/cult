@@ -5,6 +5,8 @@
 #include "user_content_read.h"
 #include "agent_result_write.h"
 #include "agent_request.h"
+#include "print.h"
+#include "agent_args.h"
 
 i32 main(i32 argc, char** argv) {
 
@@ -14,37 +16,32 @@ i32 main(i32 argc, char** argv) {
     stack_alloc* alloc = &_alloc;
     sa_init(alloc, memory, byteoffset(memory, size));
 
-    string file_path;
+    // Extract arguments
+    arguments args = extract_arguments(argc, argv);
 
-    string api_key;
-    api_key.begin = 0;
-    api_key.end = 0;
-
-    for (i32 i = 1; i < argc; ++i) {
-        const char* arg = (const char*)argv[i];
-
-        // --key value
-        if (arg[0] == '-' && arg[1] == '-' && arg[2] == 'k' && arg[3] == 'e' && arg[4] == 'y' && arg[5] == '\0') {
-            if (i + 1 < argc) {
-                const char* val = argv[i + 1];
-                api_key.begin = (u8*)val;
-                api_key.end = (u8*)val + mem_cstrlen((void*)val);
-                i++;
-                break;
-            }
-        }
-    }
-
-    if (argc < 2) {
+    if (args.api_key.begin == 0 && args.api_key.end == 0) {
+        print_format(file_stderr(), STRING("Error: missing --key (API key) argument\nUsage: agent <file_path> --key <API_KEY> --model <MODEL>\n"));
         sa_deinit(alloc);
         mem_unmap(memory, size);
         return 1;
     }
-    file_path.begin = (u8*)argv[1];
-    file_path.end = (u8*)argv[1] + mem_cstrlen(argv[1]);
+
+    if (args.model.begin == 0 && args.model.end == 0) {
+        print_format(file_stderr(), STRING("Error: missing --model argument\nUsage: agent <file_path> --key <API_KEY> --model <MODEL>\n"));
+        sa_deinit(alloc);
+        mem_unmap(memory, size);
+        return 1;
+    }
+
+    if (args.file_path.begin == 0 && args.file_path.end == 0) {
+        print_format(file_stderr(), STRING("Error: missing file path positional argument\nUsage: agent <file_path> --key <API_KEY> --model <MODEL>\n"));
+        sa_deinit(alloc);
+        mem_unmap(memory, size);
+        return 1;
+    }
 
     // Read the file
-    file_t file = file_open(alloc, file_path.begin, file_path.end, FILE_MODE_READ_WRITE);
+    file_t file = file_open(alloc, args.file_path.begin, args.file_path.end, FILE_MODE_READ_WRITE);
     u8_slice file_content;
     file_read_all(file, (void**)&file_content.begin, alloc);
     file_content.end = alloc->cursor;
@@ -60,7 +57,7 @@ i32 main(i32 argc, char** argv) {
     file_content.begin = 0;file_content.end = 0;
 
     u8_slice agent_result;
-    agent_result.begin = agent_request(user_content, api_key, alloc);
+    agent_result.begin = agent_request(user_content, args.api_key, args.model, alloc);
     agent_result.end = alloc->cursor;
 
     agent_result_write(file, alloc, agent_result);

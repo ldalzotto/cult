@@ -226,10 +226,12 @@ test: $(test)
 # Tools agent
 CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS)
 $(eval $(call make_object, agent_o, $(TOOLS_DIR)/agent/agent.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, agent_args_o, $(TOOLS_DIR)/agent/agent_args.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, user_content_read_o, $(TOOLS_DIR)/agent/user_content_read.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, agent_request_o, $(TOOLS_DIR)/agent/agent_request.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, agent_result_write_o, $(TOOLS_DIR)/agent/agent_result_write.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 all_agent_o = $(agent_o) \
+			$(agent_args_o) \
 			$(user_content_read_o) \
 			$(agent_request_o) \
 			$(agent_result_write_o)
