@@ -167,19 +167,29 @@ format_iteration format_iterator_next(format_iterator* iter) {
             const meta* element_meta = iter->meta_array->array_element_meta;
             if (iter->meta_array_data_to_format_current == iter->meta_array_data_to_format_begin) {
                 // First
+                const string array_open = STR("[");
+                void* cursor = sa_alloc(text_format_alloc, bytesize(array_open.begin, array_open.end));
+                sa_copy(text_format_alloc, array_open.begin, cursor, bytesize(array_open.begin, array_open.end));
+
                 iter->meta_array_iterator = format_iterator_init_wrapper_shared(iter, STRING("%m"), element_meta, iter->meta_array_data_to_format_current);
                 iter->meta_array_data_to_format_current = byteoffset(iter->meta_array_data_to_format_current, element_meta->type_size);
-                /*[TASK] Write "[" litteral*/
-                return (format_iteration){FORMAT_ITERATION_CONTINUE, {0,0}};
+                return (format_iteration){FORMAT_ITERATION_LITERAL, {text_format_alloc->begin, text_format_alloc->cursor}};
             } else if(iter->meta_array_data_to_format_current == iter->meta_array_data_to_format_end) {
+                // Last
                 iter->in_meta_array = 0;
-                /*[TASK] Write "]" litteral*/
-                return (format_iteration){FORMAT_ITERATION_CONTINUE, {0,0}};
+                const string array_close = STR("]");
+                void* cursor = sa_alloc(text_format_alloc, bytesize(array_close.begin, array_close.end));
+                sa_copy(text_format_alloc, array_close.begin, cursor, bytesize(array_close.begin, array_close.end));
+                return (format_iteration){FORMAT_ITERATION_LITERAL, {text_format_alloc->begin, text_format_alloc->cursor}};
             } else {
+                // Between
+                const string array_split = STR(", ");
+                void* cursor = sa_alloc(text_format_alloc, bytesize(array_split.begin, array_split.end));
+                sa_copy(text_format_alloc, array_split.begin, cursor, bytesize(array_split.begin, array_split.end));
+
                 iter->meta_array_iterator = format_iterator_init_wrapper_shared(iter, STRING("%m"), element_meta, iter->meta_array_data_to_format_current);
                 iter->meta_array_data_to_format_current = byteoffset(iter->meta_array_data_to_format_current, element_meta->type_size);
-                /*[TASK] Write ", " litteral*/
-                return (format_iteration){FORMAT_ITERATION_CONTINUE, {0,0}};
+                return (format_iteration){FORMAT_ITERATION_LITERAL, {text_format_alloc->begin, text_format_alloc->cursor}};
             }
         }
     } else if (iter->in_meta) {

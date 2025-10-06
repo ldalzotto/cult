@@ -448,7 +448,9 @@ static void test_print_array_meta(test_context* t) {
     uptr size = file_read_all(read_file, &buffer, &alloc);
     TEST_ASSERT_TRUE(t, size > 0);
 
-    // TODO check the string
+    const string expected = STR("[complex_t {pos: test_point_t {x: 1, y: 2}, id: 3, id2: 4}, complex_t {pos: test_point_t {x: 5, y: 6}, id: 7, id2: 8}, complex_t {pos: test_point_t {x: 9, y: 10}, id: 11, id2: 12}]");
+    TEST_ASSERT_TRUE(t, sa_equals(&alloc, buffer, byteoffset(buffer, size), expected.begin, expected.end));
+
 
     sa_free(&alloc, buffer);
     file_close(read_file);
@@ -522,7 +524,8 @@ static void test_print_nested_array_meta(test_context* t) {
     uptr size = file_read_all(read_file, &buffer, &alloc);
     TEST_ASSERT_TRUE(t, size > 0);
 
-    // TODO check the string
+    const string expected = STR("nested_array_holder_t {value_before: 10, arr: [complex_t {pos: test_point_t {x: 1, y: 2}, id: 3, id2: 4}, complex_t {pos: test_point_t {x: 5, y: 6}, id: 7, id2: 8}], value_after: 20}");
+    TEST_ASSERT_TRUE(t, sa_equals(&alloc, buffer, byteoffset(buffer, size), expected.begin, expected.end));
 
     sa_free(&alloc, buffer);
     file_close(read_file);
