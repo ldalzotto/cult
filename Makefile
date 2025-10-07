@@ -207,6 +207,7 @@ $(eval $(call make_object, test_backtrace_o, $(TESTS_DIR)/test_backtrace.c, $(CU
 $(eval $(call make_object, test_lzss_o, $(TESTS_DIR)/test_lzss.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, test_fps_ticker_o, $(TESTS_DIR)/test_fps_ticker.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, test_snake_o, $(TESTS_DIR)/test_snake.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, test_network_o, $(TESTS_DIR)/test_network.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 
 tests_o = $(all_tests_o) \
 	 	 $(test_mem_o) \
@@ -219,10 +220,11 @@ tests_o = $(all_tests_o) \
 	 	 $(test_backtrace_o) \
 	 	 $(test_lzss_o) \
 	 	 $(test_fps_ticker_o) \
-		 $(test_snake_o)
+		 $(test_snake_o) \
+		 $(test_network_o)
 
-CURRENT_LFLAGS := $(LFLAGS) $(WINDOW_LFLAGS)
-$(eval $(call make_executable, test, $(common_o) $(window_o) $(coding_o) $(snake_module_o) $(tests_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
+CURRENT_LFLAGS := $(LFLAGS) $(WINDOW_LFLAGS) $(NETWORK_LFLAGS)
+$(eval $(call make_executable, test, $(common_o) $(window_o) $(network_o) $(coding_o) $(snake_module_o) $(tests_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
 test: $(test)
 
 # Tools agent
