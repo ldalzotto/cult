@@ -136,41 +136,21 @@ snake_update_result snake_update(snake* s, snake_input input, u64 frame_us, stac
     return SNAKE_UPDATE_CONTINUE;
 }
 
-draw_command* snake_render(snake* s, u32 screen_width, u32 screen_height, u32* command_count, stack_alloc* alloc) {
-    draw_command* cmds = alloc->cursor;
-    
-    // Clear background
-    {
-        draw_command* c = sa_alloc(alloc, sizeof(*c));
-        c->type = DRAW_COMMAND_CLEAR_BACKGROUND;
-        c->data.clear_bg.color = 0x00000000; // Black
-    }
+/* Accessor implementations */
 
-    // Draw snake head rectangle
-    i32 cell_size_x = screen_width / s->grid_width;
-    i32 cell_size_y = screen_height / s->grid_height;
-    for (position* cell = s->player_cells.begin; cell < s->player_cells.end; ++cell) {
-        draw_command* c = sa_alloc(alloc, sizeof(*c));
-        c->type = DRAW_COMMAND_DRAW_RECTANGLE;
-        c->data.rect.x = (i32)cell->x * cell_size_x;
-        c->data.rect.y = (i32)cell->y * cell_size_y;
-        c->data.rect.w = cell_size_x;
-        c->data.rect.h = cell_size_y;
-        c->data.rect.color = 0x00FFFFFF; // White
-    }
-    
-    // Render the reward rectangle
-    {
-        draw_command* c = sa_alloc(alloc, sizeof(*c));
-        c->type = DRAW_COMMAND_DRAW_RECTANGLE;
-        c->data.rect.x = (i32)s->reward.x * cell_size_x;
-        c->data.rect.y = (i32)s->reward.y * cell_size_y;
-        c->data.rect.w = cell_size_x;
-        c->data.rect.h = cell_size_y;
-        c->data.rect.color = 0x0000FF00; // Green
-    }
+i32 snake_get_grid_width(snake* s) {
+    return s->grid_width;
+}
 
-    *command_count = bytesize(cmds, alloc->cursor) / sizeof(draw_command);
+i32 snake_get_grid_height(snake* s) {
+    return s->grid_height;
+}
 
-    return cmds;
+void snake_get_player_cells(snake* s, position** begin, position** end) {
+    if (begin) *begin = s->player_cells.begin;
+    if (end)   *end = s->player_cells.end;
+}
+
+position snake_get_reward(snake* s) {
+    return s->reward;
 }

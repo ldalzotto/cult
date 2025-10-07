@@ -1,4 +1,5 @@
 #include "snake.h"
+#include "snake_render.h"
 #include "primitive.h"
 #include "mem.h"
 #include "stack_alloc.h"

@@ -1,7 +1,8 @@
 #include "test_snake.h"
 #include "print.h"
 #include "mem.h"
-#include "../src/apps/snake/snake.h"
+#include "snake/snake.h"
+#include "snake/snake_render.h"
 
 /*
     The snake module performs a movement only when enough time us has been elapsed

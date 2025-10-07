@@ -2,6 +2,7 @@
 #define SNAKE_H
 
 #include "stack_alloc.h"
+#include "snake_grid.h"
 
 typedef struct snake snake;
 snake* snake_init(stack_alloc* alloc);
@@ -27,28 +28,10 @@ typedef enum {
 
 snake_update_result snake_update(snake* s, snake_input input, u64 frame_us, stack_alloc* alloc);
 
-typedef enum {
-    DRAW_COMMAND_CLEAR_BACKGROUND,
-    DRAW_COMMAND_DRAW_RECTANGLE
-} draw_command_type;
-
-typedef struct draw_clear_background {
-    u32 color; // RGBA
-} draw_clear_background;
-
-typedef struct draw_rectangle {
-    i32 x, y, w, h;
-    u32 color;
-} draw_rectangle;
-
-typedef struct draw_command {
-    draw_command_type type;
-    union {
-        draw_clear_background clear_bg;
-        draw_rectangle rect;
-    } data;
-} draw_command;
-
-draw_command* snake_render(snake* s, u32 screen_width, u32 screen_height, u32* command_count, stack_alloc* alloc);
+/* Accessors for opaque snake state (used by renderer and other modules). */
+i32 snake_get_grid_width(snake* s);
+i32 snake_get_grid_height(snake* s);
+void snake_get_player_cells(snake* s, position** begin, position** end);
+position snake_get_reward(snake* s);
 
 #endif /*SNAKE_H*/
