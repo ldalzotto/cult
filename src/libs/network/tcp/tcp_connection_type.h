@@ -9,4 +9,4 @@ struct tcp {
     struct addrinfo* chosen;
 };
 
-#endif /*TCP_CONNECTION_TYPE_H*/
+#endif /* TCP_CONNECTION_TYPE_H */

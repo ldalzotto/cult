@@ -1,4 +1,3 @@
-
 #include "tcp_connection.h"
 #include "tcp_connection_type.h"
 #include "mem.h"
@@ -12,8 +11,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
-#include <errno.h>
-
 
 static size_t slice_len(u8_slice s) {
     return bytesize(s.begin, s.end);
@@ -33,7 +30,6 @@ tcp* tcp_init_client(u8_slice host, u8_slice port, stack_alloc* alloc) {
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_family = AF_UNSPEC;
     hints.ai_protocol = IPPROTO_TCP;
-    /* No AI_PASSIVE for client. */
 
     char* host_c = make_cstr_from_slice(alloc, host);
     char* port_c = make_cstr_from_slice(alloc, port);
@@ -54,7 +50,7 @@ tcp* tcp_init_client(u8_slice host, u8_slice port, stack_alloc* alloc) {
         return connection;
     }
 
-    /* Create a socket for the first address that works (do not connect yet). */
+    /* create a socket for the first usable addrinfo (do not connect) */
     for (struct addrinfo* rp = res; rp; rp = rp->ai_next) {
         int fd = (int)socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
         if (fd < 0) continue;
@@ -64,7 +60,6 @@ tcp* tcp_init_client(u8_slice host, u8_slice port, stack_alloc* alloc) {
     }
 
     if (connection->fd == file_invalid()) {
-        /* no socket could be created for any addrinfo */
         freeaddrinfo(res);
         connection->res = NULL;
         return connection;
@@ -79,7 +74,7 @@ tcp* tcp_init_server(u8_slice host, u8_slice port, stack_alloc* alloc) {
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_family = AF_UNSPEC;
     hints.ai_protocol = IPPROTO_TCP;
-    hints.ai_flags = AI_PASSIVE; /* suitable for bind() */
+    hints.ai_flags = AI_PASSIVE;
 
     char* host_c = NULL;
     size_t hlen = slice_len(host);
@@ -92,7 +87,6 @@ tcp* tcp_init_server(u8_slice host, u8_slice port, stack_alloc* alloc) {
     int gai = getaddrinfo((const char*)host_c, (const char*)port_c, &hints, &res);
     sa_free(alloc, (u8*)port_c);
     if (host_c) sa_free(alloc, (u8*)host_c);
-    
 
     if (gai != 0) {
         const char* error = gai_strerror(gai);
@@ -101,12 +95,11 @@ tcp* tcp_init_server(u8_slice host, u8_slice port, stack_alloc* alloc) {
     }
 
     tcp* connection = sa_alloc(alloc, sizeof(tcp));
-
     connection->res = res;
     connection->chosen = NULL;
     connection->fd = file_invalid();
 
-    /* Try to create, bind and listen for each addrinfo until success. */
+    /* try to create, bind and listen for each addrinfo */
     for (struct addrinfo* rp = res; rp; rp = rp->ai_next) {
         int fd = (int)socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
         if (fd < 0) continue;
@@ -130,7 +123,6 @@ tcp* tcp_init_server(u8_slice host, u8_slice port, stack_alloc* alloc) {
     }
 
     if (connection->fd == file_invalid()) {
-        /* failed to bind/listen on any addrinfo */
         freeaddrinfo(res);
         connection->res = NULL;
         return connection;
@@ -148,9 +140,6 @@ u8 tcp_connect(tcp* connection) {
     return rc == 0;
 }
 
-/* Accept an incoming connection on a listening server socket and return a new
-   tcp handle representing the accepted client socket. The returned tcp has
-   res and chosen set to NULL because accept() does not provide addrinfo. */
 tcp* tcp_accept(tcp* server, stack_alloc* alloc) {
     debug_assert(server->fd != file_invalid());
 
@@ -168,8 +157,6 @@ tcp* tcp_accept(tcp* server, stack_alloc* alloc) {
     return connection;
 }
 
-
-/* Set or clear non-blocking mode on the socket. */
 u8 tcp_set_nonblocking(tcp* connection, u8 nonblocking) {
     debug_assert(connection->fd != file_invalid());
 
@@ -178,10 +165,10 @@ u8 tcp_set_nonblocking(tcp* connection, u8 nonblocking) {
     if (flags == -1) return -1;
 
     if (nonblocking) {
-        if (flags & O_NONBLOCK) return 0; /* already non-blocking */
+        if (flags & O_NONBLOCK) return 0;
         if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) return 0;
     } else {
-        if (!(flags & O_NONBLOCK)) return 0; /* already blocking */
+        if (!(flags & O_NONBLOCK)) return 0;
         if (fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) == -1) return 0;
     }
     return 1;
@@ -189,30 +176,26 @@ u8 tcp_set_nonblocking(tcp* connection, u8 nonblocking) {
 
 u8 tcp_is_writable(tcp* connection) {
     fd_set writefds;
-    struct timeval timeout = {0, 0}; // zero timeout → non-blocking
+    struct timeval timeout = {0, 0};
 
     FD_ZERO(&writefds);
     FD_SET(connection->fd, &writefds);
 
     int result = select(connection->fd + 1, NULL, &writefds, NULL, &timeout);
-    if (result < 0) {
-        return 0;
-    }
+    if (result < 0) return 0;
 
     return (result > 0) && FD_ISSET(connection->fd, &writefds);
 }
 
 u8 tcp_is_readable(tcp* connection) {
     fd_set readfds;
-    struct timeval timeout = {0, 0}; // zero timeout → non-blocking
+    struct timeval timeout = {0, 0};
 
     FD_ZERO(&readfds);
     FD_SET(connection->fd, &readfds);
 
     int result = select(connection->fd + 1, &readfds, NULL, NULL, &timeout);
-    if (result < 0) {
-        return 0;
-    }
+    if (result < 0) return 0;
 
     return (result > 0) && FD_ISSET(connection->fd, &readfds);
 }

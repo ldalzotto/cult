@@ -1,4 +1,3 @@
-
 #include "tcp_read_write.h"
 #include "tcp_connection_type.h"
 
@@ -12,12 +11,10 @@ tcp_r_result tcp_read_once(tcp* connection, stack_alloc* alloc, uptr max_len) {
 
     if (connection->fd == file_invalid()) return res;
     if (max_len == 0) {
-        /* Nothing to read */
         res.status = TCP_RW_OK;
         return res;
     }
 
-    /* Allocate buffer directly from the provided stack allocator. */
     void* buf = alloc->cursor;
 
     ssize_t rc = recv((int)connection->fd, buf, max_len, 0);
@@ -26,11 +23,9 @@ tcp_r_result tcp_read_once(tcp* connection, stack_alloc* alloc, uptr max_len) {
         res.status = TCP_RW_OK;
         return res;
     } else if (rc == 0) {
-        /* orderly shutdown by peer */
         res.status = TCP_RW_EOF;
         return res;
     } else {
-        /* rc == -1 : error, errno preserved by recv */
         res.status = TCP_RW_ERR;
         return res;
     }
