@@ -1,12 +1,4 @@
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/select.h>
 
 #include "mem.h"
 #include "stack_alloc.h"
@@ -32,46 +24,23 @@ static void test_tcp_nonblocking_single_threaded(test_context* t) {
     /* Prepare allocator */
     uptr size = 64 * 1024;
     void* pointer = mem_map(size);
-    TEST_ASSERT_EQUAL(t, (int)(pointer != NULL), 1);
+    TEST_ASSERT_TRUE(t, pointer != 0);
     stack_alloc alloc;
     sa_init(&alloc, pointer, byteoffset(pointer, size));
 
     /* Build host slice */
-    u8 host_buf[] = "127.0.0.1";
-    u8_slice host = { host_buf, byteoffset(host_buf, mem_cstrlen(host_buf)) };
+    string _host = STR("127.0.0.1");
+    u8_slice host = {(void*)_host.begin, (void*)_host.end};
 
-    /* Create server listening on ephemeral port "0" */
-    u8 port_zero[] = "0";
-    u8_slice port0 = { port_zero, byteoffset(port_zero, mem_cstrlen(port_zero)) };
-    tcp* server = tcp_init_server(host, port0, &alloc);
-    TEST_ASSERT_TRUE(t, server != NULL);
+    string _port = STR("8000");
+    u8_slice port = {(void*)_port.begin, (void*)_port.end};
+    tcp* server = tcp_init_server(host, port, &alloc);
+    TEST_ASSERT_TRUE(t, server != 0);
     TEST_ASSERT_NOT_EQUAL(t, (int)tcp_get_interal(server), (int)file_invalid());
 
-    /* Discover the port assigned */
-    struct sockaddr_storage bound;
-    socklen_t bound_len = sizeof(bound);
-    int gs = getsockname((int)tcp_get_interal(server), (struct sockaddr*)&bound, &bound_len);
-    TEST_ASSERT_EQUAL(t, gs, 0);
-
-    uint16_t port = 0;
-    if (bound.ss_family == AF_INET) {
-        struct sockaddr_in* sin = (struct sockaddr_in*)&bound;
-        port = ntohs(sin->sin_port);
-    } else if (bound.ss_family == AF_INET6) {
-        struct sockaddr_in6* sin6 = (struct sockaddr_in6*)&bound;
-        port = ntohs(sin6->sin6_port);
-    } else {
-        TEST_ASSERT_TRUE(t, 0); /* unexpected address family */
-    }
-
-    /* Prepare port string for client */
-    char port_buf[32];
-    snprintf(port_buf, sizeof(port_buf), "%u", (unsigned)port);
-    u8_slice port_slice = { (u8*)port_buf, byteoffset(port_buf, mem_cstrlen(port_buf)) };
-
     /* Create client handle (socket created, not yet connected) */
-    tcp* client = tcp_init_client(host, port_slice, &alloc);
-    TEST_ASSERT_TRUE(t, client != NULL);
+    tcp* client = tcp_init_client(host, port, &alloc);
+    TEST_ASSERT_TRUE(t, client != 0);
     TEST_ASSERT_NOT_EQUAL(t, (int)tcp_get_interal(client), (int)file_invalid());
 
     /* Perform connect (blocking) to ensure the server has an incoming connection
@@ -82,7 +51,7 @@ static void test_tcp_nonblocking_single_threaded(test_context* t) {
 
     /* Accept the incoming connection on the server (blocking accept is fine here). */
     tcp* server_peer = tcp_accept(server, &alloc);
-    TEST_ASSERT_TRUE(t, server_peer != NULL);
+    TEST_ASSERT_TRUE(t, server_peer != 0);
     TEST_ASSERT_NOT_EQUAL(t, (int)tcp_get_interal(server_peer), (int)file_invalid());
 
     /* Now set the client and the accepted server peer sockets to non-blocking. */
@@ -156,7 +125,7 @@ static void test_tcp_nonblocking_single_threaded(test_context* t) {
     TEST_ASSERT_EQUAL(t, (int)bytes_received, (int)msg_len);
     if (bytes_received == msg_len) {
         /* Compare contents */
-        int eq = memcmp(recv_buffer.begin, msg, (size_t)msg_len) == 0;
+        u8 eq = sa_equals(&alloc, recv_buffer.begin, byteoffset(recv_buffer.begin, msg_len), msg, byteoffset(msg, msg_len));
         TEST_ASSERT_TRUE(t, eq);
     }
 
