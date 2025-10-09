@@ -1,5 +1,6 @@
 
 #include "tcp_connection.h"
+#include "tcp_connection_type.h"
 #include "mem.h"
 #include "print.h"
 #include "assert.h"
@@ -13,11 +14,6 @@
 #include <fcntl.h>
 #include <errno.h>
 
-struct tcp {
-    file_t fd;
-    struct addrinfo* res;
-    struct addrinfo* chosen;
-};
 
 static size_t slice_len(u8_slice s) {
     return bytesize(s.begin, s.end);
@@ -94,8 +90,9 @@ tcp* tcp_init_server(u8_slice host, u8_slice port, stack_alloc* alloc) {
 
     struct addrinfo* res = NULL;
     int gai = getaddrinfo((const char*)host_c, (const char*)port_c, &hints, &res);
-    if (host_c) sa_free(alloc, (u8*)host_c);
     sa_free(alloc, (u8*)port_c);
+    if (host_c) sa_free(alloc, (u8*)host_c);
+    
 
     if (gai != 0) {
         const char* error = gai_strerror(gai);

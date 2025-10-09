@@ -155,10 +155,12 @@ coding_o = $(lzss_o) \
 
 CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS)
 $(eval $(call make_object, tcp_connection_o, $(SRC_DIR)/libs/network/tcp/tcp_connection.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, tcp_read_write_o, $(SRC_DIR)/libs/network/tcp/tcp_read_write.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, https_request_o, $(SRC_DIR)/libs/network/https/https_request.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 
 network_o = $(https_request_o) \
-			$(tcp_connection_o)
+			$(tcp_connection_o) \
+			$(tcp_read_write_o)
 
 NETWORK_LFLAGS := -lssl
 

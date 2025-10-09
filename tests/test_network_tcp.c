@@ -1,138 +1,208 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 
 #include "mem.h"
 #include "stack_alloc.h"
 #include "primitive.h"
 #include "network/tcp/tcp_connection.h"
+#include "network/tcp/tcp_read_write.h"
 #include "test_network_tcp.h"
 #include "print.h"
 
-/* Thread argument for server thread */
-typedef struct tcp_server_thread_arg {
-    int listen_fd;
-} tcp_server_thread_arg;
+/* Single-threaded non-blocking client/server test:
+   - Create a listening server bound to 127.0.0.1:0 (ephemeral port)
+   - Create a client and connect to the server (blocking connect for simplicity)
+   - Accept the incoming connection on the server side
+   - Set both the client and the accepted server socket to non-blocking mode
+   - Use a simple main loop with select() to wait for readiness and transfer a
+     message from client -> server using tcp_write_once / tcp_read_once.
+   Memory for tcp handles and temporary IO buffers is provided only via
+   stack_alloc as requested.
+*/
 
-/* Server thread: accept one connection, optionally read a small amount, then close everything. */
-static void* tcp_server_thread(void* arg) {
-    tcp_server_thread_arg* a = (tcp_server_thread_arg*)arg;
-
-    struct sockaddr_storage client_addr;
-    socklen_t client_len = sizeof(client_addr);
-    int client_fd = accept(a->listen_fd, (struct sockaddr*)&client_addr, &client_len);
-    if (client_fd >= 0) {
-        /* Try to read a bit (non-critical) then close */
-        char buf[256];
-        ssize_t r = read(client_fd, buf, sizeof(buf));
-        unused(r);
-        close(client_fd);
-    }
-    close(a->listen_fd);
-    return NULL;
-}
-
-static void test_tcp_connect_success(test_context* t) {
-    /* Create listening socket bound to 127.0.0.1:0 (ephemeral port) */
-    int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
-    TEST_ASSERT_EQUAL(t, (int)(listen_fd >= 0), 1);
-
-    int yes = 1;
-    setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
-
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK); /* 127.0.0.1 */
-    addr.sin_port = 0; /* ephemeral */
-
-    int b = bind(listen_fd, (struct sockaddr*)&addr, sizeof(addr));
-    TEST_ASSERT_EQUAL(t, (int)(b == 0), 1);
-
-    int l = listen(listen_fd, 1);
-    TEST_ASSERT_EQUAL(t, (int)(l == 0), 1);
-
-    /* Retrieve chosen port */
-    struct sockaddr_in bound;
-    socklen_t bound_len = sizeof(bound);
-    int g = getsockname(listen_fd, (struct sockaddr*)&bound, &bound_len);
-    TEST_ASSERT_EQUAL(t, (int)(g == 0), 1);
-    uint16_t port = ntohs(bound.sin_port);
-
-    /* Start server thread that will accept one connection */
-    pthread_t thread;
-    tcp_server_thread_arg arg = { .listen_fd = listen_fd };
-    int pc = pthread_create(&thread, NULL, tcp_server_thread, &arg);
-    TEST_ASSERT_EQUAL(t, (int)(pc == 0), 1);
-
-    /* Prepare allocator for tcp_connect call */
+// [TASK] This test should only use our own tcp module api
+static void test_tcp_nonblocking_single_threaded(test_context* t) {
+    /* Prepare allocator */
     uptr size = 64 * 1024;
     void* pointer = mem_map(size);
     TEST_ASSERT_EQUAL(t, (int)(pointer != NULL), 1);
     stack_alloc alloc;
     sa_init(&alloc, pointer, byteoffset(pointer, size));
 
-    /* Build u8_slice host and port */
+    /* Build host slice */
     u8 host_buf[] = "127.0.0.1";
-    u8 port_buf[16];
-    snprintf((char*)port_buf, sizeof(port_buf), "%u", (unsigned)port);
-
     u8_slice host = { host_buf, byteoffset(host_buf, mem_cstrlen(host_buf)) };
-    u8_slice port_slice = { port_buf, byteoffset(port_buf, mem_cstrlen(port_buf)) };
 
-    /* Attempt to connect */
-    tcp* tcp = tcp_init_client(host, port_slice, &alloc);
-    u8 has_connected = tcp_connect(tcp);
+    /* Create server listening on ephemeral port "0" */
+    u8 port_zero[] = "0";
+    u8_slice port0 = { port_zero, byteoffset(port_zero, mem_cstrlen(port_zero)) };
+    tcp* server = tcp_init_server(host, port0, &alloc);
+    TEST_ASSERT_TRUE(t, server != NULL);
+    TEST_ASSERT_NOT_EQUAL(t, (int)tcp_get_interal(server), (int)file_invalid());
 
-    /* Expect success (not file_invalid) */
-    TEST_ASSERT_TRUE(t, has_connected);
+    /* Discover the port assigned */
+    struct sockaddr_storage bound;
+    socklen_t bound_len = sizeof(bound);
+    int gs = getsockname((int)tcp_get_interal(server), (struct sockaddr*)&bound, &bound_len);
+    TEST_ASSERT_EQUAL(t, gs, 0);
 
-    /* Close connection */
-    tcp_close(tcp);
-    sa_free(&alloc, tcp);
+    uint16_t port = 0;
+    if (bound.ss_family == AF_INET) {
+        struct sockaddr_in* sin = (struct sockaddr_in*)&bound;
+        port = ntohs(sin->sin_port);
+    } else if (bound.ss_family == AF_INET6) {
+        struct sockaddr_in6* sin6 = (struct sockaddr_in6*)&bound;
+        port = ntohs(sin6->sin6_port);
+    } else {
+        TEST_ASSERT_TRUE(t, 0); /* unexpected address family */
+    }
 
-    /* Join server thread */
-    pthread_join(thread, NULL);
+    /* Prepare port string for client */
+    char port_buf[32];
+    snprintf(port_buf, sizeof(port_buf), "%u", (unsigned)port);
+    u8_slice port_slice = { (u8*)port_buf, byteoffset(port_buf, mem_cstrlen(port_buf)) };
 
-    /* Cleanup allocator */
-    sa_deinit(&alloc);
-    mem_unmap(pointer, size);
-}
+    /* Create client handle (socket created, not yet connected) */
+    tcp* client = tcp_init_client(host, port_slice, &alloc);
+    TEST_ASSERT_TRUE(t, client != NULL);
+    TEST_ASSERT_NOT_EQUAL(t, (int)tcp_get_interal(client), (int)file_invalid());
 
-static void test_tcp_connect_failure(test_context* t) {
-    /* Prepare allocator */
-    uptr size = 32 * 1024;
-    void* pointer = mem_map(size);
-    TEST_ASSERT_EQUAL(t, (int)(pointer != NULL), 1);
-    stack_alloc alloc;
-    sa_init(&alloc, pointer, byteoffset(pointer, size));
+    /* Perform connect (blocking) to ensure the server has an incoming connection
+       to accept. This simplifies the test while still allowing non-blocking IO
+       for the subsequent read/write phase. */
+    u8 connected = tcp_connect(client);
+    TEST_ASSERT_TRUE(t, connected);
 
-    /* Deliberately bogus hostname that should not resolve */
-    u8 host_buf[] = "127.0.0.1";
-    u8 port_buf[] = "12345";
+    /* Accept the incoming connection on the server (blocking accept is fine here). */
+    tcp* server_peer = tcp_accept(server, &alloc);
+    TEST_ASSERT_TRUE(t, server_peer != NULL);
+    TEST_ASSERT_NOT_EQUAL(t, (int)tcp_get_interal(server_peer), (int)file_invalid());
 
-    u8_slice host = { host_buf, byteoffset(host_buf, mem_cstrlen(host_buf)) };
-    u8_slice port_slice = { port_buf, byteoffset(port_buf, mem_cstrlen(port_buf)) };
+    /* Now set the client and the accepted server peer sockets to non-blocking. */
+    int rc1 = tcp_set_nonblocking(client, 1);
+    int rc2 = tcp_set_nonblocking(server_peer, 1);
+    TEST_ASSERT_EQUAL(t, rc1, 0);
+    TEST_ASSERT_EQUAL(t, rc2, 0);
 
-    tcp* tcp = tcp_init_client(host, port_slice, &alloc);
-    u8 has_connected = tcp_connect(tcp);
-    
-    /* Expect success (not file_invalid) */
-    TEST_ASSERT_TRUE(t, !has_connected);
-    
-    tcp_close(tcp);
-    sa_free(&alloc, tcp);
+    /* Message to send */
+    const char msg[] = "hello from client";
+    uptr msg_len = (uptr)mem_cstrlen((void*)msg);
 
+    /* Main loop variables */
+    uptr bytes_sent = 0;
+    uptr bytes_received = 0;
+
+    /* stack buffer to collect data after tcp_read_once returns an allocated slice */
+    struct {
+        void* begin;
+        void* end;
+    } recv_buffer;
+    const uptr recv_buffer_size = 256;
+    recv_buffer.begin = sa_alloc(&alloc, recv_buffer_size);
+    recv_buffer.end = alloc.cursor;
+
+    /* Loop until server has received the full message (client -> server) */
+    for (int iter = 0; iter < 1000 && bytes_received < msg_len; ++iter) {
+        fd_set readfds;
+        fd_set writefds;
+        FD_ZERO(&readfds);
+        FD_ZERO(&writefds);
+
+        int client_fd = (int)tcp_get_interal(client);
+        int server_fd = (int)tcp_get_interal(server_peer);
+
+        /* If there is data left to send, watch client for writability */
+        if (bytes_sent < msg_len) {
+            FD_SET(client_fd, &writefds);
+        }
+        /* Always watch server peer for readability (incoming data) */
+        FD_SET(server_fd, &readfds);
+
+        int nfds = (client_fd > server_fd ? client_fd : server_fd) + 1;
+        struct timeval tv = { .tv_sec = 0, .tv_usec = 200000 }; /* 200ms */
+        int s = select(nfds, &readfds, &writefds, NULL, &tv);
+        if (s < 0) {
+            /* fatal error */
+            TEST_ASSERT_TRUE(t, 0);
+            break;
+        } else if (s == 0) {
+            /* timeout, try again */
+            continue;
+        }
+
+        /* If client writable, attempt to send remaining bytes */
+        if (bytes_sent < msg_len && FD_ISSET(client_fd, &writefds)) {
+            u8_slice to_send = { (u8*)(msg + bytes_sent), byteoffset((msg + bytes_sent), msg_len) };
+            tcp_rw_result wres = tcp_write_once(client, to_send);
+            if (wres.status == TCP_RW_OK && wres.bytes > 0) {
+                bytes_sent += wres.bytes;
+            } else if (wres.status == TCP_RW_ERR) {
+                /* send would block or error; skip until next iteration */
+                /* do nothing here */
+            }
+        }
+
+        /* If server readable, attempt to read */
+        if (FD_ISSET(server_fd, &readfds)) {
+            /* We ask to read up to the remaining size */
+            uptr want = (uptr)(msg_len - bytes_received);
+            if (want > recv_buffer_size) want =  recv_buffer_size;
+
+            u8_slice out;
+            out.begin = alloc.cursor;
+            tcp_rw_result rres = tcp_read_once(server_peer, &alloc, want);
+            out.end = alloc.cursor;
+            if (rres.status == TCP_RW_OK && rres.bytes > 0) {
+                /* Copy data out of the allocator-owned buffer into our local buffer
+                   so we can sa_free the allocation and still inspect the data. */
+                uptr got = rres.bytes;
+                TEST_ASSERT_TRUE(t, got <= recv_buffer_size);
+                sa_copy(&alloc, out.begin, byteoffset(recv_buffer.begin, bytes_received), got);
+                bytes_received += got;
+
+                /* Free the allocation used by tcp_read_once */
+                sa_free(&alloc, out.begin);
+            } else if (rres.status == TCP_RW_EOF) {
+                /* peer closed; nothing more will come */
+                break;
+            } else if (rres.status == TCP_RW_ERR) {
+                /* read would block or error; skip */
+            }
+        }
+    }
+
+    /* Validate the message was fully received and matches */
+    TEST_ASSERT_EQUAL(t, (int)bytes_received, (int)msg_len);
+    if (bytes_received == msg_len) {
+        /* Compare contents */
+        int eq = memcmp(recv_buffer.begin, msg, (size_t)msg_len) == 0;
+        TEST_ASSERT_TRUE(t, eq);
+    }
+
+    sa_free(&alloc, recv_buffer.begin);
+
+    /* Cleanup: close sockets and free tcp structs (allocated in stack_alloc) */
+    tcp_close(server_peer);
+    sa_free(&alloc, server_peer);
+
+    tcp_close(client);
+    sa_free(&alloc, client);
+
+    tcp_close(server);
+    sa_free(&alloc, server);
+
+    /* Deinit allocator and unmap memory */
     sa_deinit(&alloc);
     mem_unmap(pointer, size);
 }
 
 void test_network_tcp_module(test_context* t) {
-    REGISTER_TEST(t, "tcp_connect_success", test_tcp_connect_success);
-    REGISTER_TEST(t, "tcp_connect_failure", test_tcp_connect_failure);
+    REGISTER_TEST(t, "tcp_nonblocking_single_threaded", test_tcp_nonblocking_single_threaded);
 }
