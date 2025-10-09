@@ -169,10 +169,7 @@ tcp* tcp_accept(tcp* server, stack_alloc* alloc) {
 }
 
 
-/* Set or clear non-blocking mode on the socket.
-   nonblocking != 0 -> set O_NONBLOCK
-   nonblocking == 0 -> clear O_NONBLOCK
-   Returns 0 on success, -1 on error (check errno). */
+/* Set or clear non-blocking mode on the socket. */
 u8 tcp_set_nonblocking(tcp* connection, u8 nonblocking) {
     debug_assert(connection->fd != file_invalid());
 

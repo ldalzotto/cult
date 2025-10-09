@@ -26,10 +26,7 @@ u8 tcp_connect(tcp* connection);
    tcp handle for the accepted client connection. */
 tcp* tcp_accept(tcp* server, stack_alloc* alloc);
 
-/* Set or clear non-blocking mode on the socket.
-   nonblocking != 0 -> set O_NONBLOCK
-   nonblocking == 0 -> clear O_NONBLOCK
-   Returns 0 on success, -1 on error (check errno). */
+/* Set or clear non-blocking mode on the socket.*/
 u8 tcp_set_nonblocking(tcp* connection, u8 nonblocking);
 
 u8 tcp_is_writable(tcp* connection);
