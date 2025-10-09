@@ -8,7 +8,8 @@
 #include "test_backtrace.h"
 #include "test_fps_ticker.h"
 #include "test_snake.h"
-#include "test_network.h"
+#include "test_network_https.h"
+#include "test_network_tcp.h"
 
 #include "print.h"
 #include "file.h"
@@ -62,7 +63,8 @@ int main(int argc, char* argv[]) {
     test_lzss_module(ctx);
     test_fps_ticker_module(ctx);
     test_snake_module(ctx);
-    test_network_module(ctx);
+    test_network_tcp_module(ctx);
+    test_network_https_module(ctx);
 
     // Run filtered tests
     test_run_filtered(ctx);

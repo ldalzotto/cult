@@ -1,4 +1,5 @@
 .cache
+.env
 .vscode
 build
 src/libs/elibs/X11
