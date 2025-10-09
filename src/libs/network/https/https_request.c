@@ -68,7 +68,7 @@ void* https_request_sync(stack_alloc* alloc, u8_slice host, u8_slice port, u8_sl
     // Disable certifications for now
     SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
 
-    tcp* tcp = tcp_init(host, port, alloc);
+    tcp* tcp = tcp_init_client(host, port, alloc);
     response.begin = alloc->cursor;
     response.end = alloc->cursor;
 

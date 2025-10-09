@@ -86,7 +86,7 @@ static void test_tcp_connect_success(test_context* t) {
     u8_slice port_slice = { port_buf, byteoffset(port_buf, mem_cstrlen(port_buf)) };
 
     /* Attempt to connect */
-    tcp* tcp = tcp_init(host, port_slice, &alloc);
+    tcp* tcp = tcp_init_client(host, port_slice, &alloc);
     u8 has_connected = tcp_connect(tcp);
 
     /* Expect success (not file_invalid) */
@@ -119,7 +119,7 @@ static void test_tcp_connect_failure(test_context* t) {
     u8_slice host = { host_buf, byteoffset(host_buf, mem_cstrlen(host_buf)) };
     u8_slice port_slice = { port_buf, byteoffset(port_buf, mem_cstrlen(port_buf)) };
 
-    tcp* tcp = tcp_init(host, port_slice, &alloc);
+    tcp* tcp = tcp_init_client(host, port_slice, &alloc);
     u8 has_connected = tcp_connect(tcp);
     
     /* Expect success (not file_invalid) */
