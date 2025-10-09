@@ -1,12 +1,20 @@
 #include "tcp_connection.h"
 #include "mem.h"
 #include "print.h"
+#include "assert.h"
 
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
 
-file_t tcp_connect(u8_slice host, u8_slice port, stack_alloc* alloc) {
+
+struct tcp {
+    file_t fd;
+    struct addrinfo* res;
+    struct addrinfo* chosen;
+};
+
+tcp* tcp_init(u8_slice host, u8_slice port, stack_alloc* alloc) {
     struct addrinfo hints;
     for  (u8* c = (u8*)&hints; c < (u8*)(&hints + 1); ++c) {*c = 0;}
     hints.ai_socktype = SOCK_STREAM;
@@ -29,25 +37,58 @@ file_t tcp_connect(u8_slice host, u8_slice port, stack_alloc* alloc) {
     if (gai != 0) {
         const char* error = gai_strerror(gai);
         print_format(file_stdout(), STRING("%s\n"), (string){error, byteoffset(error, mem_cstrlen((void*)error))});
-        return file_invalid();
+        return NULL;
     } 
 
-    int fd = file_invalid();
+    tcp* connection = sa_alloc(alloc, sizeof(tcp));
+    for (u8* c = (u8*)connection; c < (u8*)(connection + 1); ++c) {*c = 0;}
+
+    connection->res = res;
+    connection->chosen = NULL;
+    connection->fd = file_invalid();
+
+    /* Only create the socket here (from the old tcp_connect) -- do not call connect(). */
     for (struct addrinfo* rp = res; rp; rp = rp->ai_next) {
-        fd = (int)socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        int fd = (int)socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
         if (fd < 0) continue;
-        if (connect(fd, rp->ai_addr, rp->ai_addrlen) == 0) {
-            break; // success
-        }
-        close(fd);
-        fd = file_invalid();
+        connection->fd = (file_t)fd;
+        connection->chosen = rp;
+        break;
     }
 
-    freeaddrinfo(res);
-    return fd;
+    if (connection->fd == file_invalid()) {
+        /* no socket could be created for any addrinfo */
+        freeaddrinfo(res);
+        sa_free(alloc, connection);
+        return NULL;
+    }
+
+    return connection;
 }
 
-void tcp_close(file_t connection) {
-    close(connection);
+u8 tcp_connect(tcp* connection) {
+    debug_assert(connection->fd != file_invalid());
+    debug_assert(connection->chosen != NULL);
+
+    int rc = connect((int)connection->fd, connection->chosen->ai_addr, connection->chosen->ai_addrlen);
+    return rc == 0;
 }
 
+file_t tcp_get_interal(tcp* connection) {
+    return connection->fd;
+}
+
+void tcp_close(tcp* connection) {
+    if (!connection) return;
+
+    if (connection->fd != file_invalid()) {
+        close((int)connection->fd);
+        connection->fd = file_invalid();
+    }
+
+    if (connection->res) {
+        freeaddrinfo(connection->res);
+        connection->res = NULL;
+        connection->chosen = NULL;
+    }
+}

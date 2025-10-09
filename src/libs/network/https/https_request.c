@@ -68,12 +68,15 @@ void* https_request_sync(stack_alloc* alloc, u8_slice host, u8_slice port, u8_sl
     // Disable certifications for now
     SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
 
-    file_t tcp = tcp_connect(host, port, alloc);
-    if (tcp == file_invalid()) {
-        goto deinit_tcp_connect;
+    tcp* tcp = tcp_init(host, port, alloc);
+    response.begin = alloc->cursor;
+    response.end = alloc->cursor;
+
+    if (!tcp_connect(tcp)) {
+        goto deinit_ssl_connect;
     }
 
-    SSL_set_fd(ssl, tcp);
+    SSL_set_fd(ssl, tcp_get_interal(tcp));
 
     void* host_null_terminated = sa_alloc(alloc, bytesize(host.begin, host.end) + 1);
     sa_copy(alloc, host.begin, host_null_terminated, bytesize(host.begin, host.end));
@@ -98,13 +101,13 @@ void* https_request_sync(stack_alloc* alloc, u8_slice host, u8_slice port, u8_sl
     SSL_shutdown(ssl);
 deinit_ssl_connect:
     tcp_close(tcp);
-deinit_tcp_connect:
     SSL_free(ssl);
 deinit_ssl:
     SSL_CTX_free(ctx);
 deinit_ssl_ctx:
 deinit_method:
 
+    // This will free the memory allocated to the tcp as well
     sa_move_tail(alloc, response.begin, begin);
 
     return begin;

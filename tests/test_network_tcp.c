@@ -86,13 +86,15 @@ static void test_tcp_connect_success(test_context* t) {
     u8_slice port_slice = { port_buf, byteoffset(port_buf, mem_cstrlen(port_buf)) };
 
     /* Attempt to connect */
-    file_t conn = tcp_connect(host, port_slice, &alloc);
+    tcp* tcp = tcp_init(host, port_slice, &alloc);
+    u8 has_connected = tcp_connect(tcp);
 
     /* Expect success (not file_invalid) */
-    TEST_ASSERT_EQUAL(t, (int)(conn != file_invalid()), 1);
+    TEST_ASSERT_TRUE(t, has_connected);
 
     /* Close connection */
-    tcp_close(conn);
+    tcp_close(tcp);
+    sa_free(&alloc, tcp);
 
     /* Join server thread */
     pthread_join(thread, NULL);
@@ -111,16 +113,20 @@ static void test_tcp_connect_failure(test_context* t) {
     sa_init(&alloc, pointer, byteoffset(pointer, size));
 
     /* Deliberately bogus hostname that should not resolve */
-    u8 host_buf[] = "no-such-hostname-for-unit-test.invalid";
+    u8 host_buf[] = "127.0.0.1";
     u8 port_buf[] = "12345";
 
     u8_slice host = { host_buf, byteoffset(host_buf, mem_cstrlen(host_buf)) };
     u8_slice port_slice = { port_buf, byteoffset(port_buf, mem_cstrlen(port_buf)) };
 
-    file_t conn = tcp_connect(host, port_slice, &alloc);
-
-    /* Expect failure (file_invalid) */
-    TEST_ASSERT_EQUAL(t, (int)(conn == file_invalid()), 1);
+    tcp* tcp = tcp_init(host, port_slice, &alloc);
+    u8 has_connected = tcp_connect(tcp);
+    
+    /* Expect success (not file_invalid) */
+    TEST_ASSERT_TRUE(t, !has_connected);
+    
+    tcp_close(tcp);
+    sa_free(&alloc, tcp);
 
     sa_deinit(&alloc);
     mem_unmap(pointer, size);

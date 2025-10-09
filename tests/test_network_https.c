@@ -21,7 +21,7 @@ static void test_https_request_returns_initial_pointer_on_failed_resolve(test_co
     /* Save begin cursor */
     void* begin = alloc.cursor;
 
-    u8 host_buf[] = "no-such-hostname-for-unit-test.invalid";
+    u8 host_buf[] = "127.0.0.1";
     u8 port_buf[] = "443";
     u8 req_buf[] = "GET / HTTP/1.0\r\nHost: no-such-hostname-for-unit-test.invalid\r\n\r\n";
 

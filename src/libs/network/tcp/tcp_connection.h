@@ -5,7 +5,10 @@
 #include "stack_alloc.h"
 #include "file.h"
 
-file_t tcp_connect(u8_slice host, u8_slice port, stack_alloc* alloc);
-void tcp_close(file_t connection);
+typedef struct tcp tcp;
+tcp* tcp_init(u8_slice host, u8_slice port, stack_alloc* alloc);
+u8 tcp_connect(tcp* connection);
+file_t tcp_get_interal(tcp* connection);
+void tcp_close(tcp* connection);
 
 #endif /*TCP_CONNECTION_H*/
