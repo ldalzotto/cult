@@ -173,7 +173,7 @@ tcp* tcp_accept(tcp* server, stack_alloc* alloc) {
    nonblocking != 0 -> set O_NONBLOCK
    nonblocking == 0 -> clear O_NONBLOCK
    Returns 0 on success, -1 on error (check errno). */
-int tcp_set_nonblocking(tcp* connection, u8 nonblocking) {
+u8 tcp_set_nonblocking(tcp* connection, u8 nonblocking) {
     debug_assert(connection->fd != file_invalid());
 
     int fd = (int)connection->fd;
@@ -182,12 +182,42 @@ int tcp_set_nonblocking(tcp* connection, u8 nonblocking) {
 
     if (nonblocking) {
         if (flags & O_NONBLOCK) return 0; /* already non-blocking */
-        if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) return -1;
+        if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) return 0;
     } else {
         if (!(flags & O_NONBLOCK)) return 0; /* already blocking */
-        if (fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) == -1) return -1;
+        if (fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) == -1) return 0;
     }
-    return 0;
+    return 1;
+}
+
+u8 tcp_is_writable(tcp* connection) {
+    fd_set writefds;
+    struct timeval timeout = {0, 0}; // zero timeout → non-blocking
+
+    FD_ZERO(&writefds);
+    FD_SET(connection->fd, &writefds);
+
+    int result = select(connection->fd + 1, NULL, &writefds, NULL, &timeout);
+    if (result < 0) {
+        return 0;
+    }
+
+    return (result > 0) && FD_ISSET(connection->fd, &writefds);
+}
+
+u8 tcp_is_readable(tcp* connection) {
+    fd_set readfds;
+    struct timeval timeout = {0, 0}; // zero timeout → non-blocking
+
+    FD_ZERO(&readfds);
+    FD_SET(connection->fd, &readfds);
+
+    int result = select(connection->fd + 1, &readfds, NULL, NULL, &timeout);
+    if (result < 0) {
+        return 0;
+    }
+
+    return (result > 0) && FD_ISSET(connection->fd, &readfds);
 }
 
 file_t tcp_get_interal(tcp* connection) {

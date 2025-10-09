@@ -86,10 +86,10 @@ static void test_tcp_nonblocking_single_threaded(test_context* t) {
     TEST_ASSERT_NOT_EQUAL(t, (int)tcp_get_interal(server_peer), (int)file_invalid());
 
     /* Now set the client and the accepted server peer sockets to non-blocking. */
-    int rc1 = tcp_set_nonblocking(client, 1);
-    int rc2 = tcp_set_nonblocking(server_peer, 1);
-    TEST_ASSERT_EQUAL(t, rc1, 0);
-    TEST_ASSERT_EQUAL(t, rc2, 0);
+    u8 rc1 = tcp_set_nonblocking(client, 1);
+    u8 rc2 = tcp_set_nonblocking(server_peer, 1);
+    TEST_ASSERT_EQUAL(t, rc1, 1);
+    TEST_ASSERT_EQUAL(t, rc2, 1);
 
     /* Message to send */
     const char msg[] = "hello from client";
@@ -109,36 +109,10 @@ static void test_tcp_nonblocking_single_threaded(test_context* t) {
     recv_buffer.end = alloc.cursor;
 
     /* Loop until server has received the full message (client -> server) */
-    for (int iter = 0; iter < 1000 && bytes_received < msg_len; ++iter) {
-        fd_set readfds;
-        fd_set writefds;
-        FD_ZERO(&readfds);
-        FD_ZERO(&writefds);
-
-        int client_fd = (int)tcp_get_interal(client);
-        int server_fd = (int)tcp_get_interal(server_peer);
-
-        /* If there is data left to send, watch client for writability */
-        if (bytes_sent < msg_len) {
-            FD_SET(client_fd, &writefds);
-        }
-        /* Always watch server peer for readability (incoming data) */
-        FD_SET(server_fd, &readfds);
-
-        int nfds = (client_fd > server_fd ? client_fd : server_fd) + 1;
-        struct timeval tv = { .tv_sec = 0, .tv_usec = 200000 }; /* 200ms */
-        int s = select(nfds, &readfds, &writefds, NULL, &tv);
-        if (s < 0) {
-            /* fatal error */
-            TEST_ASSERT_TRUE(t, 0);
-            break;
-        } else if (s == 0) {
-            /* timeout, try again */
-            continue;
-        }
+    for (i32 iter = 0; iter < 1000 && bytes_received < msg_len; ++iter) {
 
         /* If client writable, attempt to send remaining bytes */
-        if (bytes_sent < msg_len && FD_ISSET(client_fd, &writefds)) {
+        if (bytes_sent < msg_len && tcp_is_writable(client)) {
             u8_slice to_send = { (u8*)(msg + bytes_sent), byteoffset((msg + bytes_sent), msg_len) };
             tcp_w_result wres = tcp_write_once(client, to_send);
             if (wres.status == TCP_RW_OK && wres.bytes > 0) {
@@ -150,7 +124,7 @@ static void test_tcp_nonblocking_single_threaded(test_context* t) {
         }
 
         /* If server readable, attempt to read */
-        if (FD_ISSET(server_fd, &readfds)) {
+        if (tcp_is_readable(server_peer)) {
             /* We ask to read up to the remaining size */
             uptr want = (uptr)(msg_len - bytes_received);
             if (want > recv_buffer_size) want =  recv_buffer_size;

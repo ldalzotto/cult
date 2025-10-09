@@ -30,7 +30,10 @@ tcp* tcp_accept(tcp* server, stack_alloc* alloc);
    nonblocking != 0 -> set O_NONBLOCK
    nonblocking == 0 -> clear O_NONBLOCK
    Returns 0 on success, -1 on error (check errno). */
-int tcp_set_nonblocking(tcp* connection, u8 nonblocking);
+u8 tcp_set_nonblocking(tcp* connection, u8 nonblocking);
+
+u8 tcp_is_writable(tcp* connection);
+u8 tcp_is_readable(tcp* connection);
 
 /* Get the internal file/socket descriptor. */
 file_t tcp_get_interal(tcp* connection);
