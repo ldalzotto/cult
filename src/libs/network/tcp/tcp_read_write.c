@@ -1,3 +1,4 @@
+
 #include "tcp_read_write.h"
 #include "tcp_connection_type.h"
 
@@ -9,14 +10,9 @@ tcp_r_result tcp_read_once(tcp* connection, stack_alloc* alloc, uptr max_len) {
     tcp_r_result res;
     res.status = TCP_RW_ERR;
 
-    if (!connection) {
-        return res;
-    }
-    if (connection->fd == file_invalid()) {
-        return res;
-    }
+    if (connection->fd == file_invalid()) return res;
     if (max_len == 0) {
-        /* Nothing to read; not an error */
+        /* Nothing to read */
         res.status = TCP_RW_OK;
         return res;
     }
@@ -45,12 +41,7 @@ tcp_w_result tcp_write_once(tcp* connection, u8_slice data) {
     res.status = TCP_RW_ERR;
     res.bytes = 0;
 
-    if (!connection) {
-        return res;
-    }
-    if (connection->fd == file_invalid()) {
-        return res;
-    }
+    if (connection->fd == file_invalid()) return res;
 
     uptr len = bytesize(data.begin, data.end);
     if (len == 0) {
