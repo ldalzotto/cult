@@ -19,7 +19,6 @@
    stack_alloc as requested.
 */
 
-// [TASK] This test should only use our own tcp module api
 static void test_tcp_nonblocking_single_threaded(test_context* t) {
     /* Prepare allocator */
     uptr size = 64 * 1024;
