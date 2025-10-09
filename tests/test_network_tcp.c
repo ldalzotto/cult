@@ -140,7 +140,7 @@ static void test_tcp_nonblocking_single_threaded(test_context* t) {
         /* If client writable, attempt to send remaining bytes */
         if (bytes_sent < msg_len && FD_ISSET(client_fd, &writefds)) {
             u8_slice to_send = { (u8*)(msg + bytes_sent), byteoffset((msg + bytes_sent), msg_len) };
-            tcp_rw_result wres = tcp_write_once(client, to_send);
+            tcp_w_result wres = tcp_write_once(client, to_send);
             if (wres.status == TCP_RW_OK && wres.bytes > 0) {
                 bytes_sent += wres.bytes;
             } else if (wres.status == TCP_RW_ERR) {
@@ -157,12 +157,12 @@ static void test_tcp_nonblocking_single_threaded(test_context* t) {
 
             u8_slice out;
             out.begin = alloc.cursor;
-            tcp_rw_result rres = tcp_read_once(server_peer, &alloc, want);
+            tcp_r_result rres = tcp_read_once(server_peer, &alloc, want);
             out.end = alloc.cursor;
-            if (rres.status == TCP_RW_OK && rres.bytes > 0) {
+            if (rres.status == TCP_RW_OK && bytesize(out.begin, out.end) > 0) {
                 /* Copy data out of the allocator-owned buffer into our local buffer
                    so we can sa_free the allocation and still inspect the data. */
-                uptr got = rres.bytes;
+                uptr got = bytesize(out.begin, out.end);
                 TEST_ASSERT_TRUE(t, got <= recv_buffer_size);
                 sa_copy(&alloc, out.begin, byteoffset(recv_buffer.begin, bytes_received), got);
                 bytes_received += got;

@@ -5,10 +5,9 @@
 #include <unistd.h>
 #include <string.h>
 
-tcp_rw_result tcp_read_once(tcp* connection, stack_alloc* alloc, uptr max_len) {
-    tcp_rw_result res;
+tcp_r_result tcp_read_once(tcp* connection, stack_alloc* alloc, uptr max_len) {
+    tcp_r_result res;
     res.status = TCP_RW_ERR;
-    res.bytes = 0;
 
     if (!connection) {
         return res;
@@ -19,7 +18,6 @@ tcp_rw_result tcp_read_once(tcp* connection, stack_alloc* alloc, uptr max_len) {
     if (max_len == 0) {
         /* Nothing to read; not an error */
         res.status = TCP_RW_OK;
-        res.bytes = 0;
         return res;
     }
 
@@ -30,23 +28,20 @@ tcp_rw_result tcp_read_once(tcp* connection, stack_alloc* alloc, uptr max_len) {
     if (rc > 0) {
         alloc->cursor = byteoffset(alloc->cursor, rc);
         res.status = TCP_RW_OK;
-        res.bytes = (uptr)rc;
         return res;
     } else if (rc == 0) {
         /* orderly shutdown by peer */
         res.status = TCP_RW_EOF;
-        res.bytes = 0;
         return res;
     } else {
         /* rc == -1 : error, errno preserved by recv */
         res.status = TCP_RW_ERR;
-        res.bytes = 0;
         return res;
     }
 }
 
-tcp_rw_result tcp_write_once(tcp* connection, u8_slice data) {
-    tcp_rw_result res;
+tcp_w_result tcp_write_once(tcp* connection, u8_slice data) {
+    tcp_w_result res;
     res.status = TCP_RW_ERR;
     res.bytes = 0;
 
