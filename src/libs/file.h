@@ -32,6 +32,9 @@ uptr file_write(file_t file, const void* begin, const void* end);
 // Utility functions
 uptr file_size(file_t file);
 
+// Returns the modification time (milliseconds since epoch) for an open file handle.
+uptr file_modification_time(file_t file);
+
 typedef enum {
     DIR_MODE_DEFAULT, // typical user-accessible
     DIR_MODE_PRIVATE, // only owner
@@ -39,6 +42,7 @@ typedef enum {
 } dir_mode_t;
 
 i32 directory_create(stack_alloc* alloc, const u8* path_begin, const u8* path_end, dir_mode_t mode);
+i32 directory_create_for_file(stack_alloc *alloc, const u8 *path_begin, const u8 *path_end, dir_mode_t mode);
 i32 directory_remove(stack_alloc* alloc, const u8* path_begin, const u8* path_end);
 
 #endif /* FILE_H */

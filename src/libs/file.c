@@ -115,6 +115,29 @@ uptr file_size(file_t file) {
     return (uptr)size;
 }
 
+// Get modification time (milliseconds since epoch) for an open file handle.
+uptr file_modification_time(file_t file) {
+    debug_assert(file != file_invalid());
+    struct stat st;
+    if (fstat(file, &st) != 0) {
+        return 0;
+    }
+
+    // Extract nanoseconds in a portable way:
+    // On Linux/glibc st_mtim is available; on macOS use st_mtimespec.
+#if defined(__APPLE__) || defined(__MACH__)
+    long nsec = st.st_mtimespec.tv_nsec;
+#elif defined(_POSIX_VERSION)
+    long nsec = st.st_mtim.tv_nsec;
+#else
+    long nsec = 0;
+#endif
+
+    uptr secs = (uptr)st.st_mtime;
+    uptr millis = secs * 1000ULL + (uptr)(nsec / 1000000L);
+    return millis;
+}
+
 // Create directory recursively (like mkdir -p)
 i32 directory_create(stack_alloc* alloc, const u8* path_begin, const u8* path_end, dir_mode_t mode) {
 
@@ -158,6 +181,45 @@ i32 directory_create(stack_alloc* alloc, const u8* path_begin, const u8* path_en
     sa_free(alloc, path_buf);
     return 0;
 }
+
+i32 directory_create_for_file(stack_alloc *alloc, const u8 *path_begin, const u8 *path_end, dir_mode_t mode) {
+    if (!alloc || !path_begin || !path_end) {
+        return -1;
+    }
+
+    uptr path_len = bytesize(path_begin, path_end);
+    if (path_len == 0) {
+        return 0;
+    }
+
+    // Strip trailing slashes (e.g., "dir/subdir/" -> treat as "dir/subdir")
+    uptr len = path_len;
+    while (len > 0 && *(u8*)(byteoffset(path_begin, len - 1)) == '/') {
+        --len;
+    }
+    if (len == 0) {
+        return 0;
+    }
+
+    // Find last slash in the trimmed path
+    uptr last_slash = (uptr)-1;
+    for (uptr i = len; i-- > 0;) {
+        if (*(u8*)(byteoffset(path_begin, i)) == '/') {
+            last_slash = i;
+            break;
+        }
+    }
+
+    // No directory component (just a filename) or only leading slash -> nothing to create
+    if (last_slash == (uptr)-1 || last_slash == 0) {
+        return 0;
+    }
+
+    // Create directories for the parent path portion
+    const u8* dir_end = byteoffset(path_begin, last_slash);
+    return directory_create(alloc, path_begin, dir_end, mode);
+}
+
 
 // Node for our directory stack
 typedef struct {
