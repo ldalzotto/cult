@@ -2,6 +2,8 @@
 #include "primitive.h"
 #include "print.h"
 #include "file.h"
+#include "stack_alloc.h"
+#include "exec_command.h"
 
 #include <execinfo.h>
 #include <stdio.h>
@@ -26,21 +28,37 @@ void print_backtrace(file_t file) {
         stack_alloc alloc;
         sa_init(&alloc, cmd, byteoffset(cmd, sizeof(cmd)));
         print_format_to_buffer(&alloc, STRING("addr2line -e %s -f -C -i %p\0"), exe_path_str, buffer[i]);
-        FILE *fp = popen((char*)cmd, "r");
-        if (fp) {
-            u8 line[1024];
-            while (1) {
-                if (!fgets((char*)line, sizeof(line), fp)) {break;}
-                u8* end = line;
-                while (*end) {++end;};
-                
-                print_format(file, STRING("  [%d] %s"), i, (string){line, end});
-            }
-            pclose(fp);
-        } else {
-            print_format(file, STRING("  [%d] %p\n"), i, buffer[i]);
-        }
+        
+        u8* cmd_end = cmd;
+        while (*cmd_end) { ++cmd_end; }
+        string cmd_str = { cmd, cmd_end };
 
+        print_string(file_stdout(), cmd_str);
+
+        string result;
+        result.begin = exec_command(cmd_str, &alloc);
+        result.end = alloc.cursor;
+
+        {
+            const u8* cursor = result.begin;
+            const u8* line_begin = cursor;
+            while (1) {
+                if (cursor == result.end || *cursor == '\n') {
+                    const u8* line_end = cursor;
+                    if (bytesize(line_begin, line_end) > 0) {
+                        print_format(file, STRING("  [%d] %s\n"), i, (string){line_begin, line_end});
+                    }
+                    line_begin = byteoffset(cursor, 1);
+                }
+                
+                if (cursor == result.end) {
+                    break;
+                }
+
+                cursor = byteoffset(cursor, 1);
+            }
+        }
+        
         sa_free(&alloc, cmd);
         sa_deinit(&alloc);
     }
