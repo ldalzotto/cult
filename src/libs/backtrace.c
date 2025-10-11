@@ -33,8 +33,9 @@ void print_backtrace(file_t file) {
         while (*cmd_end) { ++cmd_end; }
         string cmd_str = { cmd, cmd_end };
 
+        exec_command_result cmd_res = exec_command(cmd_str, &alloc);
         string result;
-        result.begin = exec_command(cmd_str, &alloc);
+        result.begin = cmd_res.output;
         result.end = alloc.cursor;
 
         {
