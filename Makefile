@@ -91,6 +91,7 @@ $(eval $(call make_object, print_o, $(SRC_DIR)/libs/print.c, $(CURRENT_CFLAGS), 
 $(eval $(call make_object, meta_iterator_o, $(SRC_DIR)/libs/meta_iterator.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, format_iterator_o, $(SRC_DIR)/libs/format_iterator.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, convert_o, $(SRC_DIR)/libs/convert.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, exec_command_o, $(SRC_DIR)/libs/exec_command.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 
 common_o = $(mem_o) \
 		  $(stack_alloc_o) \
@@ -102,7 +103,8 @@ common_o = $(mem_o) \
 		  $(print_o) \
 		  $(meta_iterator_o) \
 		  $(format_iterator_o) \
-		  $(convert_o)
+		  $(convert_o) \
+		  $(exec_command_o)
 
 # Window
 
@@ -206,6 +208,7 @@ $(eval $(call make_object, test_print_o, $(TESTS_DIR)/test_print.c, $(CURRENT_CF
 $(eval $(call make_object, test_temp_dir_o, $(TESTS_DIR)/test_temp_dir.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, test_framework_o, $(TESTS_DIR)/test_framework.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, test_backtrace_o, $(TESTS_DIR)/test_backtrace.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, test_exec_command_o, $(TESTS_DIR)/test_exec_command.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, test_lzss_o, $(TESTS_DIR)/test_lzss.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, test_fps_ticker_o, $(TESTS_DIR)/test_fps_ticker.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, test_snake_o, $(TESTS_DIR)/test_snake.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
@@ -221,6 +224,7 @@ tests_o = $(all_tests_o) \
 	 	 $(test_temp_dir_o) \
 	 	 $(test_framework_o) \
 	 	 $(test_backtrace_o) \
+		 $(test_exec_command_o) \
 	 	 $(test_lzss_o) \
 	 	 $(test_fps_ticker_o) \
 		 $(test_snake_o) \

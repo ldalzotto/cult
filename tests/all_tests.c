@@ -6,6 +6,7 @@
 #include "test_print.h"
 #include "test_lzss.h"
 #include "test_backtrace.h"
+#include "test_exec_command.h"
 #include "test_fps_ticker.h"
 #include "test_snake.h"
 #include "test_network_https.h"
@@ -60,6 +61,7 @@ int main(int argc, char* argv[]) {
     test_file_module(ctx);
     test_print_module(ctx);
     test_backtrace_module(ctx);
+    test_exec_command_module(ctx);
     test_lzss_module(ctx);
     test_fps_ticker_module(ctx);
     test_snake_module(ctx);
