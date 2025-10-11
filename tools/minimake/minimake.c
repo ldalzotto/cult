@@ -1,3 +1,4 @@
+
 #include "primitive.h"
 #include "mem.h"
 #include "stack_alloc.h"
@@ -49,6 +50,88 @@ static uptr timestamp_read(const string name, const string cache_dir, stack_allo
     return ts;
 }
 
+static string* extract_c_dependencies(string name, stack_alloc* alloc) {
+    void* begin = alloc->cursor;
+    const string template = STR("gcc -MM %s");
+    string command;
+    command.begin = print_format_to_buffer(alloc, template, name);
+    command.end = alloc->cursor;
+    exec_command_result result = exec_command(command, alloc);
+
+    string* deps_start = alloc->cursor;
+    
+    if (result.success) {
+        string result_stdout;
+        result_stdout.begin = result.output;
+        result_stdout.end = alloc->cursor;
+
+        /*
+            Parse gcc -MM output and extract file paths (dependencies).
+            The output looks like:
+                build/tests/all_tests.d: tests/all_tests.c tests/test_framework.h \
+                    src/libs/primitive.h ...
+            We want to collect all path tokens except the first token that ends with ':'.
+            Tokens are separated by whitespace; backslashes are used for line continuation
+            and should be treated as whitespace.
+        */
+
+        // mark the start of the deps array in the allocator so callers can store it
+        deps_start = alloc->cursor;
+        // track whether we've skipped the "target:" token
+        u8 skipped_target = 0;
+
+        char* p = (char*)result_stdout.begin;
+        char* e = (char*)result_stdout.end;
+        while (p < e) {
+            // skip whitespace and backslashes (line continuations)
+            while (p < e && (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r' || *p == '\\')) { p++; }
+            if (p >= e) break;
+
+            char* tok_b = p;
+            // token continues until whitespace or backslash
+            while (p < e && !(*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r' || *p == '\\')) { p++; }
+            char* tok_e = p;
+
+            if (tok_e == tok_b) continue;
+
+            // If this is the first token and it ends with ':', skip it (it's the target)
+            if (!skipped_target && tok_e > tok_b && tok_e[-1] == ':') {
+                skipped_target = 1;
+                continue;
+            }
+
+            // If token ends with ':' (unexpected here), trim it
+            if (tok_e > tok_b && tok_e[-1] == ':') {
+                tok_e--;
+                if (tok_e == tok_b) continue;
+            }
+
+            // Allocate a string entry for this dependency
+            string* dep_entry = sa_alloc(alloc, sizeof(*dep_entry));
+            dep_entry->begin = sa_alloc(alloc, bytesize(tok_b, tok_e));
+            sa_copy(alloc, tok_b, (void*)dep_entry->begin, bytesize(tok_b, tok_e));
+            dep_entry->end = alloc->cursor;
+        }
+
+    }
+
+    string* deps_end = alloc->cursor;
+
+    const uptr offset = bytesize(begin, deps_start);
+    sa_move_tail(alloc, deps_start, begin);
+
+    deps_start = byteoffset(deps_start, -offset);
+    deps_end = byteoffset(deps_end, -offset);
+
+    for (string* d = deps_start; d < deps_end;) {
+        d->begin = byteoffset(d->begin, -offset);
+        d->end = byteoffset(d->end, -offset);
+        d = (void*)d->end;
+    }
+
+    return begin;
+}
+
 typedef struct {
     string name;
     string* deps;
@@ -66,7 +149,7 @@ static void target_update_timestamp(target* t, string cache_dir, stack_alloc* al
 }
 
 // TODO: we probably want to pass the command template as input?
-static void target_build_object(target* t, string cache_dir, stack_alloc* alloc) {
+static u8 target_build_object(target* t, string cache_dir, stack_alloc* alloc) {
     void* begin = alloc->cursor;
     
     const string template = STR("gcc -c %s -o %s");
@@ -80,7 +163,6 @@ static void target_build_object(target* t, string cache_dir, stack_alloc* alloc)
 
         d = (void*)d->end;
     }
-    debug_assert(c_file.begin != c_file.end);
     string command;
     command.begin = print_format_to_buffer(alloc, template, c_file, t->name);
     command.end = alloc->cursor;
@@ -101,9 +183,11 @@ static void target_build_object(target* t, string cache_dir, stack_alloc* alloc)
     if (exec.success) {
         target_update_timestamp(t, cache_dir, alloc);
     }
+
+    return exec.success;
 }
 
-static void target_build_executable(target* t, string cache_dir, stack_alloc* alloc) {
+static u8 target_build_executable(target* t, string cache_dir, stack_alloc* alloc) {
     void* begin = alloc->cursor;
     
     const string template = STR("gcc %s -o %s");
@@ -139,10 +223,14 @@ static void target_build_executable(target* t, string cache_dir, stack_alloc* al
     if (exec.success) {
         target_update_timestamp(t, cache_dir, alloc);
     }
+    return exec.success;
 }
 
 
 static u8 target_should_build(target* t, string cache_dir, stack_alloc* alloc) {
+    if (t->deps == t->end) {
+        return 1;
+    }
     uptr input_ts = timestamp_read(t->name, cache_dir, alloc);
     for (const string* d = t->deps; (void*)d < t->end;) {
         uptr dep_ts = 0;
@@ -175,26 +263,42 @@ i32 main(void) {
     directory_create(alloc, cache_dir.begin, cache_dir.end, DIR_MODE_PUBLIC);
 
     // Create a simple target representing "foo.o" depending on "foo.h".
-    target* file_target = sa_alloc(alloc, sizeof(*file_target));
+    target* foo_o_target = sa_alloc(alloc, sizeof(*foo_o_target));
 
     {
         const string name = STR("foo.o");
-        file_target->name.begin = sa_alloc(alloc, bytesize(name.begin, name.end));
-        sa_copy(alloc, name.begin, (void*)file_target->name.begin, bytesize(name.begin, name.end));
-        file_target->name.end = alloc->cursor;
+        foo_o_target->name.begin = sa_alloc(alloc, bytesize(name.begin, name.end));
+        sa_copy(alloc, name.begin, (void*)foo_o_target->name.begin, bytesize(name.begin, name.end));
+        foo_o_target->name.end = alloc->cursor;
     }
     {
-        file_target->deps = alloc->cursor;
+        foo_o_target->deps = alloc->cursor;
         {
             const string dep = STR("foo.c");
-            string* dep_current  = sa_alloc(alloc, sizeof(*dep_current));
-            dep_current->begin = sa_alloc(alloc, bytesize(dep.begin, dep.end));
-            sa_copy(alloc, dep.begin, (void*)dep_current->begin, bytesize(dep.begin, dep.end));
-            dep_current->end = alloc->cursor;
+            extract_c_dependencies(dep, alloc);
         }
     }
 
-    file_target->end = alloc->cursor;
+    foo_o_target->end = alloc->cursor;
+
+
+    target* bar_o_target = sa_alloc(alloc, sizeof(*bar_o_target));
+
+    {
+        const string name = STR("bar.o");
+        bar_o_target->name.begin = sa_alloc(alloc, bytesize(name.begin, name.end));
+        sa_copy(alloc, name.begin, (void*)bar_o_target->name.begin, bytesize(name.begin, name.end));
+        bar_o_target->name.end = alloc->cursor;
+    }
+    {
+        bar_o_target->deps = alloc->cursor;
+        {
+            const string dep = STR("bar.c");
+            extract_c_dependencies(dep, alloc);
+        }
+    }
+
+    bar_o_target->end = alloc->cursor;
 
     target* executable_target = sa_alloc(alloc, sizeof(*executable_target));
     {
@@ -206,7 +310,14 @@ i32 main(void) {
     {
         executable_target->deps = alloc->cursor;
         {
-            const string dep = file_target->name;
+            const string dep = foo_o_target->name;
+            string* dep_current  = sa_alloc(alloc, sizeof(*dep_current));
+            dep_current->begin = sa_alloc(alloc, bytesize(dep.begin, dep.end));
+            sa_copy(alloc, dep.begin, (void*)dep_current->begin, bytesize(dep.begin, dep.end));
+            dep_current->end = alloc->cursor;
+        }
+        {
+            const string dep = bar_o_target->name;
             string* dep_current  = sa_alloc(alloc, sizeof(*dep_current));
             dep_current->begin = sa_alloc(alloc, bytesize(dep.begin, dep.end));
             sa_copy(alloc, dep.begin, (void*)dep_current->begin, bytesize(dep.begin, dep.end));
@@ -217,15 +328,27 @@ i32 main(void) {
 
 
     // Build the target
-    if (target_should_build(file_target, cache_dir, alloc)) {
-        target_build_object(file_target, cache_dir, alloc);
+    
+    if (target_should_build(foo_o_target, cache_dir, alloc)) {
+        if (!target_build_object(foo_o_target, cache_dir, alloc)) {
+            goto end;
+        }
+    }
+    if (target_should_build(bar_o_target, cache_dir, alloc)) {
+        if (!target_build_object(bar_o_target, cache_dir, alloc)) {
+            goto end;
+        }
     }
 
     if (target_should_build(executable_target, cache_dir, alloc)) {
-        target_build_executable(executable_target, cache_dir, alloc);
+        if (!target_build_executable(executable_target, cache_dir, alloc)) {
+            goto end;
+        }
     }
+
+end:
     
-    sa_free(alloc, file_target);
+    sa_free(alloc, foo_o_target);
 
     sa_deinit(alloc);
     mem_unmap(memory, memory_size);
