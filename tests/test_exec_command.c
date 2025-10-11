@@ -45,14 +45,16 @@ static void test_exec_command_ls_lists_files_on_multiple_lines(test_context* t) 
 
     // Run the command "ls test_temp"
     const string cmd = STR("ls test_temp");
-    void* res = exec_command(cmd, &alloc_exec);
+    exec_command_result res = exec_command(cmd, &alloc_exec);
+
+    TEST_ASSERT_TRUE(t, res.success);
 
     /*
         Instead of asserting an exact multi-line output (which can be brittle due to ordering
         or formatting differences), check that each expected filename is present in the output.
     */
     string out;
-    out.begin = res;
+    out.begin = res.output;
     out.end = alloc_exec.cursor;
 
     const string expected_a = STR("exec_test_file.txt");
@@ -61,7 +63,7 @@ static void test_exec_command_ls_lists_files_on_multiple_lines(test_context* t) 
     TEST_ASSERT_TRUE(t, sa_contains(&alloc_exec, out.begin, out.end, expected_a.begin, expected_a.end));
     TEST_ASSERT_TRUE(t, sa_contains(&alloc_exec, out.begin, out.end, expected_b.begin, expected_b.end));
 
-    sa_free(&alloc_exec, res);
+    sa_free(&alloc_exec, res.output);
 
     // Clean up
     sa_deinit(&alloc_exec);
