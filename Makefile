@@ -252,7 +252,14 @@ CURRENT_LFLAGS := $(LFLAGS) $(NETWORK_LFLAGS)
 $(eval $(call make_executable, agent, $(common_o) $(network_o) $(all_agent_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
 agent: $(agent)
 
-all: snake dummy test agent
+# Tools minimake
+CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS)
+$(eval $(call make_object, minimake_o, $(TOOLS_DIR)/minimake/minimake.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+CURRENT_LFLAGS := $(LFLAGS)
+$(eval $(call make_executable, minimake, $(common_o) $(minimake_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
+minimake: $(minimake)
+
+all: snake dummy test agent minimake
 
 clean:
 	rm -rf $(BUILD_DIR)
