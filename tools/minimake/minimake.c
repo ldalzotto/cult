@@ -1,10 +1,9 @@
 #include "mem.h"
-#include "print.h"
 
+#include "file.h"
 #include "target.h"
 #include "target_build.h"
 #include "target_c_dependencies.h"
-#include "target_execution_list.h"
 
 /*
     Minimake - minimal demonstration of a build target that can run a command
