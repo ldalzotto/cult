@@ -90,7 +90,9 @@ u8 sa_equals(stack_alloc* alloc, const void* left_begin, const void* left_end, c
 
     unused(alloc);
 
-    uptr right_size = (uptr)((char*)right_end - (char*)right_begin);
+    uptr left_size = bytesize(left_begin, left_end);
+    uptr right_size = bytesize(right_begin, right_end);
+    if (left_size != right_size) {return 0;}
     return __builtin_memcmp(left_begin, right_begin, right_size) == 0 ? 1 : 0;
 }
 

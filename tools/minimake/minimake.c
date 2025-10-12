@@ -24,78 +24,81 @@ i32 main(void) {
     struct {target* begin; target* end;} targets;
     targets.begin = alloc->cursor;
 
-    // Create a simple target representing "foo.o" depending on "foo.h".
-    target* foo_o_target = sa_alloc(alloc, sizeof(*foo_o_target));
 
+    // Create a simple target representing "foo.o" depending on "foo.h".
     {
+        target* foo_o_target = sa_alloc(alloc, sizeof(*foo_o_target));
+        
         const string name = STR("foo.o");
         foo_o_target->name.begin = sa_alloc(alloc, bytesize(name.begin, name.end));
         sa_copy(alloc, name.begin, (void*)foo_o_target->name.begin, bytesize(name.begin, name.end));
         foo_o_target->name.end = alloc->cursor;
-    }
-    foo_o_target->build = target_build_object;
-    {
+
+        foo_o_target->build = target_build_object;
+
         foo_o_target->deps = alloc->cursor;
-        {
-            const string dep = STR("foo.c");
-            extract_c_dependencies(dep, alloc);
-        }
+        const string dep = STR("foo.c");
+        extract_c_dependencies(dep, alloc);
+        foo_o_target->end = alloc->cursor;
     }
 
-    foo_o_target->end = alloc->cursor;
-
-
-    target* bar_o_target = sa_alloc(alloc, sizeof(*bar_o_target));
-
     {
+        target* bar_o_target = sa_alloc(alloc, sizeof(*bar_o_target));
         const string name = STR("bar.o");
         bar_o_target->name.begin = sa_alloc(alloc, bytesize(name.begin, name.end));
         sa_copy(alloc, name.begin, (void*)bar_o_target->name.begin, bytesize(name.begin, name.end));
         bar_o_target->name.end = alloc->cursor;
-    }
-    bar_o_target->build = target_build_object;
-    {
+
+        bar_o_target->build = target_build_object;
         bar_o_target->deps = alloc->cursor;
         {
             const string dep = STR("bar.c");
             extract_c_dependencies(dep, alloc);
         }
+        bar_o_target->end = alloc->cursor;
     }
 
-    bar_o_target->end = alloc->cursor;
-
-    target* executable_target = sa_alloc(alloc, sizeof(*executable_target));
     {
+        target* executable_target = sa_alloc(alloc, sizeof(*executable_target));
+
         const string name = STR("foo");
         executable_target->name.begin = sa_alloc(alloc, bytesize(name.begin, name.end));
         sa_copy(alloc, name.begin, (void*)executable_target->name.begin, bytesize(name.begin, name.end));
         executable_target->name.end = alloc->cursor;
-    }
-    executable_target->build = target_build_executable;
-    {
+
+        executable_target->build = target_build_executable;
         executable_target->deps = alloc->cursor;
         {
-            const string dep = foo_o_target->name;
+            const string dep = STRING("foo.o");
             string* dep_current  = sa_alloc(alloc, sizeof(*dep_current));
             dep_current->begin = sa_alloc(alloc, bytesize(dep.begin, dep.end));
             sa_copy(alloc, dep.begin, (void*)dep_current->begin, bytesize(dep.begin, dep.end));
             dep_current->end = alloc->cursor;
         }
         {
-            const string dep = bar_o_target->name;
+            const string dep = STRING("bar.o");
             string* dep_current  = sa_alloc(alloc, sizeof(*dep_current));
             dep_current->begin = sa_alloc(alloc, bytesize(dep.begin, dep.end));
             sa_copy(alloc, dep.begin, (void*)dep_current->begin, bytesize(dep.begin, dep.end));
             dep_current->end = alloc->cursor;
         }
+        executable_target->end = alloc->cursor;
     }
-    executable_target->end = alloc->cursor;
-
     targets.end = alloc->cursor;
 
-    target_build(targets.begin, targets.end, executable_target, cache_dir, alloc);
+    target* target_to_build = 0;
+    for (target* t = targets.begin; t < targets.end;) {
+        const string target_to_build_name = STR("foo");
+        if (sa_equals(alloc, t->name.begin, t->name.end, target_to_build_name.begin, target_to_build_name.end)) {
+            target_to_build = t;
+            break;
+        }
+        t = t->end;
+    }
+
+    target_build(targets.begin, targets.end, target_to_build, cache_dir, alloc);
     
-    sa_free(alloc, foo_o_target);
+    sa_free(alloc, memory);
 
     sa_deinit(alloc);
     mem_unmap(memory, memory_size);
