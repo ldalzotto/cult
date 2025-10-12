@@ -258,11 +258,12 @@ $(eval $(call make_object, minimake_o, $(TOOLS_DIR)/minimake/minimake.c, $(CURRE
 $(eval $(call make_object, target_c_dependencies_o, $(TOOLS_DIR)/minimake/target_c_dependencies.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, target_execution_list_o, $(TOOLS_DIR)/minimake/target_execution_list.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 $(eval $(call make_object, target_timestamp_o, $(TOOLS_DIR)/minimake/target_timestamp.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
-
+$(eval $(call make_object, target_build_o, $(TOOLS_DIR)/minimake/target_build.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
 all_minimake_o = $(minimake_o) \
 				$(target_c_dependencies_o) \
 				$(target_execution_list_o) \
-				$(target_timestamp_o)
+				$(target_timestamp_o) \
+				$(target_build_o)
 
 CURRENT_LFLAGS := $(LFLAGS)
 $(eval $(call make_executable, minimake, $(common_o) $(all_minimake_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
