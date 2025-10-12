@@ -255,8 +255,17 @@ agent: $(agent)
 # Tools minimake
 CURRENT_CFLAGS := $(CFLAGS) $(COMMON_CFLAGS)
 $(eval $(call make_object, minimake_o, $(TOOLS_DIR)/minimake/minimake.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, target_c_dependencies_o, $(TOOLS_DIR)/minimake/target_c_dependencies.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, target_execution_list_o, $(TOOLS_DIR)/minimake/target_execution_list.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+$(eval $(call make_object, target_timestamp_o, $(TOOLS_DIR)/minimake/target_timestamp.c, $(CURRENT_CFLAGS), , $(BUILD_DIR)))
+
+all_minimake_o = $(minimake_o) \
+				$(target_c_dependencies_o) \
+				$(target_execution_list_o) \
+				$(target_timestamp_o)
+
 CURRENT_LFLAGS := $(LFLAGS)
-$(eval $(call make_executable, minimake, $(common_o) $(minimake_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
+$(eval $(call make_executable, minimake, $(common_o) $(all_minimake_o), $(CURRENT_LFLAGS), $(BUILD_DIR)))
 minimake: $(minimake)
 
 all: snake dummy test agent minimake
