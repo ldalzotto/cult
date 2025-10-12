@@ -5,6 +5,13 @@
 #include "target_build.h"
 #include "target_c_dependencies.h"
 
+static u8 target_build_dummy(target* t, string cache_dir, stack_alloc* alloc) {
+    unused(t);
+    unused(cache_dir);
+    unused(alloc);
+    return 1;
+}
+
 /*
     Minimake - minimal demonstration of a build target that can run a command
     and have dependencies. This file replaces the [TASK] comments by a tiny
@@ -56,6 +63,32 @@ i32 main(void) {
             extract_c_dependencies(dep, alloc);
         }
         bar_o_target->end = alloc->cursor;
+    }
+
+    {
+        target* bar_h_target = sa_alloc(alloc, sizeof(*bar_h_target));
+        const string name = STR("bar.h");
+        bar_h_target->name.begin = sa_alloc(alloc, bytesize(name.begin, name.end));
+        sa_copy(alloc, name.begin, (void*)bar_h_target->name.begin, bytesize(name.begin, name.end));
+        bar_h_target->name.end = alloc->cursor;
+
+        bar_h_target->build = target_build_dummy;
+
+        bar_h_target->deps = alloc->cursor;
+        bar_h_target->end = alloc->cursor;
+    }
+
+    {
+        target* foo_h_target = sa_alloc(alloc, sizeof(*foo_h_target));
+        const string name = STR("foo.h");
+        foo_h_target->name.begin = sa_alloc(alloc, bytesize(name.begin, name.end));
+        sa_copy(alloc, name.begin, (void*)foo_h_target->name.begin, bytesize(name.begin, name.end));
+        foo_h_target->name.end = alloc->cursor;
+
+        foo_h_target->build = target_build_dummy;
+
+        foo_h_target->deps = alloc->cursor;
+        foo_h_target->end = alloc->cursor;
     }
 
     {
