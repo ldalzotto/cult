@@ -132,11 +132,16 @@ static string* extract_c_dependencies(string name, stack_alloc* alloc) {
     return begin;
 }
 
-typedef struct {
+
+typedef struct target target;
+typedef u8(*target_build_cb)(target* t, string cache_dir, stack_alloc* alloc);
+
+struct target {
     string name;
+    target_build_cb build;
     string* deps;
     void* end;
-} target;
+};
 
 static void target_update_timestamp(target* t, string cache_dir, stack_alloc* alloc) {
     uptr ts_to_write = 0;
@@ -316,6 +321,8 @@ static target** target_execution_list(target* targets_begin, target* targets_end
                             target** push = sa_alloc(alloc, sizeof(*push));
                             *push = cand;
                             list_end = alloc->cursor;
+                        } else {
+                            // [TASK] Move the already found target at the end of the array.
                         }
 
                         /* Found matching target, no need to check other candidates */
@@ -354,6 +361,7 @@ i32 main(void) {
         sa_copy(alloc, name.begin, (void*)foo_o_target->name.begin, bytesize(name.begin, name.end));
         foo_o_target->name.end = alloc->cursor;
     }
+    foo_o_target->build = target_build_object;
     {
         foo_o_target->deps = alloc->cursor;
         {
@@ -373,6 +381,7 @@ i32 main(void) {
         sa_copy(alloc, name.begin, (void*)bar_o_target->name.begin, bytesize(name.begin, name.end));
         bar_o_target->name.end = alloc->cursor;
     }
+    bar_o_target->build = target_build_object;
     {
         bar_o_target->deps = alloc->cursor;
         {
@@ -390,6 +399,7 @@ i32 main(void) {
         sa_copy(alloc, name.begin, (void*)executable_target->name.begin, bytesize(name.begin, name.end));
         executable_target->name.end = alloc->cursor;
     }
+    executable_target->build = target_build_executable;
     {
         executable_target->deps = alloc->cursor;
         {
@@ -420,19 +430,9 @@ i32 main(void) {
         target* t = *target_pp;
         print_format(file_stdout(), STRING("%s\n"), t->name);
 
-        // TODO: Don't rely on that and have a function pointer
-        const string o_extention = STR(".o");
-        if (sa_contains(alloc, t->name.begin, t->name.end, o_extention.begin, o_extention.end)) {
-            if (target_should_build(t, cache_dir, alloc)) {
-                if (!target_build_object(t, cache_dir, alloc)) {
-                    goto target_failed_to_build;
-                }
-            }
-        } else {
-            if (target_should_build(t, cache_dir, alloc)) {
-                if (!target_build_executable(t, cache_dir, alloc)) {
-                    goto target_failed_to_build;
-                }
+        if (target_should_build(t, cache_dir, alloc)) {
+            if (!t->build(t, cache_dir, alloc)) {
+                goto target_failed_to_build;
             }
         }
     }
