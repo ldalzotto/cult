@@ -6,11 +6,32 @@
 #include "target_build.h"
 #include "target_c_dependencies.h"
 
-static u8 target_build_dummy(target* t, string cache_dir, stack_alloc* alloc) {
-    unused(t);
-    unused(cache_dir);
-    unused(alloc);
-    return 1;
+void target_offset(target* t, uptr offset) {
+    t->name.begin = byteoffset(t->name.begin, offset);
+    t->name.end = byteoffset(t->name.end, offset);
+    t->template = byteoffset(t->template, offset);
+    t->deps = byteoffset(t->deps, offset);
+    t->end = byteoffset(t->end, offset);
+    for (string* d = t->deps; (void*)d < t->end;) {
+        d->begin = byteoffset(d->begin, offset);
+        d->end = byteoffset(d->end, offset);
+        d = (void*)d->end;
+    }
+}
+
+target* targets_offset(target* target, uptr offset, stack_alloc* alloc) {
+    struct target* start = target;
+    struct target* t = start;
+    while (1) {
+        target_offset(t, offset);
+
+        if (t->end >= alloc->cursor) {
+            break;
+        }
+        t = t->end;
+    }
+
+    return start;
 }
 
 /* Helper utilities to simplify target creation */
@@ -23,6 +44,8 @@ static target* create_target(stack_alloc* alloc, const string name, u8 (*build)(
     t->name.end = alloc->cursor;
 
     t->build = build;
+
+    t->template = alloc->cursor;
 
     /* Initialize deps pointer to current cursor; caller will add deps and then finalize */
     t->deps = alloc->cursor;
@@ -55,52 +78,137 @@ i32 main(void) {
     sa_init(alloc, memory, (char*)memory + memory_size);
 
     const string build_dir = STR("build_minimake/");
-    directory_remove(alloc, build_dir.begin, build_dir.end);
+    // directory_remove(alloc, build_dir.begin, build_dir.end);
     directory_create(alloc, build_dir.begin, build_dir.end, DIR_MODE_PUBLIC);
-    const string cache_dir = STR(".minimake/");
-    directory_remove(alloc, cache_dir.begin, cache_dir.end);
+    const string cache_dir = STR("build_minimake/.minimake/");
+    // directory_remove(alloc, cache_dir.begin, cache_dir.end);
     directory_create(alloc, cache_dir.begin, cache_dir.end, DIR_MODE_PUBLIC);
+
+    const string build_object_template = STR("gcc -DDEBUG_ASSERTIONS_ENABLED=1 -c %s -o %s");
+    const string link_object_template = STR("gcc %s -o %s");
 
     struct {target* begin; target* end;} targets;
     targets.begin = alloc->cursor;
+
+    void* v = alloc->cursor;
+    void* variable = sa_alloc(alloc, 234);
+    unused(variable);
+    void* vend = alloc->cursor;
 
     /* Create targets using helper functions */
 
     /* foo.o from foo.c (extract C deps) */
     {
-        target* foo_o_target = create_target(alloc, STRING("build_minimake/foo.o"), target_build_object);
-        extract_c_dependencies(STRING("foo.c"), alloc);
-        finish_target(foo_o_target, alloc);
+        target* target = create_target(alloc, STRING("build_minimake/src/libs/assert.o"), target_build_object);
+        target->template = sa_alloc(alloc, bytesize(build_object_template.begin, build_object_template.end));
+        sa_copy(alloc, build_object_template.begin, target->template, bytesize(build_object_template.begin, build_object_template.end));
+        target->deps = extract_c_dependencies(STRING("src/libs/assert.c"), alloc);
+        finish_target(target, alloc);
     }
-
-    /* bar.o from bar.c (extract C deps) */
     {
-        target* bar_o_target = create_target(alloc, STRING("build_minimake/bar.o"), target_build_object);
-        extract_c_dependencies(STRING("bar.c"), alloc);
-        finish_target(bar_o_target, alloc);
+        target* target = create_target(alloc, STRING("build_minimake/src/libs/backtrace.o"), target_build_object);
+        target->template = sa_alloc(alloc, bytesize(build_object_template.begin, build_object_template.end));
+        sa_copy(alloc, build_object_template.begin, target->template, bytesize(build_object_template.begin, build_object_template.end));
+        target->deps = extract_c_dependencies(STRING("src/libs/backtrace.c"), alloc);
+        finish_target(target, alloc);
     }
-
-    /* bar.h (dummy target, no deps) */
     {
-        target* bar_h_target = create_target(alloc, STRING("bar.h"), target_build_dummy);
-        finish_target(bar_h_target, alloc);
+        target* target = create_target(alloc, STRING("build_minimake/src/libs/convert.o"), target_build_object);
+        target->template = sa_alloc(alloc, bytesize(build_object_template.begin, build_object_template.end));
+        sa_copy(alloc, build_object_template.begin, target->template, bytesize(build_object_template.begin, build_object_template.end));
+        target->deps = extract_c_dependencies(STRING("src/libs/convert.c"), alloc);
+        finish_target(target, alloc);
     }
-
-    /* foo.h (dummy target, no deps) */
     {
-        target* foo_h_target = create_target(alloc, STRING("foo.h"), target_build_dummy);
-        finish_target(foo_h_target, alloc);
+        target* target = create_target(alloc, STRING("build_minimake/src/libs/exec_command.o"), target_build_object);
+        target->template = sa_alloc(alloc, bytesize(build_object_template.begin, build_object_template.end));
+        sa_copy(alloc, build_object_template.begin, target->template, bytesize(build_object_template.begin, build_object_template.end));
+        target->deps = extract_c_dependencies(STRING("src/libs/exec_command.c"), alloc);
+        finish_target(target, alloc);
+    }
+    {
+        target* target = create_target(alloc, STRING("build_minimake/src/libs/file.o"), target_build_object);
+        target->template = sa_alloc(alloc, bytesize(build_object_template.begin, build_object_template.end));
+        sa_copy(alloc, build_object_template.begin, target->template, bytesize(build_object_template.begin, build_object_template.end));
+        target->deps = extract_c_dependencies(STRING("src/libs/file.c"), alloc);
+        finish_target(target, alloc);
+    }
+    {
+        target* target = create_target(alloc, STRING("build_minimake/src/libs/format_iterator.o"), target_build_object);
+        target->template = sa_alloc(alloc, bytesize(build_object_template.begin, build_object_template.end));
+        sa_copy(alloc, build_object_template.begin, target->template, bytesize(build_object_template.begin, build_object_template.end));
+        target->deps = extract_c_dependencies(STRING("src/libs/format_iterator.c"), alloc);
+        finish_target(target, alloc);
+    }
+    {
+        target* target = create_target(alloc, STRING("build_minimake/src/libs/mem.o"), target_build_object);
+        target->template = sa_alloc(alloc, bytesize(build_object_template.begin, build_object_template.end));
+        sa_copy(alloc, build_object_template.begin, target->template, bytesize(build_object_template.begin, build_object_template.end));
+        target->deps = extract_c_dependencies(STRING("src/libs/mem.c"), alloc);
+        finish_target(target, alloc);
+    }
+    {
+        target* target = create_target(alloc, STRING("build_minimake/src/libs/meta_iterator.o"), target_build_object);
+        target->template = sa_alloc(alloc, bytesize(build_object_template.begin, build_object_template.end));
+        sa_copy(alloc, build_object_template.begin, target->template, bytesize(build_object_template.begin, build_object_template.end));
+        target->deps = extract_c_dependencies(STRING("src/libs/meta_iterator.c"), alloc);
+        finish_target(target, alloc);
+    }
+    {
+        target* target = create_target(alloc, STRING("build_minimake/src/libs/print.o"), target_build_object);
+        target->template = sa_alloc(alloc, bytesize(build_object_template.begin, build_object_template.end));
+        sa_copy(alloc, build_object_template.begin, target->template, bytesize(build_object_template.begin, build_object_template.end));
+        target->deps = extract_c_dependencies(STRING("src/libs/print.c"), alloc);
+        finish_target(target, alloc);
+    }
+    {
+        target* target = create_target(alloc, STRING("build_minimake/src/libs/stack_alloc.o"), target_build_object);
+        target->template = sa_alloc(alloc, bytesize(build_object_template.begin, build_object_template.end));
+        sa_copy(alloc, build_object_template.begin, target->template, bytesize(build_object_template.begin, build_object_template.end));
+        target->deps = extract_c_dependencies(STRING("src/libs/stack_alloc.c"), alloc);
+        finish_target(target, alloc);
+    }
+    {
+        target* target = create_target(alloc, STRING("build_minimake/src/libs/system_time.o"), target_build_object);
+        target->template = sa_alloc(alloc, bytesize(build_object_template.begin, build_object_template.end));
+        sa_copy(alloc, build_object_template.begin, target->template, bytesize(build_object_template.begin, build_object_template.end));
+        target->deps = extract_c_dependencies(STRING("src/libs/system_time.c"), alloc);
+        finish_target(target, alloc);
+    }
+    {
+        target* target = create_target(alloc, STRING("build_minimake/src/libs/time.o"), target_build_object);
+        target->template = sa_alloc(alloc, bytesize(build_object_template.begin, build_object_template.end));
+        sa_copy(alloc, build_object_template.begin, target->template, bytesize(build_object_template.begin, build_object_template.end));
+        target->deps = extract_c_dependencies(STRING("src/libs/time.c"), alloc);
+        finish_target(target, alloc);
     }
 
     /* executable "foo" depends on foo.o and bar.o */
     {
         target* executable_target = create_target(alloc, STRING("build_minimake/foo"), target_build_executable);
 
-        push_dep_string(alloc, STRING("build_minimake/foo.o"));
-        push_dep_string(alloc, STRING("build_minimake/bar.o"));
+        executable_target->template = sa_alloc(alloc, bytesize(link_object_template.begin, link_object_template.end));
+        sa_copy(alloc, link_object_template.begin, executable_target->template, bytesize(link_object_template.begin, link_object_template.end));
+
+        executable_target->deps = alloc->cursor;
+        push_dep_string(alloc, STRING("build_minimake/src/libs/assert.o"));
+        push_dep_string(alloc, STRING("build_minimake/src/libs/backtrace.o"));
+        push_dep_string(alloc, STRING("build_minimake/src/libs/convert.o"));
+        push_dep_string(alloc, STRING("build_minimake/src/libs/exec_command.o"));
+        push_dep_string(alloc, STRING("build_minimake/src/libs/file.o"));
+        push_dep_string(alloc, STRING("build_minimake/src/libs/format_iterator.o"));
+        push_dep_string(alloc, STRING("build_minimake/src/libs/mem.o"));
+        push_dep_string(alloc, STRING("build_minimake/src/libs/meta_iterator.o"));
+        push_dep_string(alloc, STRING("build_minimake/src/libs/print.o"));
+        push_dep_string(alloc, STRING("build_minimake/src/libs/stack_alloc.o"));
+        push_dep_string(alloc, STRING("build_minimake/src/libs/system_time.o"));
+        push_dep_string(alloc, STRING("build_minimake/src/libs/time.o"));
 
         finish_target(executable_target, alloc);
     }
+
+    sa_move_tail(alloc, vend, v);
+    targets_offset(v, -bytesize(v, vend), alloc);
 
     targets.end = alloc->cursor;
 

@@ -9,7 +9,7 @@
 u8 target_build_object(target* t, string cache_dir, stack_alloc* alloc) {
     void* begin = alloc->cursor;
     
-    const string template = STR("gcc -c %s -o %s");
+    const string template = {t->template, t->deps};
     string c_file = {alloc->cursor, alloc->cursor};
     for (string* d = t->deps; (void*)d < t->end;) {
         const string c_extension = STR(".c");
@@ -20,6 +20,9 @@ u8 target_build_object(target* t, string cache_dir, stack_alloc* alloc) {
 
         d = (void*)d->end;
     }
+
+    directory_create_for_file(alloc, t->name.begin, t->name.end, DIR_MODE_PUBLIC);
+
     string command;
     command.begin = print_format_to_buffer(alloc, template, c_file, t->name);
     command.end = alloc->cursor;
@@ -47,7 +50,7 @@ u8 target_build_object(target* t, string cache_dir, stack_alloc* alloc) {
 u8 target_build_executable(target* t, string cache_dir, stack_alloc* alloc) {
     void* begin = alloc->cursor;
     
-    const string template = STR("gcc %s -o %s");
+    const string template = {t->template, t->deps};
     
     string deps_as_command;
     deps_as_command.begin = alloc->cursor;

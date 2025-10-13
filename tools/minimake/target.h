@@ -10,6 +10,7 @@ typedef u8(*target_build_cb)(target* t, string cache_dir, stack_alloc* alloc);
 struct target {
     string name;
     target_build_cb build;
+    void* template;
     string* deps;
     void* end;
 };

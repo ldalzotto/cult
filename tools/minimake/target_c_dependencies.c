@@ -6,7 +6,7 @@
 
 string* extract_c_dependencies(string name, stack_alloc* alloc) {
     void* begin = alloc->cursor;
-    const string template = STR("gcc -MM %s");
+    const string template = STR("gcc -DDEBUG_ASSERTIONS_ENABLED=1 -MM %s");
     string command;
     command.begin = print_format_to_buffer(alloc, template, name);
     command.end = alloc->cursor;
