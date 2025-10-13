@@ -151,7 +151,9 @@ i32 main(void) {
     void* vend = alloc->cursor;
 
     /* Create targets using helper functions */
+    target* c_object_targets_begin = 
     create_c_object_targets(build_object_template, extract_dependency_template, build_dir, c_files.begin, c_files.end, alloc);
+    target* c_object_targets_end = alloc->cursor;
 
     /* executable "foo" depends on foo.o and bar.o */
     {
@@ -161,19 +163,11 @@ i32 main(void) {
         sa_copy(alloc, link_object_template.begin, executable_target->template, bytesize(link_object_template.begin, link_object_template.end));
 
         executable_target->deps = alloc->cursor;
-        push_dep_string(alloc, STRING("build_minimake/src/libs/assert.c.o"));
-        push_dep_string(alloc, STRING("build_minimake/src/libs/backtrace.c.o"));
-        push_dep_string(alloc, STRING("build_minimake/src/libs/convert.c.o"));
-        push_dep_string(alloc, STRING("build_minimake/src/libs/exec_command.c.o"));
-        push_dep_string(alloc, STRING("build_minimake/src/libs/file.c.o"));
-        push_dep_string(alloc, STRING("build_minimake/src/libs/format_iterator.c.o"));
-        push_dep_string(alloc, STRING("build_minimake/src/libs/mem.c.o"));
-        push_dep_string(alloc, STRING("build_minimake/src/libs/meta_iterator.c.o"));
-        push_dep_string(alloc, STRING("build_minimake/src/libs/print.c.o"));
-        push_dep_string(alloc, STRING("build_minimake/src/libs/stack_alloc.c.o"));
-        push_dep_string(alloc, STRING("build_minimake/src/libs/system_time.c.o"));
-        push_dep_string(alloc, STRING("build_minimake/src/libs/time.c.o"));
-
+        for (target* c_object_target = c_object_targets_begin; c_object_target < c_object_targets_end;) {
+            push_dep_string(alloc, c_object_target->name);
+            c_object_target = c_object_target->end;
+        }
+        
         finish_target(executable_target, alloc);
     }
 
