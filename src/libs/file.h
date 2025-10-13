@@ -41,8 +41,8 @@ typedef enum {
     DIR_MODE_PUBLIC   // world-accessible
 } dir_mode_t;
 
-i32 directory_create(stack_alloc* alloc, const u8* path_begin, const u8* path_end, dir_mode_t mode);
-i32 directory_create_for_file(stack_alloc *alloc, const u8 *path_begin, const u8 *path_end, dir_mode_t mode);
-i32 directory_remove(stack_alloc* alloc, const u8* path_begin, const u8* path_end);
+void directory_create(stack_alloc* alloc, const u8* path_begin, const u8* path_end, dir_mode_t mode);
+void directory_create_for_file(stack_alloc *alloc, const u8 *path_begin, const u8 *path_end, dir_mode_t mode);
+void directory_remove(stack_alloc* alloc, const u8* path_begin, const u8* path_end);
 
 #endif /* FILE_H */

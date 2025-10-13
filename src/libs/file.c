@@ -139,7 +139,7 @@ uptr file_modification_time(file_t file) {
 }
 
 // Create directory recursively (like mkdir -p)
-i32 directory_create(stack_alloc* alloc, const u8* path_begin, const u8* path_end, dir_mode_t mode) {
+void directory_create(stack_alloc* alloc, const u8* path_begin, const u8* path_end, dir_mode_t mode) {
 
     // Allocate contiguous buffer for path
     uptr path_len = bytesize(path_begin, path_end);
@@ -167,29 +167,28 @@ i32 directory_create(stack_alloc* alloc, const u8* path_begin, const u8* path_en
             // Create directory if it doesn't exist
             if (access((void*)segment_start, F_OK) != 0) {
                 if (mkdir((void*)segment_start, perms) != 0 && errno != EEXIST) {
-                    sa_free(alloc, path_buf);
-                    return -1;
+                    goto end;
                 }
             }
 
-            if (*cursor == '\0') break; // finished
             *cursor = '/'; // restore separator
         }
         cursor++;
     }
 
+end:
     sa_free(alloc, path_buf);
-    return 0;
+    return;
 }
 
-i32 directory_create_for_file(stack_alloc *alloc, const u8 *path_begin, const u8 *path_end, dir_mode_t mode) {
+void directory_create_for_file(stack_alloc *alloc, const u8 *path_begin, const u8 *path_end, dir_mode_t mode) {
     if (!alloc || !path_begin || !path_end) {
-        return -1;
+        return;
     }
 
     uptr path_len = bytesize(path_begin, path_end);
     if (path_len == 0) {
-        return 0;
+        return;
     }
 
     // Strip trailing slashes (e.g., "dir/subdir/" -> treat as "dir/subdir")
@@ -198,7 +197,7 @@ i32 directory_create_for_file(stack_alloc *alloc, const u8 *path_begin, const u8
         --len;
     }
     if (len == 0) {
-        return 0;
+        return;
     }
 
     // Find last slash in the trimmed path
@@ -212,57 +211,65 @@ i32 directory_create_for_file(stack_alloc *alloc, const u8 *path_begin, const u8
 
     // No directory component (just a filename) or only leading slash -> nothing to create
     if (last_slash == (uptr)-1 || last_slash == 0) {
-        return 0;
+        return;
     }
 
     // Create directories for the parent path portion
     const u8* dir_end = byteoffset(path_begin, last_slash);
-    return directory_create(alloc, path_begin, dir_end, mode);
+    directory_create(alloc, path_begin, dir_end, mode);
 }
 
 
 // Node for our directory stack
 typedef struct {
+    void* previous;
     // Path is allocated immediately after this struct
     u8* path_start;
     u8* path_end; // length = bytesize(path_start, path_end)
 } dir_node_t;
 
 // Remove directory recursively using a custom stack (no recursion)
-i32 directory_remove(stack_alloc* alloc, const u8* path_begin, const u8* path_end) {
+void directory_remove(stack_alloc* alloc, const u8* path_begin, const u8* path_end) {
+    void* begin = alloc->cursor;
 
     // Allocate initial stack for one entry
-    dir_node_t** stack_begin = sa_alloc(alloc, sizeof(dir_node_t*));
-    dir_node_t** stack_cursor = stack_begin;
+    dir_node_t* stack_begin = alloc->cursor;
+    dir_node_t* stack_cursor = stack_begin;
 
     // Allocate root entry: structure + path
     uptr root_size = bytesize(path_begin, path_end);
-    void* root_chunk = sa_alloc(alloc, sizeof(dir_node_t) + root_size + 1);
-
-    dir_node_t* root_node = (dir_node_t*)root_chunk;
-    root_node->path_start = (u8*)(root_node + 1); // path immediately after struct
-    root_node->path_end   = byteoffset(root_node->path_start, root_size);
+    dir_node_t* root_node = sa_alloc(alloc, sizeof(*root_node));
+    root_node->previous = stack_begin - 1;
+    root_node->path_start = sa_alloc(alloc,root_size);
     sa_copy(alloc, path_begin, root_node->path_start, root_size);
-    root_node->path_start[root_size] = '\0';
+    root_node->path_end   = alloc->cursor;
 
     // Push root entry pointer onto stack
-    *stack_cursor++ = root_node;
+    // stack_cursor  = alloc->cursor;
 
-    while (stack_cursor != stack_begin) {
-        dir_node_t* dir_node = *(--stack_cursor);
+    while (stack_cursor >= stack_begin) {
+        dir_node_t* dir_node = stack_cursor;
 
-        DIR* dir = opendir((void*)dir_node->path_start);
+        string dir_node_path_c;
+        dir_node_path_c.begin = sa_alloc(alloc, bytesize(dir_node->path_start, dir_node->path_end) + 1);
+        dir_node_path_c.end = alloc->cursor;
+        sa_copy(alloc, dir_node->path_start, (void*)dir_node_path_c.begin, bytesize(dir_node->path_start, dir_node->path_end));
+        *((u8*)dir_node_path_c.end - 1) = '\0';
+
+        DIR* dir = opendir(dir_node_path_c.begin);
         if (!dir) {
-            unlink((void*)dir_node->path_start);
+            unlink(dir_node_path_c.begin);
+            sa_free(alloc, (void*)dir_node_path_c.begin);
             sa_free(alloc, dir_node); // free chunk
+            stack_cursor = stack_cursor->previous;
             continue;
         }
+        sa_free(alloc, (void*)dir_node_path_c.begin);
+        dir_node_path_c.begin = 0;
+        dir_node_path_c.end = 0;
 
         struct dirent* entry;
         int has_subdirs = 0;
-
-        // Record cursor to roll back temporary entry paths per directory
-        void* cursor_start = alloc->cursor;
 
         while ((entry = readdir(dir)) != NULL) {
             const string entry_name = {entry->d_name, byteoffset(entry->d_name, mem_cstrlen(entry->d_name))};
@@ -270,62 +277,64 @@ i32 directory_remove(stack_alloc* alloc, const u8* path_begin, const u8* path_en
             const string dot = STR(".");
             const string dotdot = STR("..");
             if (sa_equals(alloc, entry_name.begin, entry_name.end, dot.begin, dot.end)
-                || sa_equals(alloc, entry_name.begin, entry_name.end, dotdot.begin, dotdot.end)) {
+                || sa_equals(alloc, entry_name.begin, entry_name.end, dotdot.begin, dotdot.end)
+                || sa_equals(alloc, entry_name.begin, entry_name.end, 
+                        byteoffset(dir_node->path_end, -bytesize(entry_name.begin, entry_name.end) - 1), dir_node->path_end)) {
                 continue;
             }
             uptr dir_len   = bytesize(dir_node->path_start, dir_node->path_end);
 
             // Allocate entry chunk: struct + path
-            void* chunk = sa_alloc(alloc, sizeof(dir_node_t) + dir_len + 1 + entry_len + 1);
-            dir_node_t* entry_node = (dir_node_t*)chunk;
-            entry_node->path_start = (u8*)(entry_node + 1);
-            entry_node->path_end   = byteoffset(entry_node->path_start, dir_len + 1 + entry_len);
+            dir_node_t* entry_node = sa_alloc(alloc, sizeof(*entry_node));
+            entry_node->previous = dir_node;
+            entry_node->path_start = alloc->cursor;
 
             // Build path
-            sa_copy(alloc, dir_node->path_start, entry_node->path_start, root_size);
-            entry_node->path_start[dir_len] = '/';
-            sa_copy(alloc, entry->d_name, byteoffset(entry_node->path_start, dir_len + 1), entry_len);
-            entry_node->path_start[dir_len + 1 + entry_len] = '\0';
+            void* cursor = sa_alloc(alloc, dir_len);
+            sa_copy(alloc, dir_node->path_start, cursor, dir_len);
+            *(u8*)sa_alloc(alloc, 1) = '/'; 
+            cursor = sa_alloc(alloc, entry_len);
+            sa_copy(alloc, entry->d_name, cursor, entry_len);
+            entry_node->path_end = alloc->cursor;
 
+            dir_node_path_c.begin = sa_alloc(alloc, bytesize(entry_node->path_start, entry_node->path_end) + 1);
+            dir_node_path_c.end = alloc->cursor;
+            sa_copy(alloc, entry_node->path_start, (void*)dir_node_path_c.begin, bytesize(entry_node->path_start, entry_node->path_end));
+            *((u8*)dir_node_path_c.end - 1) = '\0';
             struct stat st;
-            if (stat((void*)entry_node->path_start, &st) == 0) {
+            if (stat(dir_node_path_c.begin, &st) == 0) {
                 if (S_ISDIR(st.st_mode)) {
                     // Push subdirectory entry onto stack
-                    // Resize stack if necessary
-                    uptr stack_bytes = bytesize(stack_begin, stack_cursor);
-                    dir_node_t** new_stack = sa_alloc(alloc, stack_bytes + sizeof(dir_node_t*));
-                    sa_copy(alloc, stack_begin, new_stack, stack_bytes);
-                    stack_cursor = new_stack + (stack_cursor - stack_begin);
-                    stack_begin = new_stack;
-
-                    *stack_cursor++ = entry_node;
+                    stack_cursor = entry_node;
                     has_subdirs = 1;
+                    sa_free(alloc, (void*)dir_node_path_c.begin);
                 } else {
-                    unlink((void*)entry_node->path_start);
+                    unlink(dir_node_path_c.begin);
+                    sa_free(alloc, (void*)dir_node_path_c.begin);
                     sa_free(alloc, entry_node);
                 }
             } else {
+                sa_free(alloc, (void*)dir_node_path_c.begin);
                 sa_free(alloc, entry_node);
             }
         }
 
         closedir(dir);
 
-        // Rollback temporary allocation for this directory
-        alloc->cursor = cursor_start;
-
         // Remove directory if no subdirectories remain
         if (!has_subdirs) {
-            rmdir((void*)dir_node->path_start);
+            dir_node_path_c.begin = sa_alloc(alloc, bytesize(dir_node->path_start, dir_node->path_end) + 1);
+            dir_node_path_c.end = alloc->cursor;
+            rmdir(dir_node_path_c.begin);
+            sa_free(alloc, (void*)dir_node_path_c.begin);
             sa_free(alloc, dir_node); // free chunk
-        } else {
-            *stack_cursor++ = dir_node; // re-push for deletion after children
+            stack_cursor = stack_cursor->previous;
         }
     }
 
     sa_free(alloc, stack_begin); // free stack array
 
-    return 0;
+    debug_assert(alloc->cursor == begin);
 }
 
 // Get console file handles
