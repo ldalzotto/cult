@@ -129,8 +129,8 @@ i32 main(void) {
     void* v = alloc->cursor;
     
     // Create c files
-    struct {string* begin; string* end;} c_files;
-    c_files.begin = alloc->cursor;
+    struct {string* begin; string* end;} common_c_files;
+    common_c_files.begin = alloc->cursor;
 
     *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/assert.c");
     *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/backtrace.c");
@@ -145,15 +145,33 @@ i32 main(void) {
     *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/system_time.c");
     *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/time.c");
 
-    c_files.end = alloc->cursor;
+    common_c_files.end = alloc->cursor;
+
+    const string coding_build_object_template = STR("gcc -I./src/libs -DDEBUG_ASSERTIONS_ENABLED=1 -c %s -o %s");
+    const string coding_extract_dependency_template = STR("gcc -I./src/libs -DDEBUG_ASSERTIONS_ENABLED=1 -MM %s");
+    struct {string* begin; string* end;} coding_c_files;
+    coding_c_files.begin = alloc->cursor;
+
+    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/coding/lz_deserialize.c");
+    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/coding/lz_match_brute.c");
+    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/coding/lz_serialize.c");
+    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/coding/lz_window.c");
+    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/coding/lzss.c");
+
+    coding_c_files.end = alloc->cursor;
     
 
     void* vend = alloc->cursor;
 
     /* Create targets using helper functions */
-    target* c_object_targets_begin = 
-    create_c_object_targets(build_object_template, extract_dependency_template, build_dir, c_files.begin, c_files.end, alloc);
-    target* c_object_targets_end = alloc->cursor;
+    target* common_targets_begin = 
+    create_c_object_targets(build_object_template, extract_dependency_template, build_dir, common_c_files.begin, common_c_files.end, alloc);
+    target* common_targets_end = alloc->cursor;
+
+
+    target* coding_targets_begin =
+    create_c_object_targets(coding_build_object_template, coding_extract_dependency_template, build_dir, coding_c_files.begin, coding_c_files.end, alloc);
+    target* coding_targets_end = alloc->cursor;
 
     /* executable "foo" depends on foo.o and bar.o */
     {
@@ -163,7 +181,11 @@ i32 main(void) {
         sa_copy(alloc, link_object_template.begin, executable_target->template, bytesize(link_object_template.begin, link_object_template.end));
 
         executable_target->deps = alloc->cursor;
-        for (target* c_object_target = c_object_targets_begin; c_object_target < c_object_targets_end;) {
+        for (target* c_object_target = common_targets_begin; c_object_target < common_targets_end;) {
+            push_dep_string(alloc, c_object_target->name);
+            c_object_target = c_object_target->end;
+        }
+        for (target* c_object_target = coding_targets_begin; c_object_target < coding_targets_end;) {
             push_dep_string(alloc, c_object_target->name);
             c_object_target = c_object_target->end;
         }
