@@ -4,9 +4,8 @@
 #include "exec_command.h"
 #include "target_c_dependencies.h"
 
-string* extract_c_dependencies(string name, stack_alloc* alloc) {
+string* extract_c_dependencies(string name, string template, stack_alloc* alloc) {
     void* begin = alloc->cursor;
-    const string template = STR("gcc -DDEBUG_ASSERTIONS_ENABLED=1 -MM %s");
     string command;
     command.begin = print_format_to_buffer(alloc, template, name);
     command.end = alloc->cursor;
