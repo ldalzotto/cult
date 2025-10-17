@@ -121,8 +121,7 @@ i32 main(void) {
 
     const string build_object_template = STR("gcc -DDEBUG_ASSERTIONS_ENABLED=1 -c %s -o %s");
     const string extract_dependency_template = STR("gcc -DDEBUG_ASSERTIONS_ENABLED=1 -MM %s");
-    const string link_object_template = STR("gcc %s -o %s");
-
+    
     struct {target* begin; target* end;} targets;
     targets.begin = alloc->cursor;
 
@@ -147,8 +146,8 @@ i32 main(void) {
 
     common_c_files.end = alloc->cursor;
 
-    const string coding_build_object_template = STR("gcc -I./src/libs -DDEBUG_ASSERTIONS_ENABLED=1 -c %s -o %s");
-    const string coding_extract_dependency_template = STR("gcc -I./src/libs -DDEBUG_ASSERTIONS_ENABLED=1 -MM %s");
+    const string coding_build_object_template = STR("gcc -Isrc/libs -DDEBUG_ASSERTIONS_ENABLED=1 -c %s -o %s");
+    const string coding_extract_dependency_template = STR("gcc -Isrc/libs -DDEBUG_ASSERTIONS_ENABLED=1 -MM %s");
     struct {string* begin; string* end;} coding_c_files;
     coding_c_files.begin = alloc->cursor;
 
@@ -160,6 +159,18 @@ i32 main(void) {
 
     coding_c_files.end = alloc->cursor;
     
+    const string network_build_object_template = STR("gcc -Isrc/libs -DDEBUG_ASSERTIONS_ENABLED=1 -c %s -o %s");
+    const string network_extract_dependency_template = STR("gcc -Isrc/libs -DDEBUG_ASSERTIONS_ENABLED=1 -MM %s");
+
+    struct {string* begin; string* end;} network_c_files;
+    network_c_files.begin = alloc->cursor;
+
+    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/network/tcp/tcp_connection.c");
+    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/network/tcp/tcp_read_write.c");
+    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/network/https/https_request.c");
+
+    network_c_files.end = alloc->cursor;
+
 
     void* vend = alloc->cursor;
 
@@ -173,8 +184,39 @@ i32 main(void) {
     create_c_object_targets(coding_build_object_template, coding_extract_dependency_template, build_dir, coding_c_files.begin, coding_c_files.end, alloc);
     target* coding_targets_end = alloc->cursor;
 
+    target* network_targets_begin =
+    create_c_object_targets(network_build_object_template, network_extract_dependency_template, build_dir, network_c_files.begin, network_c_files.end, alloc);
+    target* network_targets_end = alloc->cursor;
+
     /* executable "foo" depends on foo.o and bar.o */
     {
+        void* var_begin = alloc->cursor;
+
+        // TODO: we should fetch link flags from dependencies
+        string link_object_template;
+        link_object_template.begin = alloc->cursor;
+        const string gcc = STR("gcc");
+        const string flags = STR("-lssl");
+        const string sparam = STR("%s");
+        const string output = STR("-o");
+        void* cursor = sa_alloc(alloc, bytesize(gcc.begin, gcc.end));
+        sa_copy(alloc, gcc.begin, cursor, bytesize(gcc.begin, gcc.end));
+        *(u8*)sa_alloc(alloc, 1) = ' ';
+        cursor = sa_alloc(alloc, bytesize(sparam.begin, sparam.end));
+        sa_copy(alloc, sparam.begin, cursor, bytesize(sparam.begin, sparam.end));
+        *(u8*)sa_alloc(alloc, 1) = ' ';
+        cursor = sa_alloc(alloc, bytesize(flags.begin, flags.end));
+        sa_copy(alloc, flags.begin, cursor, bytesize(flags.begin, flags.end));
+        *(u8*)sa_alloc(alloc, 1) = ' ';
+        cursor = sa_alloc(alloc, bytesize(output.begin, output.end));
+        sa_copy(alloc, output.begin, cursor, bytesize(output.begin, output.end));
+        *(u8*)sa_alloc(alloc, 1) = ' ';
+        cursor = sa_alloc(alloc, bytesize(sparam.begin, sparam.end));
+        sa_copy(alloc, sparam.begin, cursor, bytesize(sparam.begin, sparam.end));
+        link_object_template.end = alloc->cursor;
+
+        void* var_end = alloc->cursor;
+
         target* executable_target = create_target(alloc, STRING("build_minimake/foo"), target_build_executable);
 
         executable_target->template = sa_alloc(alloc, bytesize(link_object_template.begin, link_object_template.end));
@@ -189,8 +231,15 @@ i32 main(void) {
             push_dep_string(alloc, c_object_target->name);
             c_object_target = c_object_target->end;
         }
+        for (target* c_object_target = network_targets_begin; c_object_target < network_targets_end;) {
+            push_dep_string(alloc, c_object_target->name);
+            c_object_target = c_object_target->end;
+        }
         
         finish_target(executable_target, alloc);
+        
+        sa_move_tail(alloc, var_end, var_begin);
+        targets_offset(var_begin, -bytesize(var_begin, var_end), alloc);
     }
 
     sa_move_tail(alloc, vend, v);
