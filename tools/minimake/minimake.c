@@ -191,6 +191,8 @@ i32 main(void) {
 
     network_c_files.end = alloc->cursor;
 
+    string* network_link_flags = alloc->cursor;
+    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("-lssl");
 
     void* vend = alloc->cursor;
 
@@ -212,11 +214,15 @@ i32 main(void) {
     {
         void* var_begin = alloc->cursor;
 
-        // TODO: we should fetch link flags from dependencies
+        string link_flags;
+        link_flags.begin = alloc->cursor;
+        void* cursor = sa_alloc(alloc, bytesize(network_link_flags->begin, network_link_flags->end));
+        sa_copy(alloc, network_link_flags->begin, cursor, bytesize(network_link_flags->begin, network_link_flags->end));
+        link_flags.end = alloc->cursor;
+
         string link_object_template;
         link_object_template.begin = alloc->cursor;
-        const string flags = STR("-lssl");
-        make_executable_link_template(alloc, flags);
+        make_executable_link_template(alloc, link_flags);
         link_object_template.end = alloc->cursor;
 
         struct {target** begin; target** end;} deps;
