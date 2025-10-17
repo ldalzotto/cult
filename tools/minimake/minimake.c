@@ -99,6 +99,26 @@ static target* create_c_object_targets(string build_object_template, string extr
     return begin;
 }
 
+static void make_executable_link_template(stack_alloc* alloc, const string link_flags) {
+    const string gcc = STR("gcc");
+    const string sparam = STR("%s");
+    const string output = STR("-o");
+    void* cursor = sa_alloc(alloc, bytesize(gcc.begin, gcc.end));
+    sa_copy(alloc, gcc.begin, cursor, bytesize(gcc.begin, gcc.end));
+    *(u8*)sa_alloc(alloc, 1) = ' ';
+    cursor = sa_alloc(alloc, bytesize(sparam.begin, sparam.end));
+    sa_copy(alloc, sparam.begin, cursor, bytesize(sparam.begin, sparam.end));
+    *(u8*)sa_alloc(alloc, 1) = ' ';
+    cursor = sa_alloc(alloc, bytesize(link_flags.begin, link_flags.end));
+    sa_copy(alloc, link_flags.begin, cursor, bytesize(link_flags.begin, link_flags.end));
+    *(u8*)sa_alloc(alloc, 1) = ' ';
+    cursor = sa_alloc(alloc, bytesize(output.begin, output.end));
+    sa_copy(alloc, output.begin, cursor, bytesize(output.begin, output.end));
+    *(u8*)sa_alloc(alloc, 1) = ' ';
+    cursor = sa_alloc(alloc, bytesize(sparam.begin, sparam.end));
+    sa_copy(alloc, sparam.begin, cursor, bytesize(sparam.begin, sparam.end));
+}
+
 /*
     Minimake - minimal demonstration of a build target that can run a command
     and have dependencies. This file replaces the [TASK] comments by a tiny
@@ -195,25 +215,25 @@ i32 main(void) {
         // TODO: we should fetch link flags from dependencies
         string link_object_template;
         link_object_template.begin = alloc->cursor;
-        const string gcc = STR("gcc");
         const string flags = STR("-lssl");
-        const string sparam = STR("%s");
-        const string output = STR("-o");
-        void* cursor = sa_alloc(alloc, bytesize(gcc.begin, gcc.end));
-        sa_copy(alloc, gcc.begin, cursor, bytesize(gcc.begin, gcc.end));
-        *(u8*)sa_alloc(alloc, 1) = ' ';
-        cursor = sa_alloc(alloc, bytesize(sparam.begin, sparam.end));
-        sa_copy(alloc, sparam.begin, cursor, bytesize(sparam.begin, sparam.end));
-        *(u8*)sa_alloc(alloc, 1) = ' ';
-        cursor = sa_alloc(alloc, bytesize(flags.begin, flags.end));
-        sa_copy(alloc, flags.begin, cursor, bytesize(flags.begin, flags.end));
-        *(u8*)sa_alloc(alloc, 1) = ' ';
-        cursor = sa_alloc(alloc, bytesize(output.begin, output.end));
-        sa_copy(alloc, output.begin, cursor, bytesize(output.begin, output.end));
-        *(u8*)sa_alloc(alloc, 1) = ' ';
-        cursor = sa_alloc(alloc, bytesize(sparam.begin, sparam.end));
-        sa_copy(alloc, sparam.begin, cursor, bytesize(sparam.begin, sparam.end));
+        make_executable_link_template(alloc, flags);
         link_object_template.end = alloc->cursor;
+
+        struct {target** begin; target** end;} deps;
+        deps.begin = alloc->cursor;
+        for (target* c_object_target = common_targets_begin; c_object_target < common_targets_end;) {
+            *(void**)sa_alloc(alloc, sizeof(void*)) = c_object_target;
+            c_object_target = c_object_target->end;
+        }
+        for (target* c_object_target = coding_targets_begin; c_object_target < coding_targets_end;) {
+            *(void**)sa_alloc(alloc, sizeof(void*)) = c_object_target;
+            c_object_target = c_object_target->end;
+        }
+        for (target* c_object_target = network_targets_begin; c_object_target < network_targets_end;) {
+            *(void**)sa_alloc(alloc, sizeof(void*)) = c_object_target;
+            c_object_target = c_object_target->end;
+        }
+        deps.end = alloc->cursor;
 
         void* var_end = alloc->cursor;
 
@@ -223,17 +243,8 @@ i32 main(void) {
         sa_copy(alloc, link_object_template.begin, executable_target->template, bytesize(link_object_template.begin, link_object_template.end));
 
         executable_target->deps = alloc->cursor;
-        for (target* c_object_target = common_targets_begin; c_object_target < common_targets_end;) {
-            push_dep_string(alloc, c_object_target->name);
-            c_object_target = c_object_target->end;
-        }
-        for (target* c_object_target = coding_targets_begin; c_object_target < coding_targets_end;) {
-            push_dep_string(alloc, c_object_target->name);
-            c_object_target = c_object_target->end;
-        }
-        for (target* c_object_target = network_targets_begin; c_object_target < network_targets_end;) {
-            push_dep_string(alloc, c_object_target->name);
-            c_object_target = c_object_target->end;
+        for (target** dep = deps.begin; dep < deps.end; ++dep) {
+            push_dep_string(alloc, (*dep)->name);
         }
         
         finish_target(executable_target, alloc);
