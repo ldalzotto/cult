@@ -97,11 +97,6 @@ static u8 target_should_build(target* t, string cache_dir, stack_alloc* alloc) {
         return 1;
     }
 
-    const string s = STR("x11_lib");
-    if (sa_equals(alloc, t->name.begin, t->name.end, s.begin, s.end)) {
-        int debug = 0;
-        unused(debug);
-    }
     uptr input_ts = timestamp_read(t->name, cache_dir, alloc);
     for (const string* d = t->deps; (void*)d < t->end;) {
         uptr dep_ts = 0;
@@ -112,7 +107,7 @@ static u8 target_should_build(target* t, string cache_dir, stack_alloc* alloc) {
         } else {
             dep_ts = timestamp_read(*d, cache_dir, alloc);
         }
-        
+    
         if (dep_ts > input_ts) {
             return 1;
         }

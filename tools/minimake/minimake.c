@@ -7,6 +7,7 @@
 #include "target_c_dependencies.h"
 #include "exec_command.h"
 #include "print.h"
+#include "target_timestamp.h"
 
 void target_offset(target* t, uptr offset) {
     t->name.begin = byteoffset(t->name.begin, offset);
@@ -203,18 +204,16 @@ static target* create_executable_target(const string cc, const strings flags, st
     return begin;
 }
 
-// u8 (*build)(target*, string, stack_alloc*)
-static u8 dummy(target* t, string s, stack_alloc* alloc) {
-    unused(t);
-    unused(s);
-    unused(alloc);
-
+// TODO: move to a zip build function
+static u8 dummy(target* t, string cache_dir, stack_alloc* alloc) {
     string output_directory;
     directory_parent(t->name.begin, t->name.end, (void*)&output_directory.begin, (void*)&output_directory.end);
+    directory_parent(output_directory.begin, output_directory.end, (void*)&output_directory.begin, (void*)&output_directory.end);
     directory_remove(alloc, output_directory.begin, output_directory.end);
     directory_create(alloc, output_directory.begin, output_directory.end, DIR_MODE_PUBLIC);
 
     string tar_gz_input_path = *t->deps;
+    string marker_path = *(string*)t->deps->end;
 
     u8 success = 0;
     {
@@ -235,8 +234,16 @@ static u8 dummy(target* t, string s, stack_alloc* alloc) {
         sa_free(alloc, begin);
     }
 
-    // TODO: create the marker
-    
+    // Create the marker
+    if (success) {
+        file_t file = file_open(alloc, marker_path.begin, marker_path.end, FILE_MODE_READ_WRITE);
+        file_close(file);
+    }
+
+    if (success) {
+        target_update_timestamp(t, cache_dir, alloc);
+    }
+
     return success;
 }
 
@@ -344,12 +351,19 @@ i32 main(void) {
         push_string_data(STRING("elibs/x11_headers.tar.gz"), alloc);
         x11_tgz.end = alloc->cursor;
 
+        string marker; marker.begin = alloc->cursor;
+        push_string_data(build_dir, alloc);
+        push_string_data(STRING("elibs/X11/.marker"), alloc);
+        marker.end = alloc->cursor;
+
         void* var_end = alloc->cursor;
         
-        target* t = create_target(alloc, STRING("build_minimake/elibs/X11/"), dummy);
+        target* t = create_target(alloc, STRING("build_minimake/elibs/X11/.timestamp"), dummy);
         t->template = alloc->cursor;
         t->deps = alloc->cursor;
+        
         push_string(x11_tgz, alloc);
+        push_string(marker, alloc);
         finish_target(t, alloc);
 
         const uptr offset = bytesize(var_begin, var_end);
@@ -357,6 +371,8 @@ i32 main(void) {
         x11_lib = var_begin;
         target_offset(var_begin, -offset);
     }
+
+    // TODO: window_targets that have x11_lib target as dep
 
     /* executable "foo" depends on foo.o and bar.o */
     {
@@ -370,7 +386,7 @@ i32 main(void) {
         push_target_refs(common_targets, alloc);
         push_target_refs(coding_targets, alloc);
         push_target_refs(network_targets, alloc);
-        push_target_ref(x11_lib, alloc);
+        push_target_ref(x11_lib, alloc); // TODO: replace by window_targets when implemented
         deps.end = alloc->cursor;
 
         void* var_end = alloc->cursor;
