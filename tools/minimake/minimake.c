@@ -79,8 +79,8 @@ static void push_string_data(const string s, stack_alloc* alloc) {
     sa_copy(alloc, s.begin, cursor, bytesize(s.begin, s.end));
 }
 
-static void make_executable_link_template(stack_alloc* alloc, const strings link_flags) {
-    push_string_data(STRING("gcc"), alloc);
+static void make_executable_link_template(stack_alloc* alloc, const string cc, const strings link_flags) {
+    push_string_data(cc, alloc);
     *(u8*)sa_alloc(alloc, 1) = ' ';
     push_string_data(STRING("%s"), alloc);
     *(u8*)sa_alloc(alloc, 1) = ' ';
@@ -152,6 +152,40 @@ static target* create_c_object_targets(const string cc, const strings flags, str
     return begin;
 }
 
+static target* create_executable_target(const string cc, const strings flags, string build_dir, string executable_file,
+    target** deps_begin, target** deps_end,
+     stack_alloc* alloc) {
+    void* begin = alloc->cursor;
+    void* var_begin = alloc->cursor;
+
+    string name; name.begin = alloc->cursor;
+    push_string_data(build_dir, alloc);
+    push_string_data(executable_file, alloc);
+    name.end = alloc->cursor;
+
+    string executable_link_template; executable_link_template.begin = alloc->cursor;
+    make_executable_link_template(alloc, cc, flags);
+    executable_link_template.end = alloc->cursor;
+
+    void* var_end = alloc->cursor;
+
+    target* target = create_target(alloc, name, target_build_executable);
+    target->template = sa_alloc(alloc, bytesize(executable_link_template.begin, executable_link_template.end));
+    sa_copy(alloc, executable_link_template.begin, target->template, bytesize(executable_link_template.begin, executable_link_template.end));
+
+    target->deps = alloc->cursor;
+    for (struct target** dep = deps_begin; dep < deps_end; ++dep) {
+        push_string((*dep)->name, alloc);
+    }
+
+    finish_target(target, alloc);
+
+    const uptr offset = bytesize(var_begin, var_end);
+    sa_move_tail(alloc, var_end, var_begin);
+    target_offset(begin, -offset);
+    return begin;
+}
+
 /*
     Minimake - minimal demonstration of a build target that can run a command
     and have dependencies. This file replaces the [TASK] comments by a tiny
@@ -171,6 +205,11 @@ i32 main(void) {
     directory_create(alloc, build_dir.begin, build_dir.end, DIR_MODE_PUBLIC);
     directory_create(alloc, cache_dir.begin, cache_dir.end, DIR_MODE_PUBLIC);
 
+    struct {target* begin; target* end;} targets;
+    targets.begin = alloc->cursor;
+
+    void* var_begin = alloc->cursor;
+
     const string cc = STR("gcc");
 
     strings common_c_flags;
@@ -178,11 +217,6 @@ i32 main(void) {
     push_string(STRING("-DDEBUG_ASSERTIONS_ENABLED=1"), alloc);
     push_string(STRING("-Isrc/libs"), alloc);
     common_c_flags.end = alloc->cursor;
-
-    struct {target* begin; target* end;} targets;
-    targets.begin = alloc->cursor;
-
-    void* v = alloc->cursor;
     
     // Create c files
     strings common_c_files;
@@ -235,7 +269,7 @@ i32 main(void) {
     push_string(STRING("-lssl"), alloc);
     network_link_flags.end = alloc->cursor;
 
-    void* vend = alloc->cursor;
+    void* var_end = alloc->cursor;
 
     /* Create targets using helper functions */
     target* common_targets_begin = 
@@ -257,12 +291,6 @@ i32 main(void) {
         strings link_flags; link_flags.begin = alloc->cursor;
         push_strings(network_link_flags, alloc);
         link_flags.end = alloc->cursor;
-        
-        // TODO: don't do that explicitely, move it inside a create_executable_target
-        string link_object_template;
-        link_object_template.begin = alloc->cursor;
-        make_executable_link_template(alloc, link_flags);
-        link_object_template.end = alloc->cursor;
 
         struct {target** begin; target** end;} deps;
         deps.begin = alloc->cursor;
@@ -282,24 +310,14 @@ i32 main(void) {
 
         void* var_end = alloc->cursor;
 
-        target* executable_target = create_target(alloc, STRING("build_minimake/foo"), target_build_executable);
-
-        executable_target->template = sa_alloc(alloc, bytesize(link_object_template.begin, link_object_template.end));
-        sa_copy(alloc, link_object_template.begin, executable_target->template, bytesize(link_object_template.begin, link_object_template.end));
-
-        executable_target->deps = alloc->cursor;
-        for (target** dep = deps.begin; dep < deps.end; ++dep) {
-            push_string((*dep)->name, alloc);
-        }
-        
-        finish_target(executable_target, alloc);
+        create_executable_target(cc, link_flags, build_dir, STRING("foo"), deps.begin, deps.end, alloc);
         
         sa_move_tail(alloc, var_end, var_begin);
         targets_offset(var_begin, -bytesize(var_begin, var_end), alloc);
     }
 
-    sa_move_tail(alloc, vend, v);
-    targets_offset(v, -bytesize(v, vend), alloc);
+    sa_move_tail(alloc, var_end, var_begin);
+    targets_offset(var_begin, -bytesize(var_begin, var_end), alloc);
 
     targets.end = alloc->cursor;
 
