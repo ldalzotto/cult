@@ -55,10 +55,15 @@ u8 target_build_executable(target* t, string cache_dir, stack_alloc* alloc) {
     string deps_as_command;
     deps_as_command.begin = alloc->cursor;
     for (string* d = t->deps; (void*)d < t->end;) {
+        const string extension = STRING(".o");
+        if (!sa_contains(alloc, d->begin, d->end, extension.begin, extension.end)) {
+            goto next;
+        }
         void* cursor = sa_alloc(alloc, bytesize(d->begin, d->end));
         sa_copy(alloc, d->begin, cursor, bytesize(d->begin, d->end));
         cursor = sa_alloc(alloc, 1);
         *(u8*)cursor = ' ';
+        next:
         d = (void*)d->end;
     }
     deps_as_command.end = alloc->cursor;
@@ -90,6 +95,12 @@ u8 target_build_executable(target* t, string cache_dir, stack_alloc* alloc) {
 static u8 target_should_build(target* t, string cache_dir, stack_alloc* alloc) {
     if (t->deps == t->end) {
         return 1;
+    }
+
+    const string s = STR("x11_lib");
+    if (sa_equals(alloc, t->name.begin, t->name.end, s.begin, s.end)) {
+        int debug = 0;
+        unused(debug);
     }
     uptr input_ts = timestamp_read(t->name, cache_dir, alloc);
     for (const string* d = t->deps; (void*)d < t->end;) {

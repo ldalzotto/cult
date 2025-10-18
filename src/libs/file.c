@@ -337,6 +337,59 @@ void directory_remove(stack_alloc* alloc, const u8* path_begin, const u8* path_e
     debug_assert(alloc->cursor == begin);
 }
 
+void directory_parent(const u8* path_begin, const u8* path_end, u8** out_begin, u8** out_end) {
+    // Validate outputs
+    if (!out_begin || !out_end) return;
+
+    // Default to empty slice
+    *out_begin = (u8*)path_begin;
+    *out_end = (u8*)path_begin;
+
+    if (!path_begin || !path_end) return;
+
+    uptr len = bytesize(path_begin, path_end);
+    if (len == 0) {
+        return;
+    }
+
+    // Trim trailing slashes but keep a single leading slash for root
+    uptr trimmed = len;
+    while (trimmed > 1 && *(u8*)byteoffset(path_begin, trimmed - 1) == '/') {
+        --trimmed;
+    }
+
+    if (trimmed == 0) {
+        return;
+    }
+
+    // Find last slash in the trimmed range
+    uptr last_slash = (uptr)-1;
+    for (uptr i = trimmed; i-- > 0;) {
+        if (*(u8*)byteoffset(path_begin, i) == '/') {
+            last_slash = i;
+            break;
+        }
+    }
+
+    if (last_slash == (uptr)-1) {
+        // No slash found: no parent directory
+        *out_begin = (u8*)path_begin;
+        *out_end = (u8*)path_begin;
+        return;
+    }
+
+    if (last_slash == 0) {
+        // Parent is the root "/"
+        *out_begin = (u8*)path_begin;
+        *out_end = (u8*)byteoffset(path_begin, 1);
+        return;
+    }
+
+    // Parent is everything up to and including the last slash (ensure trailing '/')
+    *out_begin = (u8*)path_begin;
+    *out_end = (u8*)byteoffset(path_begin, last_slash + 1);
+}
+
 // Get console file handles
 file_t file_stdout(void) {
     return STDOUT_FILENO;

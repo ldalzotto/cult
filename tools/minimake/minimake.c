@@ -5,6 +5,8 @@
 #include "target.h"
 #include "target_build.h"
 #include "target_c_dependencies.h"
+#include "exec_command.h"
+#include "print.h"
 
 void target_offset(target* t, uptr offset) {
     t->name.begin = byteoffset(t->name.begin, offset);
@@ -117,10 +119,15 @@ static void make_extract_dependency_template(stack_alloc* alloc, const string cc
 
 typedef struct {target* begin; void* end;} targets;
 typedef struct {target** begin; target** end;} target_refs;
+
+static void push_target_ref(target* t, stack_alloc* alloc) {
+    target** ref = sa_alloc(alloc, sizeof(*ref));
+    *ref = t;
+}
+
 static void push_target_refs(targets ts, stack_alloc* alloc) {
     for (target* t = ts.begin; (void*)t < ts.end;) {
-        target** ref = sa_alloc(alloc, sizeof(*ref));
-        *ref = t;
+        push_target_ref(t, alloc);
         t = t->end;
     }
 }
@@ -194,6 +201,43 @@ static target* create_executable_target(const string cc, const strings flags, st
     sa_move_tail(alloc, var_end, var_begin);
     target_offset(begin, -offset);
     return begin;
+}
+
+// u8 (*build)(target*, string, stack_alloc*)
+static u8 dummy(target* t, string s, stack_alloc* alloc) {
+    unused(t);
+    unused(s);
+    unused(alloc);
+
+    string output_directory;
+    directory_parent(t->name.begin, t->name.end, (void*)&output_directory.begin, (void*)&output_directory.end);
+    directory_remove(alloc, output_directory.begin, output_directory.end);
+    directory_create(alloc, output_directory.begin, output_directory.end, DIR_MODE_PUBLIC);
+
+    string tar_gz_input_path = *t->deps;
+
+    u8 success = 0;
+    {
+        void* begin = alloc->cursor;
+        string command; command.begin = alloc->cursor;
+        push_string_data(STRING("tar -xzvf "), alloc);
+        push_string_data(tar_gz_input_path, alloc);
+        push_string_data(STRING(" -C "), alloc);
+        push_string_data(output_directory, alloc);
+        command.end = alloc->cursor;
+
+        print_format(file_stdout(), STRING("%s\n"), command);
+        exec_command_result result = exec_command(command, alloc);
+        string output = {result.output, alloc->cursor};
+        print_format(file_stdout(), STRING("%s"), output);
+        
+        success = result.success;
+        sa_free(alloc, begin);
+    }
+
+    // TODO: create the marker
+    
+    return success;
 }
 
 /*
@@ -291,6 +335,29 @@ i32 main(void) {
     targets network_targets =
     create_c_object_targets(cc, network_c_flags, build_dir, network_c_files, alloc);
 
+    // X11 lib target
+    target* x11_lib;
+    {
+        void* var_begin = alloc->cursor;
+
+        string x11_tgz; x11_tgz.begin = alloc->cursor;
+        push_string_data(STRING("elibs/x11_headers.tar.gz"), alloc);
+        x11_tgz.end = alloc->cursor;
+
+        void* var_end = alloc->cursor;
+        
+        target* t = create_target(alloc, STRING("build_minimake/elibs/X11/"), dummy);
+        t->template = alloc->cursor;
+        t->deps = alloc->cursor;
+        push_string(x11_tgz, alloc);
+        finish_target(t, alloc);
+
+        const uptr offset = bytesize(var_begin, var_end);
+        sa_move_tail(alloc, var_end, var_begin);
+        x11_lib = var_begin;
+        target_offset(var_begin, -offset);
+    }
+
     /* executable "foo" depends on foo.o and bar.o */
     {
         void* var_begin = alloc->cursor;
@@ -303,6 +370,7 @@ i32 main(void) {
         push_target_refs(common_targets, alloc);
         push_target_refs(coding_targets, alloc);
         push_target_refs(network_targets, alloc);
+        push_target_ref(x11_lib, alloc);
         deps.end = alloc->cursor;
 
         void* var_end = alloc->cursor;
