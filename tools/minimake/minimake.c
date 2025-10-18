@@ -58,32 +58,83 @@ static void finish_target(target* t, stack_alloc* alloc) {
     t->end = alloc->cursor;
 }
 
-static void push_dep_string(stack_alloc* alloc, const string dep) {
-    string* dep_current = sa_alloc(alloc, sizeof(*dep_current));
-    dep_current->begin = sa_alloc(alloc, bytesize(dep.begin, dep.end));
-    sa_copy(alloc, dep.begin, (void*)dep_current->begin, bytesize(dep.begin, dep.end));
-    dep_current->end = alloc->cursor;
+typedef struct {string* begin; void* end;} strings;
+
+static void push_string(const string s, stack_alloc* alloc) {
+    string* sp = sa_alloc(alloc, sizeof(string));
+    sp->begin = sa_alloc(alloc, bytesize(s.begin, s.end));
+    sa_copy(alloc, s.begin, (void*)sp->begin, bytesize(s.begin, s.end));
+    sp->end = alloc->cursor;
 }
 
-static target* create_c_object_targets(string build_object_template, string extract_dependency_template,
-        string build_dir,
-        string* sources_begin,
-        string* sources_end,
+static void push_strings(const strings s, stack_alloc* alloc) {
+    for (string* str = s.begin; (void*)str < s.end;) {
+        push_string(*str, alloc);
+        str = (void*)str->end;
+    }
+}
+
+static void push_string_data(const string s, stack_alloc* alloc) {
+    void* cursor = sa_alloc(alloc, bytesize(s.begin, s.end));
+    sa_copy(alloc, s.begin, cursor, bytesize(s.begin, s.end));
+}
+
+static void make_executable_link_template(stack_alloc* alloc, const strings link_flags) {
+    push_string_data(STRING("gcc"), alloc);
+    *(u8*)sa_alloc(alloc, 1) = ' ';
+    push_string_data(STRING("%s"), alloc);
+    *(u8*)sa_alloc(alloc, 1) = ' ';
+    for (string* flag = link_flags.begin; (void*)flag < link_flags.end;) {
+        push_string_data(*flag, alloc);
+        *(u8*)sa_alloc(alloc, 1) = ' ';
+        flag = link_flags.end;
+    }
+    push_string_data(STRING("-o %s"), alloc);
+    *(u8*)sa_alloc(alloc, 1) = ' ';
+}
+
+static void make_build_object_template(stack_alloc* alloc, const string cc, const strings flags) {
+    push_string_data(cc, alloc);
+    *(u8*)sa_alloc(alloc, 1) = ' ';
+    for (string* flag = flags.begin; (void*)flag < flags.end;) {
+        push_string_data(*flag, alloc);
+        *(u8*)sa_alloc(alloc, 1) = ' ';
+        flag = (void*)flag->end;
+    }
+    push_string_data(STRING("-c %s -o %s"), alloc);
+}
+
+static void make_extract_dependency_template(stack_alloc* alloc, const string cc, const strings flags) {
+    push_string_data(cc, alloc);
+    *(u8*)sa_alloc(alloc, 1) = ' ';
+    for (string* flag = flags.begin; (void*)flag < flags.end;) {
+        push_string_data(*flag, alloc);
+        *(u8*)sa_alloc(alloc, 1) = ' ';
+        flag = (void*)flag->end;
+    }
+    push_string_data(STRING("-MM %s"), alloc);
+}
+
+static target* create_c_object_targets(const string cc, const strings flags, string build_dir,
+        strings sources,
         stack_alloc* alloc) 
 {
     void* begin = alloc->cursor;
-    for (string* source = sources_begin; source < sources_end; ++source) {
+    for (string* source = sources.begin; (void*)source < sources.end;) {
         void* var_begin = alloc->cursor;
-        string object_path;
-        object_path.begin = alloc->cursor;
-        void* cursor = sa_alloc(alloc, bytesize(build_dir.begin, build_dir.end));
-        sa_copy(alloc, build_dir.begin, cursor, bytesize(build_dir.begin, build_dir.end));
-        cursor = sa_alloc(alloc, bytesize(source->begin, source->end));
-        sa_copy(alloc, source->begin, cursor, bytesize(source->begin, source->end));
-        cursor = sa_alloc(alloc, 2);
-        *(u8*)cursor = '.';
-        *((u8*)cursor + 1) = 'o';
+        string object_path; object_path.begin = alloc->cursor;
+        push_string_data(build_dir, alloc);
+        push_string_data(*source, alloc);
+        push_string_data(STRING(".o"), alloc);
         object_path.end = alloc->cursor;
+
+        string build_object_template; build_object_template.begin = alloc->cursor;
+        make_build_object_template(alloc, cc, flags);
+        build_object_template.end = alloc->cursor;
+
+        string extract_dependency_template; extract_dependency_template.begin = alloc->cursor;
+        make_extract_dependency_template(alloc, cc, flags);
+        extract_dependency_template.end = alloc->cursor;
 
         target* target = create_target(alloc, object_path, target_build_object);
         target->template = sa_alloc(alloc, bytesize(build_object_template.begin, build_object_template.end));
@@ -95,28 +146,10 @@ static target* create_c_object_targets(string build_object_template, string extr
         sa_move_tail(alloc, target, var_begin);
         target = var_begin;
         target_offset(target, -offset);
+
+        source = (void*)source->end;
     }
     return begin;
-}
-
-static void make_executable_link_template(stack_alloc* alloc, const string link_flags) {
-    const string gcc = STR("gcc");
-    const string sparam = STR("%s");
-    const string output = STR("-o");
-    void* cursor = sa_alloc(alloc, bytesize(gcc.begin, gcc.end));
-    sa_copy(alloc, gcc.begin, cursor, bytesize(gcc.begin, gcc.end));
-    *(u8*)sa_alloc(alloc, 1) = ' ';
-    cursor = sa_alloc(alloc, bytesize(sparam.begin, sparam.end));
-    sa_copy(alloc, sparam.begin, cursor, bytesize(sparam.begin, sparam.end));
-    *(u8*)sa_alloc(alloc, 1) = ' ';
-    cursor = sa_alloc(alloc, bytesize(link_flags.begin, link_flags.end));
-    sa_copy(alloc, link_flags.begin, cursor, bytesize(link_flags.begin, link_flags.end));
-    *(u8*)sa_alloc(alloc, 1) = ' ';
-    cursor = sa_alloc(alloc, bytesize(output.begin, output.end));
-    sa_copy(alloc, output.begin, cursor, bytesize(output.begin, output.end));
-    *(u8*)sa_alloc(alloc, 1) = ' ';
-    cursor = sa_alloc(alloc, bytesize(sparam.begin, sparam.end));
-    sa_copy(alloc, sparam.begin, cursor, bytesize(sparam.begin, sparam.end));
 }
 
 /*
@@ -133,93 +166,99 @@ i32 main(void) {
     sa_init(alloc, memory, (char*)memory + memory_size);
 
     const string build_dir = STR("build_minimake/");
-    // directory_remove(alloc, build_dir.begin, build_dir.end);
-    directory_create(alloc, build_dir.begin, build_dir.end, DIR_MODE_PUBLIC);
     const string cache_dir = STR("build_minimake/.minimake/");
-    // directory_remove(alloc, cache_dir.begin, cache_dir.end);
+
+    directory_create(alloc, build_dir.begin, build_dir.end, DIR_MODE_PUBLIC);
     directory_create(alloc, cache_dir.begin, cache_dir.end, DIR_MODE_PUBLIC);
 
-    const string build_object_template = STR("gcc -DDEBUG_ASSERTIONS_ENABLED=1 -c %s -o %s");
-    const string extract_dependency_template = STR("gcc -DDEBUG_ASSERTIONS_ENABLED=1 -MM %s");
-    
+    const string cc = STR("gcc");
+
+    strings common_c_flags;
+    common_c_flags.begin = alloc->cursor;
+    push_string(STRING("-DDEBUG_ASSERTIONS_ENABLED=1"), alloc);
+    push_string(STRING("-Isrc/libs"), alloc);
+    common_c_flags.end = alloc->cursor;
+
     struct {target* begin; target* end;} targets;
     targets.begin = alloc->cursor;
 
     void* v = alloc->cursor;
     
     // Create c files
-    struct {string* begin; string* end;} common_c_files;
+    strings common_c_files;
     common_c_files.begin = alloc->cursor;
 
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/assert.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/backtrace.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/convert.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/exec_command.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/file.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/format_iterator.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/mem.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/meta_iterator.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/print.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/stack_alloc.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/system_time.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/time.c");
+    push_string(STRING("src/libs/assert.c"), alloc);
+    push_string(STRING("src/libs/backtrace.c"), alloc);
+    push_string(STRING("src/libs/convert.c"), alloc);
+    push_string(STRING("src/libs/exec_command.c"), alloc);
+    push_string(STRING("src/libs/file.c"), alloc);
+    push_string(STRING("src/libs/format_iterator.c"), alloc);
+    push_string(STRING("src/libs/mem.c"), alloc);
+    push_string(STRING("src/libs/meta_iterator.c"), alloc);
+    push_string(STRING("src/libs/print.c"), alloc);
+    push_string(STRING("src/libs/stack_alloc.c"), alloc);
+    push_string(STRING("src/libs/system_time.c"), alloc);
+    push_string(STRING("src/libs/time.c"), alloc);
 
     common_c_files.end = alloc->cursor;
 
-    const string coding_build_object_template = STR("gcc -Isrc/libs -DDEBUG_ASSERTIONS_ENABLED=1 -c %s -o %s");
-    const string coding_extract_dependency_template = STR("gcc -Isrc/libs -DDEBUG_ASSERTIONS_ENABLED=1 -MM %s");
-    struct {string* begin; string* end;} coding_c_files;
+    strings coding_c_flags; coding_c_flags.begin = alloc->cursor;
+    push_strings(common_c_flags, alloc);
+    coding_c_flags.end = alloc->cursor;
+    
+    strings coding_c_files;
     coding_c_files.begin = alloc->cursor;
 
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/coding/lz_deserialize.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/coding/lz_match_brute.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/coding/lz_serialize.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/coding/lz_window.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/coding/lzss.c");
+    push_string(STRING("src/libs/coding/lz_deserialize.c"), alloc);
+    push_string(STRING("src/libs/coding/lz_match_brute.c"), alloc);
+    push_string(STRING("src/libs/coding/lz_serialize.c"), alloc);
+    push_string(STRING("src/libs/coding/lz_window.c"), alloc);
+    push_string(STRING("src/libs/coding/lzss.c"), alloc);
 
     coding_c_files.end = alloc->cursor;
-    
-    const string network_build_object_template = STR("gcc -Isrc/libs -DDEBUG_ASSERTIONS_ENABLED=1 -c %s -o %s");
-    const string network_extract_dependency_template = STR("gcc -Isrc/libs -DDEBUG_ASSERTIONS_ENABLED=1 -MM %s");
 
-    struct {string* begin; string* end;} network_c_files;
+    strings network_c_flags; network_c_flags.begin = alloc->cursor;
+    push_strings(common_c_flags, alloc);
+    network_c_flags.end = alloc->cursor;
+
+    strings network_c_files;
     network_c_files.begin = alloc->cursor;
 
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/network/tcp/tcp_connection.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/network/tcp/tcp_read_write.c");
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("src/libs/network/https/https_request.c");
+    push_string(STRING("src/libs/network/tcp/tcp_connection.c"), alloc);
+    push_string(STRING("src/libs/network/tcp/tcp_read_write.c"), alloc);
+    push_string(STRING("src/libs/network/https/https_request.c"), alloc);
 
     network_c_files.end = alloc->cursor;
 
-    string* network_link_flags = alloc->cursor;
-    *(string*)sa_alloc(alloc, sizeof(string)) = STRING("-lssl");
+    strings network_link_flags; network_link_flags.begin = alloc->cursor;
+    push_string(STRING("-lssl"), alloc);
+    network_link_flags.end = alloc->cursor;
 
     void* vend = alloc->cursor;
 
     /* Create targets using helper functions */
     target* common_targets_begin = 
-    create_c_object_targets(build_object_template, extract_dependency_template, build_dir, common_c_files.begin, common_c_files.end, alloc);
+    create_c_object_targets(cc, common_c_flags, build_dir, common_c_files, alloc);
     target* common_targets_end = alloc->cursor;
 
-
     target* coding_targets_begin =
-    create_c_object_targets(coding_build_object_template, coding_extract_dependency_template, build_dir, coding_c_files.begin, coding_c_files.end, alloc);
+    create_c_object_targets(cc, coding_c_flags, build_dir, coding_c_files, alloc);
     target* coding_targets_end = alloc->cursor;
 
     target* network_targets_begin =
-    create_c_object_targets(network_build_object_template, network_extract_dependency_template, build_dir, network_c_files.begin, network_c_files.end, alloc);
+    create_c_object_targets(cc, network_c_flags, build_dir, network_c_files, alloc);
     target* network_targets_end = alloc->cursor;
 
     /* executable "foo" depends on foo.o and bar.o */
     {
         void* var_begin = alloc->cursor;
 
-        string link_flags;
-        link_flags.begin = alloc->cursor;
-        void* cursor = sa_alloc(alloc, bytesize(network_link_flags->begin, network_link_flags->end));
-        sa_copy(alloc, network_link_flags->begin, cursor, bytesize(network_link_flags->begin, network_link_flags->end));
+        strings link_flags; link_flags.begin = alloc->cursor;
+        push_strings(network_link_flags, alloc);
         link_flags.end = alloc->cursor;
-
+        
+        // TODO: don't do that explicitely, move it inside a create_executable_target
         string link_object_template;
         link_object_template.begin = alloc->cursor;
         make_executable_link_template(alloc, link_flags);
@@ -250,7 +289,7 @@ i32 main(void) {
 
         executable_target->deps = alloc->cursor;
         for (target** dep = deps.begin; dep < deps.end; ++dep) {
-            push_dep_string(alloc, (*dep)->name);
+            push_string((*dep)->name, alloc);
         }
         
         finish_target(executable_target, alloc);
