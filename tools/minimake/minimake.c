@@ -115,7 +115,17 @@ static void make_extract_dependency_template(stack_alloc* alloc, const string cc
     push_string_data(STRING("-MM %s"), alloc);
 }
 
-static target* create_c_object_targets(const string cc, const strings flags, string build_dir,
+typedef struct {target* begin; void* end;} targets;
+typedef struct {target** begin; target** end;} target_refs;
+static void push_target_refs(targets ts, stack_alloc* alloc) {
+    for (target* t = ts.begin; (void*)t < ts.end;) {
+        target** ref = sa_alloc(alloc, sizeof(*ref));
+        *ref = t;
+        t = t->end;
+    }
+}
+
+static targets create_c_object_targets(const string cc, const strings flags, string build_dir,
         strings sources,
         stack_alloc* alloc) 
 {
@@ -149,11 +159,11 @@ static target* create_c_object_targets(const string cc, const strings flags, str
 
         source = (void*)source->end;
     }
-    return begin;
+    return (targets){.begin = begin, alloc->cursor};
 }
 
 static target* create_executable_target(const string cc, const strings flags, string build_dir, string executable_file,
-    target** deps_begin, target** deps_end,
+    target_refs deps,
      stack_alloc* alloc) {
     void* begin = alloc->cursor;
     void* var_begin = alloc->cursor;
@@ -174,7 +184,7 @@ static target* create_executable_target(const string cc, const strings flags, st
     sa_copy(alloc, executable_link_template.begin, target->template, bytesize(executable_link_template.begin, executable_link_template.end));
 
     target->deps = alloc->cursor;
-    for (struct target** dep = deps_begin; dep < deps_end; ++dep) {
+    for (struct target** dep = deps.begin; dep < deps.end; ++dep) {
         push_string((*dep)->name, alloc);
     }
 
@@ -205,8 +215,8 @@ i32 main(void) {
     directory_create(alloc, build_dir.begin, build_dir.end, DIR_MODE_PUBLIC);
     directory_create(alloc, cache_dir.begin, cache_dir.end, DIR_MODE_PUBLIC);
 
-    struct {target* begin; target* end;} targets;
-    targets.begin = alloc->cursor;
+    targets targetss;
+    targetss.begin = alloc->cursor;
 
     void* var_begin = alloc->cursor;
 
@@ -272,17 +282,14 @@ i32 main(void) {
     void* var_end = alloc->cursor;
 
     /* Create targets using helper functions */
-    target* common_targets_begin = 
+    targets common_targets =
     create_c_object_targets(cc, common_c_flags, build_dir, common_c_files, alloc);
-    target* common_targets_end = alloc->cursor;
 
-    target* coding_targets_begin =
+    targets coding_targets =
     create_c_object_targets(cc, coding_c_flags, build_dir, coding_c_files, alloc);
-    target* coding_targets_end = alloc->cursor;
 
-    target* network_targets_begin =
+    targets network_targets =
     create_c_object_targets(cc, network_c_flags, build_dir, network_c_files, alloc);
-    target* network_targets_end = alloc->cursor;
 
     /* executable "foo" depends on foo.o and bar.o */
     {
@@ -292,25 +299,15 @@ i32 main(void) {
         push_strings(network_link_flags, alloc);
         link_flags.end = alloc->cursor;
 
-        struct {target** begin; target** end;} deps;
-        deps.begin = alloc->cursor;
-        for (target* c_object_target = common_targets_begin; c_object_target < common_targets_end;) {
-            *(void**)sa_alloc(alloc, sizeof(void*)) = c_object_target;
-            c_object_target = c_object_target->end;
-        }
-        for (target* c_object_target = coding_targets_begin; c_object_target < coding_targets_end;) {
-            *(void**)sa_alloc(alloc, sizeof(void*)) = c_object_target;
-            c_object_target = c_object_target->end;
-        }
-        for (target* c_object_target = network_targets_begin; c_object_target < network_targets_end;) {
-            *(void**)sa_alloc(alloc, sizeof(void*)) = c_object_target;
-            c_object_target = c_object_target->end;
-        }
+        target_refs deps; deps.begin = alloc->cursor;
+        push_target_refs(common_targets, alloc);
+        push_target_refs(coding_targets, alloc);
+        push_target_refs(network_targets, alloc);
         deps.end = alloc->cursor;
 
         void* var_end = alloc->cursor;
 
-        create_executable_target(cc, link_flags, build_dir, STRING("foo"), deps.begin, deps.end, alloc);
+        create_executable_target(cc, link_flags, build_dir, STRING("foo"), deps, alloc);
         
         sa_move_tail(alloc, var_end, var_begin);
         targets_offset(var_begin, -bytesize(var_begin, var_end), alloc);
@@ -319,10 +316,10 @@ i32 main(void) {
     sa_move_tail(alloc, var_end, var_begin);
     targets_offset(var_begin, -bytesize(var_begin, var_end), alloc);
 
-    targets.end = alloc->cursor;
+    targetss.end = alloc->cursor;
 
     target* target_to_build = 0;
-    for (target* t = targets.begin; t < targets.end;) {
+    for (target* t = targetss.begin; (void*)t < targetss.end;) {
         const string target_to_build_name = STR("build_minimake/foo");
         if (sa_equals(alloc, t->name.begin, t->name.end, target_to_build_name.begin, target_to_build_name.end)) {
             target_to_build = t;
@@ -332,7 +329,7 @@ i32 main(void) {
     }
 
     i32 return_code = 0;
-    if (!target_build(targets.begin, targets.end, target_to_build, cache_dir, alloc)) {
+    if (!target_build(targetss.begin, targetss.end, target_to_build, cache_dir, alloc)) {
         return_code = 1;
     }
     
