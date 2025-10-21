@@ -135,6 +135,7 @@ static void push_target_refs(targets ts, stack_alloc* alloc) {
 
 static targets create_c_object_targets(const string cc, const strings flags, string build_dir,
         strings sources,
+        targets additional_deps,
         stack_alloc* alloc) 
 {
     void* begin = alloc->cursor;
@@ -158,6 +159,10 @@ static targets create_c_object_targets(const string cc, const strings flags, str
         target->template = sa_alloc(alloc, bytesize(build_object_template.begin, build_object_template.end));
         sa_copy(alloc, build_object_template.begin, target->template, bytesize(build_object_template.begin, build_object_template.end));
         target->deps = extract_c_dependencies(*source, extract_dependency_template, alloc);
+        for (struct target* dep_target = additional_deps.begin; (void*)dep_target < additional_deps.end; ) {
+            push_string(dep_target->name, alloc);
+            dep_target = dep_target->end;
+        }
         finish_target(target, alloc);
 
         const uptr offset = bytesize(var_begin, target);
@@ -330,8 +335,18 @@ i32 main(void) {
     push_string(STRING("-lssl"), alloc);
     network_link_flags.end = alloc->cursor;
 
+    u8 use_x11 = 0;
+    {
+        exec_command_result use_x11_result = exec_command(STRING("pkg-config --exists x11"), alloc);
+        use_x11 = use_x11_result.success;
+        sa_free(alloc, use_x11_result.output);
+    }
+    
     strings window_c_files; window_c_files.begin = alloc->cursor;
     push_string(STRING("src/libs/window/win_x11.c"), alloc);
+    if (!use_x11) {
+        push_string(STRING("src/libs/window/x11_stub.c"), alloc);
+    }
     window_c_files.end = alloc->cursor;
 
     strings window_c_flags; window_c_flags.begin = alloc->cursor;
@@ -340,20 +355,35 @@ i32 main(void) {
     window_c_flags.end = alloc->cursor;
 
     strings x11_link_flags; x11_link_flags.begin = alloc->cursor;
-    push_string(STRING("-lX11"), alloc);
+    if (use_x11) {
+        push_string(STRING("-lX11"), alloc);
+    }
     x11_link_flags.end = alloc->cursor;
+
+    strings dummy_c_files; dummy_c_files.begin = alloc->cursor;
+    push_string(STRING("src/apps/dummy/dummy.c"), alloc);
+    dummy_c_files.end = alloc->cursor;
+
+    strings dummy_c_flags; dummy_c_flags.begin = alloc->cursor;
+    push_strings(common_c_flags, alloc);
+    push_strings(window_c_flags, alloc);
+    dummy_c_flags.end = alloc->cursor;
+
+    strings dummy_link_flags; dummy_link_flags.begin = alloc->cursor;
+    push_strings(x11_link_flags, alloc);
+    dummy_link_flags.end = alloc->cursor;
 
     void* var_end = alloc->cursor;
 
     /* Create targets using helper functions */
     targets common_targets =
-    create_c_object_targets(cc, common_c_flags, build_dir, common_c_files, alloc);
+    create_c_object_targets(cc, common_c_flags, build_dir, common_c_files, (targets){0,0}, alloc);
 
     targets coding_targets =
-    create_c_object_targets(cc, coding_c_flags, build_dir, coding_c_files, alloc);
+    create_c_object_targets(cc, coding_c_flags, build_dir, coding_c_files, (targets){0,0}, alloc);
 
     targets network_targets =
-    create_c_object_targets(cc, network_c_flags, build_dir, network_c_files, alloc);
+    create_c_object_targets(cc, network_c_flags, build_dir, network_c_files, (targets){0,0}, alloc);
 
     // X11 lib target
     target* x11_lib;
@@ -386,9 +416,26 @@ i32 main(void) {
     }
 
     targets window_targets =
-    create_c_object_targets(cc, window_c_flags, build_dir, window_c_files, alloc);
+    create_c_object_targets(cc, window_c_flags, build_dir, window_c_files, (targets){x11_lib, alloc->cursor}, alloc);
 
-    // TODO: window_targets that have x11_lib target as dep
+    targets dummy_targets =
+    create_c_object_targets(cc, dummy_c_flags, build_dir, dummy_c_files, (targets){0,0}, alloc);
+
+    // Dummy target
+    {
+        void* var_begin = alloc->cursor;
+        target_refs deps; deps.begin = alloc->cursor;
+        push_target_refs(common_targets, alloc);
+        push_target_refs(window_targets, alloc);
+        push_target_refs(dummy_targets, alloc);
+        deps.end = alloc->cursor;
+        void* var_end = alloc->cursor;
+
+        create_executable_target(cc, dummy_link_flags, build_dir, STRING("dummy"), deps, alloc);
+     
+        sa_move_tail(alloc, var_end, var_begin);
+        targets_offset(var_begin, -bytesize(var_begin, var_end), alloc);
+    }
 
     /* executable "foo" depends on foo.o and bar.o */
     {
@@ -403,7 +450,6 @@ i32 main(void) {
         push_target_refs(common_targets, alloc);
         push_target_refs(coding_targets, alloc);
         push_target_refs(network_targets, alloc);
-        push_target_ref(x11_lib, alloc); // TODO: replace by window_targets when implemented
         push_target_refs(window_targets, alloc);
         deps.end = alloc->cursor;
 
@@ -422,7 +468,7 @@ i32 main(void) {
 
     target* target_to_build = 0;
     for (target* t = targetss.begin; (void*)t < targetss.end;) {
-        const string target_to_build_name = STR("build_minimake/foo");
+        const string target_to_build_name = STR("build_minimake/dummy");
         if (sa_equals(alloc, t->name.begin, t->name.end, target_to_build_name.begin, target_to_build_name.end)) {
             target_to_build = t;
             break;
