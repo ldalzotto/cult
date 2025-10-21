@@ -90,7 +90,7 @@ static void make_executable_link_template(stack_alloc* alloc, const string cc, c
     for (string* flag = link_flags.begin; (void*)flag < link_flags.end;) {
         push_string_data(*flag, alloc);
         *(u8*)sa_alloc(alloc, 1) = ' ';
-        flag = link_flags.end;
+        flag = (void*)flag->end;
     }
     push_string_data(STRING("-o %s"), alloc);
     *(u8*)sa_alloc(alloc, 1) = ' ';
@@ -330,6 +330,19 @@ i32 main(void) {
     push_string(STRING("-lssl"), alloc);
     network_link_flags.end = alloc->cursor;
 
+    strings window_c_files; window_c_files.begin = alloc->cursor;
+    push_string(STRING("src/libs/window/win_x11.c"), alloc);
+    window_c_files.end = alloc->cursor;
+
+    strings window_c_flags; window_c_flags.begin = alloc->cursor;
+    push_strings(common_c_flags, alloc);
+    push_string(STRING("-I./src/elibs"), alloc);
+    window_c_flags.end = alloc->cursor;
+
+    strings x11_link_flags; x11_link_flags.begin = alloc->cursor;
+    push_string(STRING("-lX11"), alloc);
+    x11_link_flags.end = alloc->cursor;
+
     void* var_end = alloc->cursor;
 
     /* Create targets using helper functions */
@@ -372,6 +385,9 @@ i32 main(void) {
         target_offset(var_begin, -offset);
     }
 
+    targets window_targets =
+    create_c_object_targets(cc, window_c_flags, build_dir, window_c_files, alloc);
+
     // TODO: window_targets that have x11_lib target as dep
 
     /* executable "foo" depends on foo.o and bar.o */
@@ -380,6 +396,7 @@ i32 main(void) {
 
         strings link_flags; link_flags.begin = alloc->cursor;
         push_strings(network_link_flags, alloc);
+        push_strings(x11_link_flags, alloc);
         link_flags.end = alloc->cursor;
 
         target_refs deps; deps.begin = alloc->cursor;
@@ -387,6 +404,7 @@ i32 main(void) {
         push_target_refs(coding_targets, alloc);
         push_target_refs(network_targets, alloc);
         push_target_ref(x11_lib, alloc); // TODO: replace by window_targets when implemented
+        push_target_refs(window_targets, alloc);
         deps.end = alloc->cursor;
 
         void* var_end = alloc->cursor;
