@@ -469,6 +469,31 @@ i32 main(void) {
     agent_deps.end = alloc->cursor;
     // END - agent
 
+    // BEGIN - minimake
+    strings minimake_c_files;minimake_c_files.begin = alloc->cursor;
+    push_string(STRING("tools/minimake/minimake.c"), alloc);
+    push_string(STRING("tools/minimake/target_build.c"), alloc);
+    push_string(STRING("tools/minimake/target_c_dependencies.c"), alloc);
+    push_string(STRING("tools/minimake/target_execution_list.c"), alloc);
+    push_string(STRING("tools/minimake/target_timestamp.c"), alloc);
+    minimake_c_files.end = alloc->cursor;
+
+    strings minimake_o_files = get_c_object_names(minimake_c_files, build_dir, alloc);
+
+    strings minimake_c_flags;minimake_c_flags.begin = alloc->cursor;
+    push_strings(common_c_flags, alloc);
+    minimake_c_flags.end = alloc->cursor;
+
+    strings minimake_link_flags;minimake_link_flags.begin = alloc->cursor;
+    push_strings(common_link_flags, alloc);
+    minimake_link_flags.end = alloc->cursor;
+
+    strings minimake_deps;minimake_deps.begin = alloc->cursor;
+    push_strings(common_o_files, alloc);
+    push_strings(minimake_o_files, alloc);
+    minimake_deps.end = alloc->cursor;
+    // END - minimake
+
     // BEGIN - tests
     strings tests_c_files; tests_c_files.begin = alloc->cursor;
     push_string(STRING("tests/all_tests.c"), alloc);
@@ -532,6 +557,9 @@ i32 main(void) {
     create_c_object_targets(cc, agent_c_flags, agent_c_files, agent_o_files, (strings){0,0}, alloc);
     create_executable_target(cc, agent_link_flags, build_dir, STRING("agent"), agent_deps, alloc);
 
+    create_c_object_targets(cc, minimake_c_flags, minimake_c_files, minimake_o_files, (strings){0,0}, alloc);
+    create_executable_target(cc, minimake_link_flags, build_dir, STRING("minimake"), minimake_deps, alloc);
+
     create_c_object_targets(cc, tests_c_flags, tests_c_files, tests_o_files, (strings){0,0}, alloc);
     create_executable_target(cc, tests_link_flags, build_dir, STRING("tests_run"), tests_deps, alloc);
 
@@ -543,11 +571,13 @@ i32 main(void) {
     target* target_dummy = 0;
     target* target_snake = 0;
     target* target_agent = 0;
+    target* target_minimake = 0;
     target* target_tests_run = 0;
     for (target* t = targetss.begin; (void*)t < targetss.end;) {
         const string target_dummy_name = STR("build_minimake/dummy");
         const string target_sname_name = STR("build_minimake/snake");
         const string target_agent_name = STR("build_minimake/agent");
+        const string target_minimake_name = STR("build_minimake/minimake");
         const string tests_run_name = STR("build_minimake/tests_run");
         if (sa_equals(alloc, t->name.begin, t->name.end, target_dummy_name.begin, target_dummy_name.end)) {
             target_dummy = t;
@@ -558,10 +588,13 @@ i32 main(void) {
         if (sa_equals(alloc, t->name.begin, t->name.end, target_agent_name.begin, target_agent_name.end)) {
             target_agent = t;
         }
+        if (sa_equals(alloc, t->name.begin, t->name.end, target_minimake_name.begin, target_minimake_name.end)) {
+            target_minimake = t;
+        }
         if (sa_equals(alloc, t->name.begin, t->name.end, tests_run_name.begin, tests_run_name.end)) {
             target_tests_run = t;
         }
-        if (target_dummy && target_snake && target_agent && target_tests_run) {break;}
+        if (target_dummy && target_snake && target_agent && target_minimake && target_tests_run) {break;}
         t = t->end;
     }
 
@@ -573,6 +606,9 @@ i32 main(void) {
         return_code = 1;
     }
     if (!target_build(targetss.begin, targetss.end, target_agent, cache_dir, alloc)) {
+        return_code = 1;
+    }
+    if (!target_build(targetss.begin, targetss.end, target_minimake, cache_dir, alloc)) {
         return_code = 1;
     }
     if (!target_build(targetss.begin, targetss.end, target_tests_run, cache_dir, alloc)) {
