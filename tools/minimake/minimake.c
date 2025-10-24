@@ -216,49 +216,17 @@ static target* create_executable_target(const string cc, const strings flags, st
     return begin;
 }
 
-// TODO: move to a zip build function
-static u8 dummy(target* t, string cache_dir, stack_alloc* alloc) {
-    string output_directory;
-    directory_parent(t->name.begin, t->name.end, (void*)&output_directory.begin, (void*)&output_directory.end);
-    directory_parent(output_directory.begin, output_directory.end, (void*)&output_directory.begin, (void*)&output_directory.end);
-    directory_remove(alloc, output_directory.begin, output_directory.end);
-    directory_create(alloc, output_directory.begin, output_directory.end, DIR_MODE_PUBLIC);
+static target* create_extract_target(const string targz_file, const string marker_file, const string timestamp_file, stack_alloc* alloc) {
+    target* t = create_target(alloc, timestamp_file, target_build_extract);
+    t->template = alloc->cursor;
+    t->deps = alloc->cursor;
+    
+    push_string(targz_file, alloc);
+    push_string(marker_file, alloc);
+    finish_target(t, alloc);
 
-    string tar_gz_input_path = *t->deps;
-    string marker_path = *(string*)t->deps->end;
-
-    u8 success = 0;
-    {
-        void* begin = alloc->cursor;
-        string command; command.begin = alloc->cursor;
-        push_string_data(STRING("tar -xzvf "), alloc);
-        push_string_data(tar_gz_input_path, alloc);
-        push_string_data(STRING(" -C "), alloc);
-        push_string_data(output_directory, alloc);
-        command.end = alloc->cursor;
-
-        print_format(file_stdout(), STRING("%s\n"), command);
-        exec_command_result result = exec_command(command, alloc);
-        string output = {result.output, alloc->cursor};
-        print_format(file_stdout(), STRING("%s"), output);
-        
-        success = result.success;
-        sa_free(alloc, begin);
-    }
-
-    // Create the marker
-    if (success) {
-        file_t file = file_open(alloc, marker_path.begin, marker_path.end, FILE_MODE_READ_WRITE);
-        file_close(file);
-    }
-
-    if (success) {
-        target_update_timestamp(t, cache_dir, alloc);
-    }
-
-    return success;
+    return t;
 }
-
 
 /*
     Minimake - minimal demonstration of a build target that can run a command
@@ -453,15 +421,7 @@ i32 main(void) {
     create_c_object_targets(cc, network_c_flags, network_c_files, network_o_files, (strings){0,0}, alloc);
 
     // X11 lib target
-    {
-        target* t = create_target(alloc, x11_timestamp, dummy);
-        t->template = alloc->cursor;
-        t->deps = alloc->cursor;
-        
-        push_string(x11_tgz, alloc);
-        push_string(x11_marker, alloc);
-        finish_target(t, alloc);
-    }
+    create_extract_target(x11_tgz, x11_marker, x11_timestamp, alloc);
 
     create_c_object_targets(cc, window_c_flags, window_c_files, window_o_files, window_deps, alloc);
     create_c_object_targets(cc, dummy_c_flags, dummy_c_files, dummy_o_files, (strings){0,0}, alloc);

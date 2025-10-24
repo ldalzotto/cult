@@ -91,6 +91,59 @@ u8 target_build_executable(target* t, string cache_dir, stack_alloc* alloc) {
     return exec.success;
 }
 
+u8 target_build_extract(target* t, string cache_dir, stack_alloc* alloc) {
+    string output_directory;
+    directory_parent(t->name.begin, t->name.end, (void*)&output_directory.begin, (void*)&output_directory.end);
+    directory_parent(output_directory.begin, output_directory.end, (void*)&output_directory.begin, (void*)&output_directory.end);
+    directory_remove(alloc, output_directory.begin, output_directory.end);
+    directory_create(alloc, output_directory.begin, output_directory.end, DIR_MODE_PUBLIC);
+
+    string tar_gz_input_path = *t->deps;
+    string marker_path = *(string*)t->deps->end;
+
+    u8 success = 0;
+    {
+        void* begin = alloc->cursor;
+        string command; command.begin = alloc->cursor;
+        const string tar_command = STRING("tar -xzvf ");
+        const string output_command = STRING(" -C ");
+
+        void* cursor;
+        cursor = sa_alloc(alloc, bytesize(tar_command.begin, tar_command.end));
+        sa_copy(alloc, tar_command.begin, cursor, bytesize(tar_command.begin, tar_command.end));
+
+        cursor = sa_alloc(alloc, bytesize(tar_gz_input_path.begin, tar_gz_input_path.end));
+        sa_copy(alloc, tar_gz_input_path.begin, cursor, bytesize(tar_gz_input_path.begin, tar_gz_input_path.end));
+
+        cursor = sa_alloc(alloc, bytesize(output_command.begin, output_command.end));
+        sa_copy(alloc, output_command.begin, cursor, bytesize(output_command.begin, output_command.end));
+
+        cursor = sa_alloc(alloc, bytesize(output_directory.begin, output_directory.end));
+        sa_copy(alloc, output_directory.begin, cursor, bytesize(output_directory.begin, output_directory.end));
+
+        command.end = alloc->cursor;
+
+        print_format(file_stdout(), STRING("%s\n"), command);
+        exec_command_result result = exec_command(command, alloc);
+        string output = {result.output, alloc->cursor};
+        print_format(file_stdout(), STRING("%s"), output);
+        
+        success = result.success;
+        sa_free(alloc, begin);
+    }
+
+    // Create the marker
+    if (success) {
+        file_t file = file_open(alloc, marker_path.begin, marker_path.end, FILE_MODE_READ_WRITE);
+        file_close(file);
+    }
+
+    if (success) {
+        target_update_timestamp(t, cache_dir, alloc);
+    }
+
+    return success;
+}
 
 static u8 target_should_build(target* t, string cache_dir, stack_alloc* alloc) {
     if (t->deps == t->end) {
