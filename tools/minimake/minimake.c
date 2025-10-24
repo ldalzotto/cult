@@ -254,13 +254,22 @@ i32 main(void) {
 
     const string cc = STR("gcc");
 
+    // BEGIN - common
     strings common_c_flags;
     common_c_flags.begin = alloc->cursor;
+    push_string(STRING("-Wall"), alloc);
+    push_string(STRING("-Wextra"), alloc);
+    push_string(STRING("-Werror"), alloc);
+    push_string(STRING("-pedantic"), alloc);
     push_string(STRING("-DDEBUG_ASSERTIONS_ENABLED=1"), alloc);
     push_string(STRING("-Isrc/libs"), alloc);
     common_c_flags.end = alloc->cursor;
+
+    strings common_link_flags;
+    common_link_flags.begin = alloc->cursor;
+    push_string(STRING("-no-pie"), alloc);
+    common_link_flags.end = alloc->cursor;
     
-    // Create c files
     strings common_c_files;
     common_c_files.begin = alloc->cursor;
 
@@ -280,7 +289,9 @@ i32 main(void) {
     common_c_files.end = alloc->cursor;
 
     strings common_o_files = get_c_object_names(common_c_files, build_dir, alloc);
+    // END - common
 
+    // BEGIN - coding
     strings coding_c_flags; coding_c_flags.begin = alloc->cursor;
     push_strings(common_c_flags, alloc);
     coding_c_flags.end = alloc->cursor;
@@ -296,7 +307,13 @@ i32 main(void) {
 
     coding_c_files.end = alloc->cursor;
 
-    strings coding_o_files = get_c_object_names(common_c_files, build_dir, alloc);
+    strings coding_o_files = get_c_object_names(coding_c_files, build_dir, alloc);
+    // END - coding
+
+    // BEGIN - network
+    strings network_link_flags;network_link_flags.begin = alloc->cursor;
+    push_string(STRING("-lssl"), alloc);
+    network_link_flags.end = alloc->cursor;
 
     strings network_c_flags; network_c_flags.begin = alloc->cursor;
     push_strings(common_c_flags, alloc);
@@ -312,7 +329,9 @@ i32 main(void) {
     network_c_files.end = alloc->cursor;
 
     strings network_o_files = get_c_object_names(network_c_files, build_dir, alloc);
+    // END - network
 
+    // BEGIN - x11
     u8 use_x11 = 0;
     {
         exec_command_result use_x11_result = exec_command(STRING("pkg-config --exists x11"), alloc);
@@ -338,7 +357,9 @@ i32 main(void) {
         push_string(STRING("-lX11"), alloc);
     }
     x11_link_flags.end = alloc->cursor;
-    
+    // END - x11
+
+    // BEGIN - window
     strings window_c_files; window_c_files.begin = alloc->cursor;
     push_string(STRING("src/libs/window/win_x11.c"), alloc);
     if (!use_x11) {
@@ -356,7 +377,9 @@ i32 main(void) {
     strings window_deps; window_deps.begin = alloc->cursor;
     push_string(x11_timestamp, alloc);
     window_deps.end = alloc->cursor;
+    // END - window
 
+    // BEGIN - dummy
     strings dummy_c_files; dummy_c_files.begin = alloc->cursor;
     push_string(STRING("src/apps/dummy/dummy.c"), alloc);
     dummy_c_files.end = alloc->cursor;
@@ -369,6 +392,7 @@ i32 main(void) {
     dummy_c_flags.end = alloc->cursor;
 
     strings dummy_link_flags; dummy_link_flags.begin = alloc->cursor;
+    push_strings(common_link_flags, alloc);
     push_strings(x11_link_flags, alloc);
     dummy_link_flags.end = alloc->cursor;
 
@@ -377,7 +401,9 @@ i32 main(void) {
     push_strings(window_o_files, alloc);
     push_strings(dummy_o_files, alloc);
     dummy_deps.end = alloc->cursor;
+    // END - dummy
 
+    // BEGIN - snake
     strings snake_lib_c_files; snake_lib_c_files.begin = alloc->cursor;
     push_string(STRING("src/apps/snake/snake_grid.c"), alloc);
     push_string(STRING("src/apps/snake/snake_move.c"), alloc);
@@ -404,6 +430,7 @@ i32 main(void) {
     snake_c_flags.end = alloc->cursor;
 
     strings snake_link_flags; snake_link_flags.begin = alloc->cursor;
+    push_strings(common_link_flags, alloc);
     push_strings(x11_link_flags, alloc);
     snake_link_flags.end = alloc->cursor;
 
@@ -413,6 +440,76 @@ i32 main(void) {
     push_strings(snake_lib_o_files, alloc);
     push_strings(snake_o_files, alloc);
     snake_deps.end = alloc->cursor;
+    // END - snake
+
+    // BEGIN - agent
+    strings agent_c_files;agent_c_files.begin = alloc->cursor;
+    push_string(STRING("tools/agent/agent_args.c"), alloc);
+    push_string(STRING("tools/agent/agent_request.c"), alloc);
+    push_string(STRING("tools/agent/agent_result_write.c"), alloc);
+    push_string(STRING("tools/agent/agent.c"), alloc);
+    push_string(STRING("tools/agent/user_content_read.c"), alloc);
+    agent_c_files.end = alloc->cursor;
+
+    strings agent_o_files = get_c_object_names(agent_c_files, build_dir, alloc);
+
+    strings agent_c_flags;agent_c_flags.begin = alloc->cursor;
+    push_strings(common_c_flags, alloc);
+    agent_c_flags.end = alloc->cursor;
+
+    strings agent_link_flags;agent_link_flags.begin = alloc->cursor;
+    push_strings(common_link_flags, alloc);
+    push_strings(network_link_flags, alloc);
+    agent_link_flags.end = alloc->cursor;
+
+    strings agent_deps; agent_deps.begin =alloc->cursor;
+    push_strings(common_o_files, alloc);
+    push_strings(network_o_files, alloc);
+    push_strings(agent_o_files, alloc);
+    agent_deps.end = alloc->cursor;
+    // END - agent
+
+    // BEGIN - tests
+    strings tests_c_files; tests_c_files.begin = alloc->cursor;
+    push_string(STRING("tests/all_tests.c"), alloc);
+    push_string(STRING("tests/test_backtrace.c"), alloc);
+    push_string(STRING("tests/test_exec_command.c"), alloc);
+    push_string(STRING("tests/test_file.c"), alloc);
+    push_string(STRING("tests/test_fps_ticker.c"), alloc);
+    push_string(STRING("tests/test_framework.c"), alloc);
+    push_string(STRING("tests/test_lzss.c"), alloc);
+    push_string(STRING("tests/test_mem.c"), alloc);
+    push_string(STRING("tests/test_network_https.c"), alloc);
+    push_string(STRING("tests/test_network_tcp.c"), alloc);
+    push_string(STRING("tests/test_print.c"), alloc);
+    push_string(STRING("tests/test_snake.c"), alloc);
+    push_string(STRING("tests/test_stack_alloc.c"), alloc);
+    push_string(STRING("tests/test_temp_dir.c"), alloc);
+    push_string(STRING("tests/test_win_x11.c"), alloc);
+    tests_c_files.end = alloc->cursor;
+
+    strings tests_o_files = get_c_object_names(tests_c_files, build_dir, alloc);
+
+    strings tests_c_flags;tests_c_flags.begin = alloc->cursor;
+    push_strings(common_c_flags, alloc);
+    push_string(STRING("-Isrc/apps"), alloc);
+    tests_c_flags.end = alloc->cursor;
+
+    strings tests_link_flags;tests_link_flags.begin = alloc->cursor;
+    push_strings(common_link_flags, alloc);
+    push_strings(x11_link_flags, alloc);
+    push_strings(network_link_flags, alloc);
+    tests_link_flags.end = alloc->cursor;
+
+    strings tests_deps;tests_deps.begin = alloc->cursor;
+    push_strings(common_o_files, alloc);
+    push_strings(window_o_files, alloc);
+    push_strings(coding_o_files, alloc);
+    push_strings(network_o_files, alloc);
+    push_strings(snake_lib_o_files, alloc);
+    push_strings(tests_o_files, alloc);
+    tests_deps.end = alloc->cursor;
+    // END - tests
 
     void* var_end = alloc->cursor;
     
@@ -430,8 +527,13 @@ i32 main(void) {
 
     create_c_object_targets(cc, snake_lib_c_flags, snake_lib_c_files, snake_lib_o_files, (strings){0,0}, alloc);
     create_c_object_targets(cc, snake_c_flags, snake_c_files, snake_o_files, (strings){0,0}, alloc);
-
     create_executable_target(cc, snake_link_flags, build_dir, STRING("snake"), snake_deps, alloc);
+
+    create_c_object_targets(cc, agent_c_flags, agent_c_files, agent_o_files, (strings){0,0}, alloc);
+    create_executable_target(cc, agent_link_flags, build_dir, STRING("agent"), agent_deps, alloc);
+
+    create_c_object_targets(cc, tests_c_flags, tests_c_files, tests_o_files, (strings){0,0}, alloc);
+    create_executable_target(cc, tests_link_flags, build_dir, STRING("tests_run"), tests_deps, alloc);
 
     sa_move_tail(alloc, var_end, var_begin);
     targets_offset(var_begin, -bytesize(var_begin, var_end), alloc);
@@ -440,16 +542,26 @@ i32 main(void) {
 
     target* target_dummy = 0;
     target* target_snake = 0;
+    target* target_agent = 0;
+    target* target_tests_run = 0;
     for (target* t = targetss.begin; (void*)t < targetss.end;) {
         const string target_dummy_name = STR("build_minimake/dummy");
         const string target_sname_name = STR("build_minimake/snake");
+        const string target_agent_name = STR("build_minimake/agent");
+        const string tests_run_name = STR("build_minimake/tests_run");
         if (sa_equals(alloc, t->name.begin, t->name.end, target_dummy_name.begin, target_dummy_name.end)) {
             target_dummy = t;
         }
         if (sa_equals(alloc, t->name.begin, t->name.end, target_sname_name.begin, target_sname_name.end)) {
             target_snake = t;
         }
-        if (target_dummy && target_snake) {break;}
+        if (sa_equals(alloc, t->name.begin, t->name.end, target_agent_name.begin, target_agent_name.end)) {
+            target_agent = t;
+        }
+        if (sa_equals(alloc, t->name.begin, t->name.end, tests_run_name.begin, tests_run_name.end)) {
+            target_tests_run = t;
+        }
+        if (target_dummy && target_snake && target_agent && target_tests_run) {break;}
         t = t->end;
     }
 
@@ -458,6 +570,12 @@ i32 main(void) {
         return_code = 1;
     }
     if (!target_build(targetss.begin, targetss.end, target_snake, cache_dir, alloc)) {
+        return_code = 1;
+    }
+    if (!target_build(targetss.begin, targetss.end, target_agent, cache_dir, alloc)) {
+        return_code = 1;
+    }
+    if (!target_build(targetss.begin, targetss.end, target_tests_run, cache_dir, alloc)) {
         return_code = 1;
     }
     
