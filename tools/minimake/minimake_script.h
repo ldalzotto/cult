@@ -34,6 +34,8 @@ typedef struct {
 
 c_object_files make_c_object_files(strings sources, string build_dir, stack_alloc* alloc);
 
+string make_c_executable_file(string name, string build_dir, stack_alloc* alloc);
+
 target* create_phony_target(const string name, const strings deps, string build_dir, stack_alloc* alloc);
 
 /* High level target creators used by make_targets */
@@ -42,9 +44,7 @@ targets create_c_object_targets(const string cc, const strings flags,
         strings additional_deps,
         stack_alloc* alloc);
 
-target* create_executable_target(const string cc, const strings flags, string build_dir, string executable_file,
-    strings deps,
-     stack_alloc* alloc);
+target* create_executable_target(const string cc, const strings flags, string executable_file, strings deps, stack_alloc* alloc);
 
 target* create_extract_target(const string targz_file, const string marker_file, const string timestamp_file, stack_alloc* alloc);
 

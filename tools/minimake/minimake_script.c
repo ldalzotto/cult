@@ -168,6 +168,15 @@ c_object_files make_c_object_files(strings sources, string build_dir, stack_allo
     return result;
 }
 
+string make_c_executable_file(string name, string build_dir, stack_alloc* alloc) {
+    string s;
+    s.begin = alloc->cursor;
+    push_string_data(build_dir, alloc);
+    push_string_data(name, alloc);
+    s.end = alloc->cursor;
+    return s;
+}
+
 target* create_phony_target(const string name, const strings deps, string build_dir, stack_alloc* alloc) {
     void* var_begin = alloc->cursor;
     string name_pre; name_pre.begin = alloc->cursor;
@@ -262,16 +271,9 @@ targets create_c_object_targets(const string cc, const strings flags,
 }
 
 /* Create executable linking target */
-target* create_executable_target(const string cc, const strings flags, string build_dir, string executable_file,
-    strings deps,
-     stack_alloc* alloc) {
+target* create_executable_target(const string cc, const strings flags, string executable_file, strings deps, stack_alloc* alloc) {
     void* begin = alloc->cursor;
     void* var_begin = alloc->cursor;
-
-    string name; name.begin = alloc->cursor;
-    push_string_data(build_dir, alloc);
-    push_string_data(executable_file, alloc);
-    name.end = alloc->cursor;
 
     string executable_link_template; executable_link_template.begin = alloc->cursor;
     make_executable_link_template(alloc, cc, flags);
@@ -279,7 +281,7 @@ target* create_executable_target(const string cc, const strings flags, string bu
 
     void* var_end = alloc->cursor;
 
-    target* target = create_target(alloc, name, target_build_executable);
+    target* target = create_target(alloc, executable_file, target_build_executable);
     target->template = sa_alloc(alloc, bytesize(executable_link_template.begin, executable_link_template.end));
     sa_copy(alloc, executable_link_template.begin, target->template, bytesize(executable_link_template.begin, executable_link_template.end));
 

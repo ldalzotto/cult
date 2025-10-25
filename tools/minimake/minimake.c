@@ -154,6 +154,8 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_strings(window.o, alloc);
     push_strings(dummy.o, alloc);
     end_strings(&dummy_deps, alloc);
+
+    string dummy_executable = make_c_executable_file(STRING("dummy"), build_dir, alloc);
     // END - dummy
 
     // BEGIN - snake
@@ -193,6 +195,8 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_strings(snake_lib.o, alloc);
     push_strings(snake.o, alloc);
     end_strings(&snake_deps, alloc);
+
+    string snake_executable = make_c_executable_file(STRING("snake"), build_dir, alloc);
     // END - snake
 
     // BEGIN - agent
@@ -220,6 +224,8 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_strings(network.o, alloc);
     push_strings(agent.o, alloc);
     end_strings(&agent_deps, alloc);
+
+    string agent_executable = make_c_executable_file(STRING("agent"), build_dir, alloc);
     // END - agent
 
     // BEGIN - minimake
@@ -246,6 +252,8 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_strings(common.o, alloc);
     push_strings(minimake.o, alloc);
     end_strings(&minimake_deps, alloc);
+
+    string minimake_executable = make_c_executable_file(STRING("minimake"), build_dir, alloc);
     // END - minimake
 
     // BEGIN - tests
@@ -288,16 +296,19 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_strings(snake_lib.o, alloc);
     push_strings(tests.o, alloc);
     end_strings(&tests_deps, alloc);
+
+    string tests_executblabe = make_c_executable_file(STRING("tests_run"), build_dir, alloc);
     // END - tests
 
-    // TODO: use proper name
+    // BEGIN - make all
     strings make_all_deps = begin_strings(alloc);
-    push_string(STRING("build_minimake/dummy"), alloc);
-    push_string(STRING("build_minimake/snake"), alloc);
-    push_string(STRING("build_minimake/agent"), alloc);
-    push_string(STRING("build_minimake/minimake"), alloc);
-    push_string(STRING("build_minimake/tests_run"), alloc);
+    push_string(dummy_executable, alloc);
+    push_string(snake_executable, alloc);
+    push_string(agent_executable, alloc);
+    push_string(minimake_executable, alloc);
+    push_string(tests_executblabe, alloc);
     end_strings(&make_all_deps, alloc);
+    // END - make all
 
     void* var_end = alloc->cursor;
     
@@ -311,20 +322,20 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     create_c_object_targets(cc, window_c_flags, window, window_deps, alloc);
     
     create_c_object_targets(cc, dummy_c_flags, dummy, (strings){0,0}, alloc);
-    create_executable_target(cc, dummy_link_flags, build_dir, STRING("dummy"), dummy_deps, alloc);
+    create_executable_target(cc, dummy_link_flags, dummy_executable, dummy_deps, alloc);
 
     create_c_object_targets(cc, snake_lib_c_flags, snake_lib, (strings){0,0}, alloc);
     create_c_object_targets(cc, snake_c_flags, snake, (strings){0,0}, alloc);
-    create_executable_target(cc, snake_link_flags, build_dir, STRING("snake"), snake_deps, alloc);
+    create_executable_target(cc, snake_link_flags, snake_executable, snake_deps, alloc);
 
     create_c_object_targets(cc, agent_c_flags, agent, (strings){0,0}, alloc);
-    create_executable_target(cc, agent_link_flags, build_dir, STRING("agent"), agent_deps, alloc);
+    create_executable_target(cc, agent_link_flags, agent_executable, agent_deps, alloc);
 
     create_c_object_targets(cc, minimake_c_flags, minimake, (strings){0,0}, alloc);
-    create_executable_target(cc, minimake_link_flags, build_dir, STRING("minimake"), minimake_deps, alloc);
+    create_executable_target(cc, minimake_link_flags, minimake_executable, minimake_deps, alloc);
 
     create_c_object_targets(cc, tests_c_flags, tests, (strings){0,0}, alloc);
-    create_executable_target(cc, tests_link_flags, build_dir, STRING("tests_run"), tests_deps, alloc);
+    create_executable_target(cc, tests_link_flags, tests_executblabe, tests_deps, alloc);
 
     create_phony_target(STRING("all"), make_all_deps, build_dir, alloc);
 
@@ -359,7 +370,7 @@ i32 main(i32 argc, char** argv) {
     u64 target_end_ms = sys_time_ms();
 
     u64 build_begin_ms = sys_time_ms();
-    
+
     /* Get the target name(s) from the command line instead of hardcoding.
        If no target is provided, build the default set. */
     u8 return_code = 1;
@@ -383,5 +394,5 @@ i32 main(i32 argc, char** argv) {
     
     sa_deinit(alloc);
     mem_unmap(memory, memory_size);
-    return (i32)return_code;
+    return return_code ? 0 : 1;
 }
