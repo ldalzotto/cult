@@ -28,10 +28,13 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_string(STRING("-pedantic"), alloc);
     if (use_debug) {
         push_string(STRING("-DDEBUG_ASSERTIONS_ENABLED=1"), alloc);
-        push_string(STRING("-Isrc/libs"), alloc);
+        push_string(STRING("-O0"), alloc);
     } else {
-        // TODO
+        push_string(STRING("-DDEBUG_ASSERTIONS_ENABLED=0"), alloc);
+        push_string(STRING("-DNDEBUG"), alloc);
+        push_string(STRING("-O3"), alloc);
     }
+    push_string(STRING("-Isrc/libs"), alloc);
     end_strings(&common_c_flags, alloc);
 
     strings common_link_flags = begin_strings(alloc);
