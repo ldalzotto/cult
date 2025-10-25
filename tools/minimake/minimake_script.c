@@ -59,12 +59,20 @@ static void finish_target(target* t, stack_alloc* alloc) {
 }
 
 /* Strings utilities */
+
+string begin_string(stack_alloc* alloc) {return (string){.begin = alloc->cursor};}
+void end_string(string* s, stack_alloc* alloc) {s->end = alloc->cursor;}
+
 void push_string(const string s, stack_alloc* alloc) {
     string* sp = sa_alloc(alloc, sizeof(string));
     sp->begin = sa_alloc(alloc, bytesize(s.begin, s.end));
     sa_copy(alloc, s.begin, (void*)sp->begin, bytesize(s.begin, s.end));
     sp->end = alloc->cursor;
 }
+
+
+strings begin_strings(stack_alloc* alloc) {return (strings){.begin = alloc->cursor};}
+void end_strings(strings* s, stack_alloc* alloc) {s->end = alloc->cursor;}
 
 void push_strings(const strings s, stack_alloc* alloc) {
     for (string* str = s.begin; (void*)str < s.end;) {
@@ -122,7 +130,7 @@ static void make_extract_dependency_template(stack_alloc* alloc, const string cc
 }
 
 /* Helpers to derive object filenames from sources */
-strings get_c_object_names(strings sources, string build_dir, stack_alloc* alloc) {
+static strings get_c_object_names(strings sources, string build_dir, stack_alloc* alloc) {
     strings names; names.begin = alloc->cursor;
     for (string* source = sources.begin; (void*)source<sources.end;) {
         string* s = sa_alloc(alloc, sizeof(*s));
@@ -137,7 +145,7 @@ strings get_c_object_names(strings sources, string build_dir, stack_alloc* alloc
     return names;
 }
 
-strings get_c_object_dep_names(strings sources, string build_dir, stack_alloc* alloc) {
+static strings get_c_object_dep_names(strings sources, string build_dir, stack_alloc* alloc) {
     strings names; names.begin = alloc->cursor;
     for (string* source = sources.begin; (void*)source<sources.end;) {
         string* s = sa_alloc(alloc, sizeof(*s));
@@ -152,19 +160,25 @@ strings get_c_object_dep_names(strings sources, string build_dir, stack_alloc* a
     return names;
 }
 
+c_object_files make_c_object_files(strings sources, string build_dir, stack_alloc* alloc) {
+    c_object_files result;
+    result.c = sources;
+    result.o = get_c_object_names(sources, build_dir, alloc);
+    result.d = get_c_object_dep_names(sources, build_dir, alloc);
+    return result;
+}
+
 /* Create object build targets and their dependency-extraction targets */
 targets create_c_object_targets(const string cc, const strings flags,
-        strings sources,
-        strings objects,
-        strings objects_dependency,
+        c_object_files files,
         strings additional_deps,
         stack_alloc* alloc)
 {
     void* begin = alloc->cursor;
 
-    string* object = objects.begin;
-    string* object_dependency = objects_dependency.begin;
-    for (string* source = sources.begin; (void*)source < sources.end;) {
+    string* object = files.o.begin;
+    string* object_dependency = files.d.begin;
+    for (string* source = files.c.begin; (void*)source < files.c.end;) {
         void* var_begin = alloc->cursor;
         
         string build_object_template; build_object_template.begin = alloc->cursor;
@@ -275,4 +289,25 @@ target* create_extract_target(const string targz_file, const string marker_file,
     finish_target(t, alloc);
 
     return t;
+}
+
+u8 target_build_name(targets targets, string target, string build_dir, string cache_dir, exec_command_session* session, stack_alloc* alloc) {
+    void* begin = alloc->cursor;
+
+    string expected_name; expected_name.begin = alloc->cursor;
+    push_string_data(build_dir, alloc);
+    push_string_data(target, alloc);
+    expected_name.end = alloc->cursor;
+
+    u8 result = 0;
+    for (struct target* t = targets.begin; (void*)t<targets.end;) {
+        if (sa_equals(alloc, expected_name.begin, expected_name.end, t->name.begin, t->name.end)) {
+            result = target_build(targets.begin, targets.end, t, session, cache_dir, alloc);
+            break;
+        }
+        t = t->end;
+    }
+    
+    sa_free(alloc, begin);
+    return result;
 }

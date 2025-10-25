@@ -1,13 +1,10 @@
 #include "mem.h"
 
 #include "file.h"
-#include "target.h"
-#include "target_build.h"
 #include "exec_command.h"
 #include "system_time.h"
 #include "print.h"
-
-#include "minimake_script.h" /* new module containing helpers extracted from this file */
+#include "minimake_script.h"
 
 static targets make_targets(u8 use_debug, string build_dir, exec_command_session* session, stack_alloc* alloc) {
     targets targetss;
@@ -18,8 +15,7 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     const string cc = STR("gcc");
 
     // BEGIN - common
-    strings common_c_flags;
-    common_c_flags.begin = alloc->cursor;
+    strings common_c_flags = begin_strings(alloc);
     push_string(STRING("-Wall"), alloc);
     push_string(STRING("-Wextra"), alloc);
     push_string(STRING("-Werror"), alloc);
@@ -30,17 +26,13 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     } else {
         // TODO
     }
-    
-    common_c_flags.end = alloc->cursor;
+    end_strings(&common_c_flags, alloc);
 
-    strings common_link_flags;
-    common_link_flags.begin = alloc->cursor;
+    strings common_link_flags = begin_strings(alloc);
     push_string(STRING("-no-pie"), alloc);
-    common_link_flags.end = alloc->cursor;
+    end_strings(&common_link_flags, alloc);
     
-    strings common_c_files;
-    common_c_files.begin = alloc->cursor;
-
+    strings common_c_files = begin_strings(alloc);
     push_string(STRING("src/libs/assert.c"), alloc);
     push_string(STRING("src/libs/backtrace.c"), alloc);
     push_string(STRING("src/libs/convert.c"), alloc);
@@ -53,53 +45,43 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_string(STRING("src/libs/stack_alloc.c"), alloc);
     push_string(STRING("src/libs/system_time.c"), alloc);
     push_string(STRING("src/libs/time.c"), alloc);
+    end_strings(&common_c_files, alloc);
 
-    common_c_files.end = alloc->cursor;
-
-    strings common_o_files = get_c_object_names(common_c_files, build_dir, alloc);
-    strings common_d_files = get_c_object_dep_names(common_c_files, build_dir, alloc);
+    c_object_files common = make_c_object_files(common_c_files, build_dir, alloc);
     // END - common
 
     // BEGIN - coding
-    strings coding_c_flags; coding_c_flags.begin = alloc->cursor;
+    strings coding_c_flags = begin_strings(alloc);
     push_strings(common_c_flags, alloc);
-    coding_c_flags.end = alloc->cursor;
+    end_strings(&coding_c_flags, alloc);
     
-    strings coding_c_files;
-    coding_c_files.begin = alloc->cursor;
-
+    strings coding_c_files = begin_strings(alloc);
     push_string(STRING("src/libs/coding/lz_deserialize.c"), alloc);
     push_string(STRING("src/libs/coding/lz_match_brute.c"), alloc);
     push_string(STRING("src/libs/coding/lz_serialize.c"), alloc);
     push_string(STRING("src/libs/coding/lz_window.c"), alloc);
     push_string(STRING("src/libs/coding/lzss.c"), alloc);
+    end_strings(&coding_c_files, alloc);
 
-    coding_c_files.end = alloc->cursor;
-
-    strings coding_o_files = get_c_object_names(coding_c_files, build_dir, alloc);
-    strings coding_d_files = get_c_object_dep_names(common_c_files, build_dir, alloc);
+    c_object_files coding = make_c_object_files(coding_c_files, build_dir, alloc);
     // END - coding
 
     // BEGIN - network
-    strings network_link_flags;network_link_flags.begin = alloc->cursor;
+    strings network_link_flags = begin_strings(alloc);
     push_string(STRING("-lssl"), alloc);
-    network_link_flags.end = alloc->cursor;
+    end_strings(&network_link_flags, alloc);
 
-    strings network_c_flags; network_c_flags.begin = alloc->cursor;
+    strings network_c_flags = begin_strings(alloc);
     push_strings(common_c_flags, alloc);
-    network_c_flags.end = alloc->cursor;
+    end_strings(&network_c_flags, alloc);
 
-    strings network_c_files;
-    network_c_files.begin = alloc->cursor;
-
+    strings network_c_files = begin_strings(alloc);
     push_string(STRING("src/libs/network/tcp/tcp_connection.c"), alloc);
     push_string(STRING("src/libs/network/tcp/tcp_read_write.c"), alloc);
     push_string(STRING("src/libs/network/https/https_request.c"), alloc);
+    end_strings(&network_c_files, alloc);
 
-    network_c_files.end = alloc->cursor;
-
-    strings network_o_files = get_c_object_names(network_c_files, build_dir, alloc);
-    strings network_d_files = get_c_object_dep_names(network_c_files, build_dir, alloc);
+    c_object_files network = make_c_object_files(network_c_files, build_dir, alloc);
     // END - network
 
     // BEGIN - x11
@@ -109,46 +91,45 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
         use_x11 = use_x11_result.success;
         sa_free(alloc, use_x11_result.output);
     }
-    string x11_tgz; x11_tgz.begin = alloc->cursor;
+    string x11_tgz = begin_string(alloc);
     push_string_data(STRING("elibs/x11_headers.tar.gz"), alloc);
-    x11_tgz.end = alloc->cursor;
+    end_string(&x11_tgz, alloc);
 
-    string x11_marker; x11_marker.begin = alloc->cursor;
+    string x11_marker = begin_string(alloc);
     push_string_data(build_dir, alloc);
     push_string_data(STRING("elibs/X11/.marker"), alloc);
-    x11_marker.end = alloc->cursor;
+    end_string(&x11_marker, alloc);
 
-    string x11_timestamp; x11_timestamp.begin = alloc->cursor;
+    string x11_timestamp = begin_string(alloc);
     push_string_data(build_dir, alloc);
     push_string_data(STRING("elibs/X11/.timestamp"), alloc);
-    x11_timestamp.end = alloc->cursor;
+    end_string(&x11_timestamp, alloc);
 
-    strings x11_link_flags; x11_link_flags.begin = alloc->cursor;
+    strings x11_link_flags = begin_strings(alloc);
     if (use_x11) {
         push_string(STRING("-lX11"), alloc);
     }
-    x11_link_flags.end = alloc->cursor;
+    end_strings(&x11_link_flags, alloc);
     // END - x11
 
     // BEGIN - window
-    strings window_c_files; window_c_files.begin = alloc->cursor;
+    strings window_c_files = begin_strings(alloc);
     push_string(STRING("src/libs/window/win_x11.c"), alloc);
     if (!use_x11) {
         push_string(STRING("src/libs/window/x11_stub.c"), alloc);
     }
-    window_c_files.end = alloc->cursor;
+    end_strings(&window_c_files, alloc);
 
-    strings window_o_files = get_c_object_names(window_c_files, build_dir, alloc);
-    strings window_d_files = get_c_object_dep_names(window_c_files, build_dir, alloc);
+    c_object_files window = make_c_object_files(window_c_files, build_dir, alloc);
 
-    strings window_c_flags; window_c_flags.begin = alloc->cursor;
+    strings window_c_flags = begin_strings(alloc);
     push_strings(common_c_flags, alloc);
     push_string(STRING("-I./src/elibs"), alloc);
-    window_c_flags.end = alloc->cursor;
+    end_strings(&window_c_flags, alloc);
 
-    strings window_deps; window_deps.begin = alloc->cursor;
+    strings window_deps = begin_strings(alloc);
     push_string(x11_timestamp, alloc);
-    window_deps.end = alloc->cursor;
+    end_strings(&window_deps, alloc);
     // END - window
 
     // BEGIN - dummy
@@ -156,8 +137,7 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_string(STRING("src/apps/dummy/dummy.c"), alloc);
     dummy_c_files.end = alloc->cursor;
 
-    strings dummy_o_files = get_c_object_names(dummy_c_files, build_dir, alloc);
-    strings dummy_d_files = get_c_object_dep_names(dummy_c_files, build_dir, alloc);
+    c_object_files dummy = make_c_object_files(dummy_c_files, build_dir, alloc);
 
     strings dummy_c_flags; dummy_c_flags.begin = alloc->cursor;
     push_strings(common_c_flags, alloc);
@@ -170,9 +150,9 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     dummy_link_flags.end = alloc->cursor;
 
     strings dummy_deps; dummy_deps.begin = alloc->cursor;
-    push_strings(common_o_files, alloc);
-    push_strings(window_o_files, alloc);
-    push_strings(dummy_o_files, alloc);
+    push_strings(common.o, alloc);
+    push_strings(window.o, alloc);
+    push_strings(dummy.o, alloc);
     dummy_deps.end = alloc->cursor;
     // END - dummy
 
@@ -185,8 +165,7 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_string(STRING("src/apps/snake/snake.c"), alloc);
     snake_lib_c_files.end = alloc->cursor;
 
-    strings snake_lib_o_files = get_c_object_names(snake_lib_c_files, build_dir, alloc);
-    strings snake_lib_d_files = get_c_object_dep_names(snake_lib_c_files, build_dir, alloc);
+    c_object_files snake_lib = make_c_object_files(snake_lib_c_files, build_dir, alloc);
 
     strings snake_lib_c_flags;snake_lib_c_flags.begin = alloc->cursor;
     push_strings(common_c_flags, alloc);
@@ -197,8 +176,7 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_string(STRING("src/apps/snake/snake_loop.c"), alloc);
     snake_c_files.end = alloc->cursor;
 
-    strings snake_o_files = get_c_object_names(snake_c_files, build_dir, alloc);
-    strings snake_d_files = get_c_object_dep_names(snake_c_files, build_dir, alloc);
+    c_object_files snake = make_c_object_files(snake_c_files, build_dir, alloc);
 
     strings snake_c_flags;snake_c_flags.begin = alloc->cursor;
     push_strings(snake_lib_c_flags, alloc);
@@ -210,10 +188,10 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     snake_link_flags.end = alloc->cursor;
 
     strings snake_deps; snake_deps.begin = alloc->cursor;
-    push_strings(common_o_files, alloc);
-    push_strings(window_o_files, alloc);
-    push_strings(snake_lib_o_files, alloc);
-    push_strings(snake_o_files, alloc);
+    push_strings(common.o, alloc);
+    push_strings(window.o, alloc);
+    push_strings(snake_lib.o, alloc);
+    push_strings(snake.o, alloc);
     snake_deps.end = alloc->cursor;
     // END - snake
 
@@ -226,8 +204,7 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_string(STRING("tools/agent/user_content_read.c"), alloc);
     agent_c_files.end = alloc->cursor;
 
-    strings agent_o_files = get_c_object_names(agent_c_files, build_dir, alloc);
-    strings agent_d_files = get_c_object_dep_names(agent_c_files, build_dir, alloc);
+    c_object_files agent = make_c_object_files(agent_c_files, build_dir, alloc);
 
     strings agent_c_flags;agent_c_flags.begin = alloc->cursor;
     push_strings(common_c_flags, alloc);
@@ -239,9 +216,9 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     agent_link_flags.end = alloc->cursor;
 
     strings agent_deps; agent_deps.begin =alloc->cursor;
-    push_strings(common_o_files, alloc);
-    push_strings(network_o_files, alloc);
-    push_strings(agent_o_files, alloc);
+    push_strings(common.o, alloc);
+    push_strings(network.o, alloc);
+    push_strings(agent.o, alloc);
     agent_deps.end = alloc->cursor;
     // END - agent
 
@@ -254,8 +231,7 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_string(STRING("tools/minimake/target_timestamp.c"), alloc);
     minimake_c_files.end = alloc->cursor;
 
-    strings minimake_o_files = get_c_object_names(minimake_c_files, build_dir, alloc);
-    strings minimake_d_files = get_c_object_dep_names(minimake_c_files, build_dir, alloc);
+    c_object_files minimake = make_c_object_files(minimake_c_files, build_dir, alloc);
 
     strings minimake_c_flags;minimake_c_flags.begin = alloc->cursor;
     push_strings(common_c_flags, alloc);
@@ -266,8 +242,8 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     minimake_link_flags.end = alloc->cursor;
 
     strings minimake_deps;minimake_deps.begin = alloc->cursor;
-    push_strings(common_o_files, alloc);
-    push_strings(minimake_o_files, alloc);
+    push_strings(common.o, alloc);
+    push_strings(minimake.o, alloc);
     minimake_deps.end = alloc->cursor;
     // END - minimake
 
@@ -290,8 +266,7 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_string(STRING("tests/test_win_x11.c"), alloc);
     tests_c_files.end = alloc->cursor;
 
-    strings tests_o_files = get_c_object_names(tests_c_files, build_dir, alloc);
-    strings tests_d_files = get_c_object_dep_names(tests_c_files, build_dir, alloc);
+    c_object_files tests = make_c_object_files(tests_c_files, build_dir, alloc);
 
     strings tests_c_flags;tests_c_flags.begin = alloc->cursor;
     push_strings(common_c_flags, alloc);
@@ -305,40 +280,40 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     tests_link_flags.end = alloc->cursor;
 
     strings tests_deps;tests_deps.begin = alloc->cursor;
-    push_strings(common_o_files, alloc);
-    push_strings(window_o_files, alloc);
-    push_strings(coding_o_files, alloc);
-    push_strings(network_o_files, alloc);
-    push_strings(snake_lib_o_files, alloc);
-    push_strings(tests_o_files, alloc);
+    push_strings(common.o, alloc);
+    push_strings(window.o, alloc);
+    push_strings(coding.o, alloc);
+    push_strings(network.o, alloc);
+    push_strings(snake_lib.o, alloc);
+    push_strings(tests.o, alloc);
     tests_deps.end = alloc->cursor;
     // END - tests
 
     void* var_end = alloc->cursor;
     
-    create_c_object_targets(cc, common_c_flags, common_c_files, common_o_files, common_d_files, (strings){0,0}, alloc);
-    create_c_object_targets(cc, coding_c_flags, coding_c_files, coding_o_files, coding_d_files, (strings){0,0}, alloc);
-    create_c_object_targets(cc, network_c_flags, network_c_files, network_o_files, network_d_files, (strings){0,0}, alloc);
+    create_c_object_targets(cc, common_c_flags, common, (strings){0,0}, alloc);
+    create_c_object_targets(cc, coding_c_flags, coding, (strings){0,0}, alloc);
+    create_c_object_targets(cc, network_c_flags, network, (strings){0,0}, alloc);
 
     // X11 lib target
     create_extract_target(x11_tgz, x11_marker, x11_timestamp, alloc);
 
-    create_c_object_targets(cc, window_c_flags, window_c_files, window_o_files, window_d_files, window_deps, alloc);
+    create_c_object_targets(cc, window_c_flags, window, window_deps, alloc);
     
-    create_c_object_targets(cc, dummy_c_flags, dummy_c_files, dummy_o_files, dummy_d_files, (strings){0,0}, alloc);
+    create_c_object_targets(cc, dummy_c_flags, dummy, (strings){0,0}, alloc);
     create_executable_target(cc, dummy_link_flags, build_dir, STRING("dummy"), dummy_deps, alloc);
 
-    create_c_object_targets(cc, snake_lib_c_flags, snake_lib_c_files, snake_lib_o_files, snake_lib_d_files, (strings){0,0}, alloc);
-    create_c_object_targets(cc, snake_c_flags, snake_c_files, snake_o_files, snake_d_files, (strings){0,0}, alloc);
+    create_c_object_targets(cc, snake_lib_c_flags, snake_lib, (strings){0,0}, alloc);
+    create_c_object_targets(cc, snake_c_flags, snake, (strings){0,0}, alloc);
     create_executable_target(cc, snake_link_flags, build_dir, STRING("snake"), snake_deps, alloc);
 
-    create_c_object_targets(cc, agent_c_flags, agent_c_files, agent_o_files, agent_d_files, (strings){0,0}, alloc);
+    create_c_object_targets(cc, agent_c_flags, agent, (strings){0,0}, alloc);
     create_executable_target(cc, agent_link_flags, build_dir, STRING("agent"), agent_deps, alloc);
 
-    create_c_object_targets(cc, minimake_c_flags, minimake_c_files, minimake_o_files, minimake_d_files, (strings){0,0}, alloc);
+    create_c_object_targets(cc, minimake_c_flags, minimake, (strings){0,0}, alloc);
     create_executable_target(cc, minimake_link_flags, build_dir, STRING("minimake"), minimake_deps, alloc);
 
-    create_c_object_targets(cc, tests_c_flags, tests_c_files, tests_o_files, tests_d_files, (strings){0,0}, alloc);
+    create_c_object_targets(cc, tests_c_flags, tests, (strings){0,0}, alloc);
     create_executable_target(cc, tests_link_flags, build_dir, STRING("tests_run"), tests_deps, alloc);
 
     sa_move_tail(alloc, var_end, var_begin);
@@ -373,52 +348,12 @@ i32 main(void) {
 
     u64 build_begin_ms = sys_time_ms();
     
-    target* target_dummy = 0;
-    target* target_snake = 0;
-    target* target_agent = 0;
-    target* target_minimake = 0;
-    target* target_tests_run = 0;
-    for (target* t = targetss.begin; (void*)t < targetss.end;) {
-        const string target_dummy_name = STR("build_minimake/dummy");
-        const string target_sname_name = STR("build_minimake/snake");
-        const string target_agent_name = STR("build_minimake/agent");
-        const string target_minimake_name = STR("build_minimake/minimake");
-        const string tests_run_name = STR("build_minimake/tests_run");
-        if (sa_equals(alloc, t->name.begin, t->name.end, target_dummy_name.begin, target_dummy_name.end)) {
-            target_dummy = t;
-        }
-        if (sa_equals(alloc, t->name.begin, t->name.end, target_sname_name.begin, target_sname_name.end)) {
-            target_snake = t;
-        }
-        if (sa_equals(alloc, t->name.begin, t->name.end, target_agent_name.begin, target_agent_name.end)) {
-            target_agent = t;
-        }
-        if (sa_equals(alloc, t->name.begin, t->name.end, target_minimake_name.begin, target_minimake_name.end)) {
-            target_minimake = t;
-        }
-        if (sa_equals(alloc, t->name.begin, t->name.end, tests_run_name.begin, tests_run_name.end)) {
-            target_tests_run = t;
-        }
-        if (target_dummy && target_snake && target_agent && target_minimake && target_tests_run) {break;}
-        t = t->end;
-    }
-
-    i32 return_code = 0;
-    if (!target_build(targetss.begin, targetss.end, target_dummy, session, cache_dir, alloc)) {
-        return_code = 1;
-    }
-    if (!target_build(targetss.begin, targetss.end, target_snake, session, cache_dir, alloc)) {
-        return_code = 1;
-    }
-    if (!target_build(targetss.begin, targetss.end, target_agent, session, cache_dir, alloc)) {
-        return_code = 1;
-    }
-    if (!target_build(targetss.begin, targetss.end, target_minimake, session, cache_dir, alloc)) {
-        return_code = 1;
-    }
-    if (!target_build(targetss.begin, targetss.end, target_tests_run, session, cache_dir, alloc)) {
-        return_code = 1;
-    }
+    u8 return_code = 1;
+    return_code = return_code & target_build_name(targetss, STRING("dummy"), build_dir, cache_dir, session, alloc);
+    return_code = return_code & target_build_name(targetss, STRING("snake"), build_dir, cache_dir, session, alloc);
+    return_code = return_code & target_build_name(targetss, STRING("agent"), build_dir, cache_dir, session, alloc);
+    return_code = return_code & target_build_name(targetss, STRING("minimake"), build_dir, cache_dir, session, alloc);
+    return_code = return_code & target_build_name(targetss, STRING("tests_run"), build_dir, cache_dir, session, alloc);
 
     u64 build_end_ms = sys_time_ms();
     print_format(file_stdout(), STRING("Targets took: %ums\n"), target_end_ms - target_begin_ms);
