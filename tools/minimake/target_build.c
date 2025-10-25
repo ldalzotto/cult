@@ -4,6 +4,47 @@
 #include "print.h"
 #include "target_timestamp.h"
 
+u8 target_build_object_dependencies(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
+    void* begin = alloc->cursor;
+
+    const string template = {t->template, t->deps};
+    string c_file = {alloc->cursor, alloc->cursor};
+    for (string* d = t->deps; (void*)d < t->end;) {
+        const string c_extension = STR(".c");
+        if (sa_contains(alloc, d->begin, d->end, c_extension.begin, c_extension.end)) {
+            c_file = *d;
+            break;
+        }
+
+        d = (void*)d->end;
+    }
+    string dep_file = t->name;
+    directory_create_for_file(alloc, dep_file.begin, dep_file.end, DIR_MODE_PUBLIC);
+
+    string command;
+    command.begin = print_format_to_buffer(alloc, template, c_file, dep_file);
+    command.end = alloc->cursor;
+
+    print_format(file_stdout(), STRING("%s\n"), command);
+
+    exec_command_result exec = command_session_exec_command(session, command, alloc);
+    string log;
+    log.begin = exec.output;
+    log.end = alloc->cursor;
+    if (log.begin != log.end) {
+        print_format(file_stdout(), STRING("%s\n"), log);
+    }
+    exec.output = 0;
+
+    sa_free(alloc, begin);
+
+    if (exec.success) {
+        target_update_timestamp(t, cache_dir, alloc);
+    }
+
+    return exec.success;
+}
+
 u8 target_build_object(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
     void* begin = alloc->cursor;
     
@@ -25,7 +66,7 @@ u8 target_build_object(target* t, exec_command_session* session, string cache_di
     command.begin = print_format_to_buffer(alloc, template, c_file, t->name);
     command.end = alloc->cursor;
 
-    // print_format(file_stdout(), STRING("%s\n"), command);
+    print_format(file_stdout(), STRING("%s\n"), command);
 
     exec_command_result exec = command_session_exec_command(session, command, alloc);
     string log;
@@ -70,7 +111,7 @@ u8 target_build_executable(target* t, exec_command_session* session, string cach
     command.begin = print_format_to_buffer(alloc, template, deps_as_command, t->name);
     command.end = alloc->cursor;
 
-    // print_format(file_stdout(), STRING("%s\n"), command);
+    print_format(file_stdout(), STRING("%s\n"), command);
 
     exec_command_result exec = command_session_exec_command(session, command, alloc);
     string log;
