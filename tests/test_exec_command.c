@@ -7,7 +7,6 @@
 #include "mem.h"
 #include "file.h"
 #include "print.h"
-#include <string.h>
 
 // Paths for the files we'll create and then list
 static const string path_exec_test_file1 = STR("test_temp/exec_test_file.txt");
@@ -27,14 +26,14 @@ static void test_exec_command_ls_lists_files_on_multiple_lines(test_context* t) 
     TEST_ASSERT_NOT_EQUAL(t, f1, file_invalid());
 
     const char* content1 = "exec command test 1";
-    file_write(f1, content1, byteoffset(content1, strlen(content1)));
+    file_write(f1, content1, byteoffset(content1, mem_cstrlen(content1)));
     file_close(f1);
 
     file_t f2 = file_open(&alloc_file, path_exec_test_file2.begin, path_exec_test_file2.end, FILE_MODE_WRITE);
     TEST_ASSERT_NOT_EQUAL(t, f2, file_invalid());
 
     const char* content2 = "exec command test 2";
-    file_write(f2, content2, byteoffset(content2, strlen(content2)));
+    file_write(f2, content2, byteoffset(content2, mem_cstrlen(content2)));
     file_close(f2);
 
     // Allocate memory for exec_command result

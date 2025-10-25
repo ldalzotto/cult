@@ -15,8 +15,8 @@ void mem_unmap(void* pointer, uptr size) {
     unused(result);
 }
 
-uptr mem_cstrlen(void* pointer) {
-    u8* cursor = pointer;
+uptr mem_cstrlen(const void* pointer) {
+    const u8* cursor = pointer;
     while (*cursor) {++cursor;}
     return bytesize(pointer, cursor);
 }

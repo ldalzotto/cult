@@ -6,7 +6,6 @@
 #include "exec_command.h"
 
 #include <execinfo.h>
-#include <stdio.h>
 #include <unistd.h>
 
 void print_backtrace(file_t file) {
@@ -16,7 +15,7 @@ void print_backtrace(file_t file) {
     u8 exe_path[1024];
     iptr len = readlink("/proc/self/exe", (char*)exe_path, sizeof(exe_path) - 1);
     if (len == -1) {
-        perror("readlink");
+        print_string(file_stdout(), STRING("readlink: No such file or directory\n"));
         return;
     }
     string exe_path_str = {exe_path, byteoffset(exe_path, len)};

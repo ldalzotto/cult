@@ -12,6 +12,6 @@ void* mem_map(uptr size);
 // mem_unmap: Deallocates the memory block pointed to by ptr
 void mem_unmap(void* pointer, uptr size);
 
-uptr mem_cstrlen(void* pointer);
+uptr mem_cstrlen(const void* pointer);
 
 #endif /* MEM_H */

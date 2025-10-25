@@ -1,7 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "mem.h"
 #include "stack_alloc.h"
 #include "primitive.h"
@@ -14,7 +10,7 @@
 static void test_https_request_returns_initial_pointer_on_failed_resolve(test_context* t) {
     uptr size = 64 * 1024;
     void* pointer = mem_map(size);
-    TEST_ASSERT_EQUAL(t, (int)(pointer != NULL), 1);
+    TEST_ASSERT_EQUAL(t, (int)(pointer != 0), 1);
     stack_alloc alloc;
     sa_init(&alloc, pointer, byteoffset(pointer, size));
 
