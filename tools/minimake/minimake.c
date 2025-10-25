@@ -378,6 +378,8 @@ i32 main(i32 argc, char** argv) {
 
     u64 build_begin_ms = sys_time_ms();
 
+    u8 dry = 0;
+
     /* Get the target name(s) from the command line instead of hardcoding.
        If no target is provided, build the default set. */
     u8 return_code = 1;
@@ -387,7 +389,7 @@ i32 main(i32 argc, char** argv) {
             string s;
             s.begin = (u8*)argv[i];
             s.end = byteoffset(argv[i], mem_cstrlen((void*)argv[i]));
-            return_code = return_code & target_build_name(targetss, s, build_dir, cache_dir, session, alloc);
+            return_code = return_code & target_build_name(targetss, s, build_dir, cache_dir, dry, session, alloc);
         }
     }
 

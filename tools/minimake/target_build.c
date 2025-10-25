@@ -4,13 +4,15 @@
 #include "print.h"
 #include "target_timestamp.h"
 
-u8 target_build_phony(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
+u8 target_build_phony(target* t, u8 dry, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
     unused(session);
-    target_update_timestamp(t, cache_dir, alloc);
+    if (!dry) {
+        target_update_timestamp(t, cache_dir, alloc);
+    }
     return 1;
 }
 
-u8 target_build_object_dependencies(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
+u8 target_build_object_dependencies(target* t, u8 dry, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
     void* begin = alloc->cursor;
 
     const string template = {t->template, t->deps};
@@ -33,7 +35,13 @@ u8 target_build_object_dependencies(target* t, exec_command_session* session, st
 
     print_format(file_stdout(), STRING("%s\n"), command);
 
-    exec_command_result exec = command_session_exec_command(session, command, alloc);
+    exec_command_result exec;
+    if (!dry) {
+        exec = command_session_exec_command(session, command, alloc);
+    } else {
+        exec.output = alloc->cursor;
+        exec.success = 1;
+    }
     string log;
     log.begin = exec.output;
     log.end = alloc->cursor;
@@ -44,14 +52,14 @@ u8 target_build_object_dependencies(target* t, exec_command_session* session, st
 
     sa_free(alloc, begin);
 
-    if (exec.success) {
+    if (exec.success && !dry) {
         target_update_timestamp(t, cache_dir, alloc);
     }
 
     return exec.success;
 }
 
-u8 target_build_object(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
+u8 target_build_object(target* t, u8 dry, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
     void* begin = alloc->cursor;
     
     const string template = {t->template, t->deps};
@@ -74,7 +82,13 @@ u8 target_build_object(target* t, exec_command_session* session, string cache_di
 
     print_format(file_stdout(), STRING("%s\n"), command);
 
-    exec_command_result exec = command_session_exec_command(session, command, alloc);
+    exec_command_result exec;
+    if (!dry) {
+        exec = command_session_exec_command(session, command, alloc);
+    } else {
+        exec.output = alloc->cursor;
+        exec.success = 1;
+    }
     string log;
     log.begin = exec.output;
     log.end = alloc->cursor;
@@ -85,14 +99,14 @@ u8 target_build_object(target* t, exec_command_session* session, string cache_di
     
     sa_free(alloc, begin);
 
-    if (exec.success) {
+    if (exec.success && !dry) {
         target_update_timestamp(t, cache_dir, alloc);
     }
 
     return exec.success;
 }
 
-u8 target_build_executable(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
+u8 target_build_executable(target* t, u8 dry, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
     void* begin = alloc->cursor;
     
     const string template = {t->template, t->deps};
@@ -119,7 +133,13 @@ u8 target_build_executable(target* t, exec_command_session* session, string cach
 
     print_format(file_stdout(), STRING("%s\n"), command);
 
-    exec_command_result exec = command_session_exec_command(session, command, alloc);
+    exec_command_result exec;
+    if (!dry) {
+        exec = command_session_exec_command(session, command, alloc);
+    } else {
+        exec.output = alloc->cursor;
+        exec.success = 1;
+    }
     string log;
     log.begin = exec.output;
     log.end = alloc->cursor;
@@ -130,13 +150,13 @@ u8 target_build_executable(target* t, exec_command_session* session, string cach
     
     sa_free(alloc, begin);
 
-    if (exec.success) {
+    if (exec.success && !dry) {
         target_update_timestamp(t, cache_dir, alloc);
     }
     return exec.success;
 }
 
-u8 target_build_extract(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
+u8 target_build_extract(target* t, u8 dry, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
     string output_directory;
     directory_parent(t->name.begin, t->name.end, (void*)&output_directory.begin, (void*)&output_directory.end);
     directory_parent(output_directory.begin, output_directory.end, (void*)&output_directory.begin, (void*)&output_directory.end);
@@ -169,11 +189,17 @@ u8 target_build_extract(target* t, exec_command_session* session, string cache_d
         command.end = alloc->cursor;
 
         // print_format(file_stdout(), STRING("%s\n"), command);
-        exec_command_result result = command_session_exec_command(session, command, alloc);
-        string output = {result.output, alloc->cursor};
+        exec_command_result exec;
+        if (!dry) {
+            exec = command_session_exec_command(session, command, alloc);
+        } else {
+            exec.output = alloc->cursor;
+            exec.success = 1;
+        }
+        string output = {exec.output, alloc->cursor};
         print_format(file_stdout(), STRING("%s"), output);
         
-        success = result.success;
+        success = exec.success;
         sa_free(alloc, begin);
     }
 
@@ -183,7 +209,7 @@ u8 target_build_extract(target* t, exec_command_session* session, string cache_d
         file_close(file);
     }
 
-    if (success) {
+    if (success && !dry) {
         target_update_timestamp(t, cache_dir, alloc);
     }
 
@@ -216,7 +242,7 @@ static u8 target_should_build(target* t, string cache_dir, stack_alloc* alloc) {
 }
 
 
-u8 target_build(target* targets_begin, target* targets_end, target* target_to_build, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
+u8 target_build(target* targets_begin, target* targets_end, target* target_to_build, u8 dry, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
     void* begin = alloc->cursor;
     u8 success = 1;
     // Compute the target execution list
@@ -229,7 +255,7 @@ u8 target_build(target* targets_begin, target* targets_end, target* target_to_bu
 
         if (target_should_build(t, cache_dir, alloc)) {
              print_format(file_stdout(), STRING("%s\n"), t->name);
-            if (!t->build(t, session, cache_dir, alloc)) {
+            if (!t->build(t, dry, session, cache_dir, alloc)) {
                 success = 0;
                 break;
             }

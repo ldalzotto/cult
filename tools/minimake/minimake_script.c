@@ -35,7 +35,7 @@ target* targets_offset(target* target, uptr offset, stack_alloc* alloc) {
 }
 
 /* Helper utilities to simplify target creation (moved from minimake.c) */
-static target* create_target(stack_alloc* alloc, const string name, u8 (*build)(target*, exec_command_session*, string, stack_alloc*)) {
+static target* create_target(stack_alloc* alloc, const string name, u8 (*build)(target*, u8, exec_command_session*, string, stack_alloc*)) {
     target* t = sa_alloc(alloc, sizeof(*t));
 
     /* Copy name into the stack allocator */
@@ -312,7 +312,7 @@ target* create_extract_target(const string targz_file, const string marker_file,
     return t;
 }
 
-u8 target_build_name(targets targets, string target, string build_dir, string cache_dir, exec_command_session* session, stack_alloc* alloc) {
+u8 target_build_name(targets targets, string target, string build_dir, string cache_dir, u8 dry, exec_command_session* session, stack_alloc* alloc) {
     void* begin = alloc->cursor;
 
     string expected_name; expected_name.begin = alloc->cursor;
@@ -323,7 +323,7 @@ u8 target_build_name(targets targets, string target, string build_dir, string ca
     u8 result = 0;
     for (struct target* t = targets.begin; (void*)t<targets.end;) {
         if (sa_equals(alloc, expected_name.begin, expected_name.end, t->name.begin, t->name.end)) {
-            result = target_build(targets.begin, targets.end, t, session, cache_dir, alloc);
+            result = target_build(targets.begin, targets.end, t, dry, session, cache_dir, alloc);
             break;
         }
         t = t->end;

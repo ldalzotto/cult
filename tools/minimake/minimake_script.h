@@ -48,6 +48,6 @@ target* create_executable_target(const string cc, const strings flags, string ex
 
 target* create_extract_target(const string targz_file, const string marker_file, const string timestamp_file, stack_alloc* alloc);
 
-u8 target_build_name(targets targets, string target, string build_dir, string cache_dir,  exec_command_session* session, stack_alloc* alloc);
+u8 target_build_name(targets targets, string target, string build_dir, string cache_dir, u8 dry, exec_command_session* session, stack_alloc* alloc);
 
 #endif // MINIMAKE_SCRIPT_H
