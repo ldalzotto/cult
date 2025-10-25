@@ -14,6 +14,12 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
 
     const string cc = STR("gcc");
 
+    string elibs_include_flag = begin_string(alloc);
+    push_string_data(STRING("-I"), alloc);
+    push_string_data(build_dir, alloc);
+    push_string_data(STRING("elibs/"), alloc);
+    end_string(&elibs_include_flag, alloc);
+
     // BEGIN - common
     strings common_c_flags = begin_strings(alloc);
     push_string(STRING("-Wall"), alloc);
@@ -110,6 +116,7 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
         push_string(STRING("-lX11"), alloc);
     }
     end_strings(&x11_link_flags, alloc);
+
     // END - x11
 
     // BEGIN - window
@@ -124,7 +131,7 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
 
     strings window_c_flags = begin_strings(alloc);
     push_strings(common_c_flags, alloc);
-    push_string(STRING("-I./src/elibs"), alloc);
+    push_string(elibs_include_flag, alloc);
     end_strings(&window_c_flags, alloc);
 
     strings window_deps = begin_strings(alloc);
