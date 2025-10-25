@@ -168,6 +168,25 @@ c_object_files make_c_object_files(strings sources, string build_dir, stack_allo
     return result;
 }
 
+target* create_phony_target(const string name, const strings deps, string build_dir, stack_alloc* alloc) {
+    void* var_begin = alloc->cursor;
+    string name_pre; name_pre.begin = alloc->cursor;
+    push_string_data(build_dir, alloc);
+    push_string_data(name, alloc);
+    name_pre.end = alloc->cursor;
+    void* var_end = alloc->cursor;
+
+    target* t = create_target(alloc, name_pre, target_build_phony);
+    t->template = alloc->cursor;
+    t->deps = alloc->cursor;
+    push_strings(deps, alloc);
+    finish_target(t, alloc);
+
+    sa_move_tail(alloc, var_end, var_begin);
+    targets_offset(var_begin, -bytesize(var_begin, var_end), alloc);
+    return var_begin;
+}
+
 /* Create object build targets and their dependency-extraction targets */
 targets create_c_object_targets(const string cc, const strings flags,
         c_object_files files,

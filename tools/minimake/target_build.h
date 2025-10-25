@@ -3,6 +3,7 @@
 
 #include "target.h"
 
+u8 target_build_phony(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc);
 u8 target_build_object_dependencies(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc);
 u8 target_build_object(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc);
 u8 target_build_executable(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc);

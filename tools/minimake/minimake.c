@@ -1,3 +1,4 @@
+
 #include "mem.h"
 #include "file.h"
 #include "exec_command.h"
@@ -223,6 +224,7 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
 
     // BEGIN - minimake
     strings minimake_c_files = begin_strings(alloc);
+    push_string(STRING("tools/minimake/minimake_script.c"), alloc);
     push_string(STRING("tools/minimake/minimake.c"), alloc);
     push_string(STRING("tools/minimake/target_build.c"), alloc);
     push_string(STRING("tools/minimake/target_c_dependencies.c"), alloc);
@@ -288,6 +290,15 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     end_strings(&tests_deps, alloc);
     // END - tests
 
+    // TODO: use proper name
+    strings make_all_deps = begin_strings(alloc);
+    push_string(STRING("build_minimake/dummy"), alloc);
+    push_string(STRING("build_minimake/snake"), alloc);
+    push_string(STRING("build_minimake/agent"), alloc);
+    push_string(STRING("build_minimake/minimake"), alloc);
+    push_string(STRING("build_minimake/tests_run"), alloc);
+    end_strings(&make_all_deps, alloc);
+
     void* var_end = alloc->cursor;
     
     create_c_object_targets(cc, common_c_flags, common, (strings){0,0}, alloc);
@@ -315,6 +326,8 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     create_c_object_targets(cc, tests_c_flags, tests, (strings){0,0}, alloc);
     create_executable_target(cc, tests_link_flags, build_dir, STRING("tests_run"), tests_deps, alloc);
 
+    create_phony_target(STRING("all"), make_all_deps, build_dir, alloc);
+
     sa_move_tail(alloc, var_end, var_begin);
     targets_offset(var_begin, -bytesize(var_begin, var_end), alloc);
 
@@ -323,7 +336,7 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     return targetss;
 }
 
-i32 main(void) {
+i32 main(i32 argc, char** argv) {
     const uptr memory_size = 1024 * 1024;
     void* memory = mem_map(memory_size);
 
@@ -347,12 +360,18 @@ i32 main(void) {
 
     u64 build_begin_ms = sys_time_ms();
     
+    /* Get the target name(s) from the command line instead of hardcoding.
+       If no target is provided, build the default set. */
     u8 return_code = 1;
-    return_code = return_code & target_build_name(targetss, STRING("dummy"), build_dir, cache_dir, session, alloc);
-    return_code = return_code & target_build_name(targetss, STRING("snake"), build_dir, cache_dir, session, alloc);
-    return_code = return_code & target_build_name(targetss, STRING("agent"), build_dir, cache_dir, session, alloc);
-    return_code = return_code & target_build_name(targetss, STRING("minimake"), build_dir, cache_dir, session, alloc);
-    return_code = return_code & target_build_name(targetss, STRING("tests_run"), build_dir, cache_dir, session, alloc);
+    if (argc >= 2) {
+        /* Build each target passed on the command line (argv[1] ... argv[argc-1]). */
+        for (i32 i = 1; i < argc; ++i) {
+            string s;
+            s.begin = (u8*)argv[i];
+            s.end = byteoffset(argv[i], mem_cstrlen((void*)argv[i]));
+            return_code = return_code & target_build_name(targetss, s, build_dir, cache_dir, session, alloc);
+        }
+    }
 
     u64 build_end_ms = sys_time_ms();
     print_format(file_stdout(), STRING("Targets took: %ums\n"), target_end_ms - target_begin_ms);
@@ -364,5 +383,5 @@ i32 main(void) {
     
     sa_deinit(alloc);
     mem_unmap(memory, memory_size);
-    return return_code;
+    return (i32)return_code;
 }

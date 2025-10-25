@@ -34,6 +34,8 @@ typedef struct {
 
 c_object_files make_c_object_files(strings sources, string build_dir, stack_alloc* alloc);
 
+target* create_phony_target(const string name, const strings deps, string build_dir, stack_alloc* alloc);
+
 /* High level target creators used by make_targets */
 targets create_c_object_targets(const string cc, const strings flags,
         c_object_files files,

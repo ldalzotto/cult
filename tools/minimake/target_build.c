@@ -4,6 +4,12 @@
 #include "print.h"
 #include "target_timestamp.h"
 
+u8 target_build_phony(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
+    unused(session);
+    target_update_timestamp(t, cache_dir, alloc);
+    return 1;
+}
+
 u8 target_build_object_dependencies(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
     void* begin = alloc->cursor;
 
