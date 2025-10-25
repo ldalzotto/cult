@@ -1,8 +1,6 @@
 
 #include "exec_command.h"
 
-#include <stdio.h>
-#include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -48,22 +46,26 @@ exec_command_session* open_persistent_shell(stack_alloc* alloc) {
 }
 
 exec_command_result command_session_exec_command(exec_command_session* session, const string cmd, stack_alloc* alloc) {
+    
     exec_command_result result;
     result.output = alloc->cursor;
     result.success = 0;
 
-    string cmd_null_terminated = cmd;
-    if (*((u8*)cmd.end - 1) != '\0') {
-        cmd_null_terminated.begin = sa_alloc(alloc, bytesize(cmd.begin, cmd.end) + 1);
-        cmd_null_terminated.end = alloc->cursor;
-        sa_copy(alloc, cmd.begin, (void*)cmd_null_terminated.begin, bytesize(cmd.begin, cmd.end));
-        *((u8*)cmd_null_terminated.end - 1) = '\0';
-    }
+    void* cursor;
+    string command;
+    command.begin = alloc->cursor;
+    cursor = sa_alloc(alloc, bytesize(cmd.begin, cmd.end));
+    sa_copy(alloc, cmd.begin, cursor, bytesize(cmd.begin, cmd.end));
 
-    dprintf(session->in_fd, "%s; echo __END__ $?\n", (char*)cmd_null_terminated.begin);
+    const string end_marker_command = STR("; echo __END__ $?\n");
+    cursor = sa_alloc(alloc, bytesize(end_marker_command.begin, end_marker_command.end));
+    sa_copy(alloc, end_marker_command.begin, cursor, bytesize(end_marker_command.begin, end_marker_command.end));
+    command.end = alloc->cursor;
+
+    write(session->in_fd, command.begin, bytesize(command.begin, command.end));
     fsync(session->in_fd);
 
-    string command = {alloc->cursor, alloc->cursor};
+    string out = {alloc->cursor, alloc->cursor};
     while (1) {
         void* begin = alloc->cursor;
         const uptr size = read(session->out_fd, alloc->cursor, bytesize(alloc->cursor, alloc->end));
@@ -82,17 +84,16 @@ exec_command_result command_session_exec_command(exec_command_session* session, 
         }
     }
     
-    command.end = alloc->cursor;
+    out.end = alloc->cursor;
     
-    if (cmd_null_terminated.begin != cmd.begin) {
-        sa_move_tail(alloc, (void*)command.begin, (void*)cmd_null_terminated.begin);
-    }
+    sa_move_tail(alloc, (void*)out.begin, (void*)command.begin);
 
     return result;
 }
 
 void close_persistent_shell(exec_command_session* session) {
-    dprintf(session->in_fd, "exit\n");
+    const string exit_command = STR("exit\n");
+    write(session->in_fd, exit_command.begin, bytesize(exit_command.begin, exit_command.end));
     close(session->in_fd);
     close(session->out_fd);
     waitpid(session->pid, NULL, 0);

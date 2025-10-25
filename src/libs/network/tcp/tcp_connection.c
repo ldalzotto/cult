@@ -4,12 +4,8 @@
 #include "print.h"
 #include "assert.h"
 
-#include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
-#include <string.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <fcntl.h>
 
 static size_t slice_len(u8_slice s) {

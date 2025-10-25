@@ -3,7 +3,6 @@
 
 #include <sys/socket.h>
 #include <unistd.h>
-#include <string.h>
 
 tcp_r_result tcp_read_once(tcp* connection, stack_alloc* alloc, uptr max_len) {
     tcp_r_result res;
