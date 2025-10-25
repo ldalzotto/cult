@@ -14,10 +14,10 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Clean
-      run: make clean
+      run: rm -rf ./build && bash ./minimake.sh
 
     - name: Build tests
-      run: make test
+      run: ./build/minimake test
     
     - name: Run tests
       run: ./build/test

@@ -3,9 +3,11 @@
 # Get the current working directory
 PWD=$(pwd)
 
+rm -rd ./build/.minimake
+
 # Run make dry-run, extract gcc compilation commands with -c
 # Then parse and generate JSON
-make -n all | grep -E "^gcc.* -c" | awk -v dir="$PWD" '
+./build/minimake -n all | grep -E "^gcc.* -c" | awk -v dir="$PWD" '
 BEGIN { print "["; first=1 }
 
 {

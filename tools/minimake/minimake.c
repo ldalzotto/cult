@@ -297,7 +297,7 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_strings(tests.o, alloc);
     end_strings(&tests_deps, alloc);
 
-    string tests_executblabe = make_c_executable_file(STRING("tests_run"), build_dir, alloc);
+    string tests_executblabe = make_c_executable_file(STRING("test"), build_dir, alloc);
     // END - tests
 
     // BEGIN - make all
@@ -357,8 +357,8 @@ i32 main(i32 argc, char** argv) {
 
     exec_command_session* session = open_persistent_shell(alloc);
 
-    const string build_dir = STR("build_minimake/");
-    const string cache_dir = STR("build_minimake/.minimake/");
+    const string build_dir = STR("build/");
+    const string cache_dir = STR("build/.minimake/");
 
     directory_create(alloc, build_dir.begin, build_dir.end, DIR_MODE_PUBLIC);
     directory_create(alloc, cache_dir.begin, cache_dir.end, DIR_MODE_PUBLIC);
