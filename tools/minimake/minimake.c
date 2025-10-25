@@ -1,5 +1,4 @@
 #include "mem.h"
-
 #include "file.h"
 #include "exec_command.h"
 #include "system_time.h"
@@ -133,122 +132,122 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     // END - window
 
     // BEGIN - dummy
-    strings dummy_c_files; dummy_c_files.begin = alloc->cursor;
+    strings dummy_c_files = begin_strings(alloc);
     push_string(STRING("src/apps/dummy/dummy.c"), alloc);
-    dummy_c_files.end = alloc->cursor;
+    end_strings(&dummy_c_files, alloc);
 
     c_object_files dummy = make_c_object_files(dummy_c_files, build_dir, alloc);
 
-    strings dummy_c_flags; dummy_c_flags.begin = alloc->cursor;
+    strings dummy_c_flags = begin_strings(alloc);
     push_strings(common_c_flags, alloc);
     push_strings(window_c_flags, alloc);
-    dummy_c_flags.end = alloc->cursor;
+    end_strings(&dummy_c_flags, alloc);
 
-    strings dummy_link_flags; dummy_link_flags.begin = alloc->cursor;
+    strings dummy_link_flags = begin_strings(alloc);
     push_strings(common_link_flags, alloc);
     push_strings(x11_link_flags, alloc);
-    dummy_link_flags.end = alloc->cursor;
+    end_strings(&dummy_link_flags, alloc);
 
-    strings dummy_deps; dummy_deps.begin = alloc->cursor;
+    strings dummy_deps = begin_strings(alloc);
     push_strings(common.o, alloc);
     push_strings(window.o, alloc);
     push_strings(dummy.o, alloc);
-    dummy_deps.end = alloc->cursor;
+    end_strings(&dummy_deps, alloc);
     // END - dummy
 
     // BEGIN - snake
-    strings snake_lib_c_files; snake_lib_c_files.begin = alloc->cursor;
+    strings snake_lib_c_files = begin_strings(alloc);
     push_string(STRING("src/apps/snake/snake_grid.c"), alloc);
     push_string(STRING("src/apps/snake/snake_move.c"), alloc);
     push_string(STRING("src/apps/snake/snake_render.c"), alloc);
     push_string(STRING("src/apps/snake/snake_reward.c"), alloc);
     push_string(STRING("src/apps/snake/snake.c"), alloc);
-    snake_lib_c_files.end = alloc->cursor;
+    end_strings(&snake_lib_c_files, alloc);
 
     c_object_files snake_lib = make_c_object_files(snake_lib_c_files, build_dir, alloc);
 
-    strings snake_lib_c_flags;snake_lib_c_flags.begin = alloc->cursor;
+    strings snake_lib_c_flags = begin_strings(alloc);
     push_strings(common_c_flags, alloc);
     push_strings(window_c_flags, alloc);
-    snake_lib_c_flags.end = alloc->cursor;
+    end_strings(&snake_lib_c_flags, alloc);
 
-    strings snake_c_files;snake_c_files.begin = alloc->cursor;
+    strings snake_c_files = begin_strings(alloc);
     push_string(STRING("src/apps/snake/snake_loop.c"), alloc);
-    snake_c_files.end = alloc->cursor;
+    end_strings(&snake_c_files, alloc);
 
     c_object_files snake = make_c_object_files(snake_c_files, build_dir, alloc);
 
-    strings snake_c_flags;snake_c_flags.begin = alloc->cursor;
+    strings snake_c_flags = begin_strings(alloc);
     push_strings(snake_lib_c_flags, alloc);
-    snake_c_flags.end = alloc->cursor;
+    end_strings(&snake_c_flags, alloc);
 
-    strings snake_link_flags; snake_link_flags.begin = alloc->cursor;
+    strings snake_link_flags = begin_strings(alloc);
     push_strings(common_link_flags, alloc);
     push_strings(x11_link_flags, alloc);
-    snake_link_flags.end = alloc->cursor;
+    end_strings(&snake_link_flags, alloc);
 
-    strings snake_deps; snake_deps.begin = alloc->cursor;
+    strings snake_deps = begin_strings(alloc);
     push_strings(common.o, alloc);
     push_strings(window.o, alloc);
     push_strings(snake_lib.o, alloc);
     push_strings(snake.o, alloc);
-    snake_deps.end = alloc->cursor;
+    end_strings(&snake_deps, alloc);
     // END - snake
 
     // BEGIN - agent
-    strings agent_c_files;agent_c_files.begin = alloc->cursor;
+    strings agent_c_files = begin_strings(alloc);
     push_string(STRING("tools/agent/agent_args.c"), alloc);
     push_string(STRING("tools/agent/agent_request.c"), alloc);
     push_string(STRING("tools/agent/agent_result_write.c"), alloc);
     push_string(STRING("tools/agent/agent.c"), alloc);
     push_string(STRING("tools/agent/user_content_read.c"), alloc);
-    agent_c_files.end = alloc->cursor;
+    end_strings(&agent_c_files, alloc);
 
     c_object_files agent = make_c_object_files(agent_c_files, build_dir, alloc);
 
-    strings agent_c_flags;agent_c_flags.begin = alloc->cursor;
+    strings agent_c_flags = begin_strings(alloc);
     push_strings(common_c_flags, alloc);
-    agent_c_flags.end = alloc->cursor;
+    end_strings(&agent_c_flags, alloc);
 
-    strings agent_link_flags;agent_link_flags.begin = alloc->cursor;
+    strings agent_link_flags = begin_strings(alloc);
     push_strings(common_link_flags, alloc);
     push_strings(network_link_flags, alloc);
-    agent_link_flags.end = alloc->cursor;
+    end_strings(&agent_link_flags, alloc);
 
-    strings agent_deps; agent_deps.begin =alloc->cursor;
+    strings agent_deps = begin_strings(alloc);
     push_strings(common.o, alloc);
     push_strings(network.o, alloc);
     push_strings(agent.o, alloc);
-    agent_deps.end = alloc->cursor;
+    end_strings(&agent_deps, alloc);
     // END - agent
 
     // BEGIN - minimake
-    strings minimake_c_files;minimake_c_files.begin = alloc->cursor;
+    strings minimake_c_files = begin_strings(alloc);
     push_string(STRING("tools/minimake/minimake.c"), alloc);
     push_string(STRING("tools/minimake/target_build.c"), alloc);
     push_string(STRING("tools/minimake/target_c_dependencies.c"), alloc);
     push_string(STRING("tools/minimake/target_execution_list.c"), alloc);
     push_string(STRING("tools/minimake/target_timestamp.c"), alloc);
-    minimake_c_files.end = alloc->cursor;
+    end_strings(&minimake_c_files, alloc);
 
     c_object_files minimake = make_c_object_files(minimake_c_files, build_dir, alloc);
 
-    strings minimake_c_flags;minimake_c_flags.begin = alloc->cursor;
+    strings minimake_c_flags = begin_strings(alloc);
     push_strings(common_c_flags, alloc);
-    minimake_c_flags.end = alloc->cursor;
+    end_strings(&minimake_c_flags, alloc);
 
-    strings minimake_link_flags;minimake_link_flags.begin = alloc->cursor;
+    strings minimake_link_flags = begin_strings(alloc);
     push_strings(common_link_flags, alloc);
-    minimake_link_flags.end = alloc->cursor;
+    end_strings(&minimake_link_flags, alloc);
 
-    strings minimake_deps;minimake_deps.begin = alloc->cursor;
+    strings minimake_deps = begin_strings(alloc);
     push_strings(common.o, alloc);
     push_strings(minimake.o, alloc);
-    minimake_deps.end = alloc->cursor;
+    end_strings(&minimake_deps, alloc);
     // END - minimake
 
     // BEGIN - tests
-    strings tests_c_files; tests_c_files.begin = alloc->cursor;
+    strings tests_c_files = begin_strings(alloc);
     push_string(STRING("tests/all_tests.c"), alloc);
     push_string(STRING("tests/test_backtrace.c"), alloc);
     push_string(STRING("tests/test_exec_command.c"), alloc);
@@ -264,29 +263,29 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_string(STRING("tests/test_stack_alloc.c"), alloc);
     push_string(STRING("tests/test_temp_dir.c"), alloc);
     push_string(STRING("tests/test_win_x11.c"), alloc);
-    tests_c_files.end = alloc->cursor;
+    end_strings(&tests_c_files, alloc);
 
     c_object_files tests = make_c_object_files(tests_c_files, build_dir, alloc);
 
-    strings tests_c_flags;tests_c_flags.begin = alloc->cursor;
+    strings tests_c_flags = begin_strings(alloc);
     push_strings(common_c_flags, alloc);
     push_string(STRING("-Isrc/apps"), alloc);
-    tests_c_flags.end = alloc->cursor;
+    end_strings(&tests_c_flags, alloc);
 
-    strings tests_link_flags;tests_link_flags.begin = alloc->cursor;
+    strings tests_link_flags = begin_strings(alloc);
     push_strings(common_link_flags, alloc);
     push_strings(x11_link_flags, alloc);
     push_strings(network_link_flags, alloc);
-    tests_link_flags.end = alloc->cursor;
+    end_strings(&tests_link_flags, alloc);
 
-    strings tests_deps;tests_deps.begin = alloc->cursor;
+    strings tests_deps = begin_strings(alloc);
     push_strings(common.o, alloc);
     push_strings(window.o, alloc);
     push_strings(coding.o, alloc);
     push_strings(network.o, alloc);
     push_strings(snake_lib.o, alloc);
     push_strings(tests.o, alloc);
-    tests_deps.end = alloc->cursor;
+    end_strings(&tests_deps, alloc);
     // END - tests
 
     void* var_end = alloc->cursor;
