@@ -129,6 +129,8 @@ u8 sa_equals(stack_alloc* alloc, const void* left_begin, const void* left_end, c
 // - If ranges are within the allocator, they must be within valid bounds
 u8 sa_contains(stack_alloc* alloc, const void* haystack_begin, const void* haystack_end, const void* needle_begin, const void* needle_end);
 
+void* sa_find(stack_alloc* alloc, const void* haystack_begin, const void* haystack_end, const void* needle_begin, const void* needle_end);
+
 // Set a memory range to a specified byte value
 //
 // @param alloc: Pointer to stack_alloc

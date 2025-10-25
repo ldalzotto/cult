@@ -4,12 +4,12 @@
 #include "exec_command.h"
 #include "target_c_dependencies.h"
 
-string* extract_c_dependencies(string name, string template, stack_alloc* alloc) {
+string* extract_c_dependencies(string name, string template, exec_command_session* session, stack_alloc* alloc) {
     void* begin = alloc->cursor;
     string command;
     command.begin = print_format_to_buffer(alloc, template, name);
     command.end = alloc->cursor;
-    exec_command_result result = exec_command(command, alloc);
+    exec_command_result result = command_session_exec_command(session, command, alloc);
 
     string* deps_start = alloc->cursor;
     

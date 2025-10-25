@@ -3,9 +3,9 @@
 
 #include "target.h"
 
-u8 target_build_object(target* t, string cache_dir, stack_alloc* alloc);
-u8 target_build_executable(target* t, string cache_dir, stack_alloc* alloc);
-u8 target_build_extract(target* t, string cache_dir, stack_alloc* alloc);
-u8 target_build(target* targets_begin, target* targets_end, target* target_to_build, string cache_dir, stack_alloc* alloc);
+u8 target_build_object(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc);
+u8 target_build_executable(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc);
+u8 target_build_extract(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc);
+u8 target_build(target* targets_begin, target* targets_end, target* target_to_build, exec_command_session* session, string cache_dir, stack_alloc* alloc);
 
 #endif // MINIMAKE_TARGET_BUILD_H

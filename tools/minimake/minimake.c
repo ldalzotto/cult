@@ -6,8 +6,8 @@
 #include "target_build.h"
 #include "target_c_dependencies.h"
 #include "exec_command.h"
+#include "system_time.h"
 #include "print.h"
-#include "target_timestamp.h"
 
 void target_offset(target* t, uptr offset) {
     t->name.begin = byteoffset(t->name.begin, offset);
@@ -38,7 +38,7 @@ target* targets_offset(target* target, uptr offset, stack_alloc* alloc) {
 }
 
 /* Helper utilities to simplify target creation */
-static target* create_target(stack_alloc* alloc, const string name, u8 (*build)(target*, string, stack_alloc*)) {
+static target* create_target(stack_alloc* alloc, const string name, u8 (*build)(target*, exec_command_session*, string, stack_alloc*)) {
     target* t = sa_alloc(alloc, sizeof(*t));
 
     /* Copy name into the stack allocator */
@@ -144,6 +144,7 @@ static targets create_c_object_targets(const string cc, const strings flags,
         strings sources,
         strings objects,
         strings additional_deps,
+        exec_command_session* session,
         stack_alloc* alloc) 
 {
     void* begin = alloc->cursor;
@@ -163,7 +164,7 @@ static targets create_c_object_targets(const string cc, const strings flags,
         target* target = create_target(alloc, *object, target_build_object);
         target->template = sa_alloc(alloc, bytesize(build_object_template.begin, build_object_template.end));
         sa_copy(alloc, build_object_template.begin, target->template, bytesize(build_object_template.begin, build_object_template.end));
-        target->deps = extract_c_dependencies(*source, extract_dependency_template, alloc);
+        target->deps = extract_c_dependencies(*source, extract_dependency_template, session, alloc);
         for (string* d = additional_deps.begin; (void*)d < additional_deps.end;) {
             push_string(*d, alloc);
             d = (void*)d->end;
@@ -240,6 +241,10 @@ i32 main(void) {
     stack_alloc _alloc;
     stack_alloc* alloc = &_alloc;
     sa_init(alloc, memory, (char*)memory + memory_size);
+
+    exec_command_session* session = open_persistent_shell(alloc);
+
+    u64 setup_begin_ms = sys_time_ms();
 
     const string build_dir = STR("build_minimake/");
     const string cache_dir = STR("build_minimake/.minimake/");
@@ -334,7 +339,7 @@ i32 main(void) {
     // BEGIN - x11
     u8 use_x11 = 0;
     {
-        exec_command_result use_x11_result = exec_command(STRING("pkg-config --exists x11"), alloc);
+        exec_command_result use_x11_result = command_session_exec_command(session, STRING("pkg-config --exists x11"), alloc);
         use_x11 = use_x11_result.success;
         sa_free(alloc, use_x11_result.output);
     }
@@ -538,29 +543,33 @@ i32 main(void) {
 
     void* var_end = alloc->cursor;
     
-    create_c_object_targets(cc, common_c_flags, common_c_files, common_o_files, (strings){0,0}, alloc);
-    create_c_object_targets(cc, coding_c_flags, coding_c_files, coding_o_files, (strings){0,0}, alloc);
-    create_c_object_targets(cc, network_c_flags, network_c_files, network_o_files, (strings){0,0}, alloc);
+    u64 setup_end_ms = sys_time_ms();
+
+    u64 target_begin_ms = sys_time_ms();
+
+    create_c_object_targets(cc, common_c_flags, common_c_files, common_o_files, (strings){0,0}, session, alloc);
+    create_c_object_targets(cc, coding_c_flags, coding_c_files, coding_o_files, (strings){0,0}, session, alloc);
+    create_c_object_targets(cc, network_c_flags, network_c_files, network_o_files, (strings){0,0}, session, alloc);
 
     // X11 lib target
     create_extract_target(x11_tgz, x11_marker, x11_timestamp, alloc);
 
-    create_c_object_targets(cc, window_c_flags, window_c_files, window_o_files, window_deps, alloc);
-    create_c_object_targets(cc, dummy_c_flags, dummy_c_files, dummy_o_files, (strings){0,0}, alloc);
+    create_c_object_targets(cc, window_c_flags, window_c_files, window_o_files, window_deps, session, alloc);
+    create_c_object_targets(cc, dummy_c_flags, dummy_c_files, dummy_o_files, (strings){0,0}, session, alloc);
 
     create_executable_target(cc, dummy_link_flags, build_dir, STRING("dummy"), dummy_deps, alloc);
 
-    create_c_object_targets(cc, snake_lib_c_flags, snake_lib_c_files, snake_lib_o_files, (strings){0,0}, alloc);
-    create_c_object_targets(cc, snake_c_flags, snake_c_files, snake_o_files, (strings){0,0}, alloc);
+    create_c_object_targets(cc, snake_lib_c_flags, snake_lib_c_files, snake_lib_o_files, (strings){0,0}, session, alloc);
+    create_c_object_targets(cc, snake_c_flags, snake_c_files, snake_o_files, (strings){0,0}, session, alloc);
     create_executable_target(cc, snake_link_flags, build_dir, STRING("snake"), snake_deps, alloc);
 
-    create_c_object_targets(cc, agent_c_flags, agent_c_files, agent_o_files, (strings){0,0}, alloc);
+    create_c_object_targets(cc, agent_c_flags, agent_c_files, agent_o_files, (strings){0,0}, session, alloc);
     create_executable_target(cc, agent_link_flags, build_dir, STRING("agent"), agent_deps, alloc);
 
-    create_c_object_targets(cc, minimake_c_flags, minimake_c_files, minimake_o_files, (strings){0,0}, alloc);
+    create_c_object_targets(cc, minimake_c_flags, minimake_c_files, minimake_o_files, (strings){0,0}, session, alloc);
     create_executable_target(cc, minimake_link_flags, build_dir, STRING("minimake"), minimake_deps, alloc);
 
-    create_c_object_targets(cc, tests_c_flags, tests_c_files, tests_o_files, (strings){0,0}, alloc);
+    create_c_object_targets(cc, tests_c_flags, tests_c_files, tests_o_files, (strings){0,0}, session, alloc);
     create_executable_target(cc, tests_link_flags, build_dir, STRING("tests_run"), tests_deps, alloc);
 
     sa_move_tail(alloc, var_end, var_begin);
@@ -568,6 +577,10 @@ i32 main(void) {
 
     targetss.end = alloc->cursor;
 
+    u64 target_end_ms = sys_time_ms();
+
+    u64 build_begin_ms = sys_time_ms();
+    
     target* target_dummy = 0;
     target* target_snake = 0;
     target* target_agent = 0;
@@ -599,24 +612,31 @@ i32 main(void) {
     }
 
     i32 return_code = 0;
-    if (!target_build(targetss.begin, targetss.end, target_dummy, cache_dir, alloc)) {
+    if (!target_build(targetss.begin, targetss.end, target_dummy, session, cache_dir, alloc)) {
         return_code = 1;
     }
-    if (!target_build(targetss.begin, targetss.end, target_snake, cache_dir, alloc)) {
+    if (!target_build(targetss.begin, targetss.end, target_snake, session, cache_dir, alloc)) {
         return_code = 1;
     }
-    if (!target_build(targetss.begin, targetss.end, target_agent, cache_dir, alloc)) {
+    if (!target_build(targetss.begin, targetss.end, target_agent, session, cache_dir, alloc)) {
         return_code = 1;
     }
-    if (!target_build(targetss.begin, targetss.end, target_minimake, cache_dir, alloc)) {
+    if (!target_build(targetss.begin, targetss.end, target_minimake, session, cache_dir, alloc)) {
         return_code = 1;
     }
-    if (!target_build(targetss.begin, targetss.end, target_tests_run, cache_dir, alloc)) {
+    if (!target_build(targetss.begin, targetss.end, target_tests_run, session, cache_dir, alloc)) {
         return_code = 1;
     }
-    
-    sa_free(alloc, memory);
 
+    u64 build_end_ms = sys_time_ms();
+    print_format(file_stdout(), STRING("Setup took: %ums\n"), setup_end_ms - setup_begin_ms);
+    print_format(file_stdout(), STRING("Targets took: %ums\n"), target_end_ms - target_begin_ms);
+    print_format(file_stdout(), STRING("Builds took: %ums\n"), build_end_ms - build_begin_ms);
+    
+    sa_free(alloc, var_begin);
+    close_persistent_shell(session);
+    sa_free(alloc, session);
+    
     sa_deinit(alloc);
     mem_unmap(memory, memory_size);
     return return_code;

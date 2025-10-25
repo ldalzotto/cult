@@ -3,9 +3,10 @@
 
 #include "stack_alloc.h"
 #include "litteral.h"
+#include "exec_command.h"
 
 typedef struct target target;
-typedef u8(*target_build_cb)(target* t, string cache_dir, stack_alloc* alloc);
+typedef u8(*target_build_cb)(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc);
 
 struct target {
     string name;

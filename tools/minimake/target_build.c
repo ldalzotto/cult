@@ -2,10 +2,9 @@
 
 #include "target_execution_list.h"
 #include "print.h"
-#include "exec_command.h"
 #include "target_timestamp.h"
 
-u8 target_build_object(target* t, string cache_dir, stack_alloc* alloc) {
+u8 target_build_object(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
     void* begin = alloc->cursor;
     
     const string template = {t->template, t->deps};
@@ -28,7 +27,7 @@ u8 target_build_object(target* t, string cache_dir, stack_alloc* alloc) {
 
     // print_format(file_stdout(), STRING("%s\n"), command);
 
-    exec_command_result exec = exec_command(command, alloc);
+    exec_command_result exec = command_session_exec_command(session, command, alloc);
     string log;
     log.begin = exec.output;
     log.end = alloc->cursor;
@@ -46,7 +45,7 @@ u8 target_build_object(target* t, string cache_dir, stack_alloc* alloc) {
     return exec.success;
 }
 
-u8 target_build_executable(target* t, string cache_dir, stack_alloc* alloc) {
+u8 target_build_executable(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
     void* begin = alloc->cursor;
     
     const string template = {t->template, t->deps};
@@ -73,7 +72,7 @@ u8 target_build_executable(target* t, string cache_dir, stack_alloc* alloc) {
 
     // print_format(file_stdout(), STRING("%s\n"), command);
 
-    exec_command_result exec = exec_command(command, alloc);
+    exec_command_result exec = command_session_exec_command(session, command, alloc);
     string log;
     log.begin = exec.output;
     log.end = alloc->cursor;
@@ -90,7 +89,7 @@ u8 target_build_executable(target* t, string cache_dir, stack_alloc* alloc) {
     return exec.success;
 }
 
-u8 target_build_extract(target* t, string cache_dir, stack_alloc* alloc) {
+u8 target_build_extract(target* t, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
     string output_directory;
     directory_parent(t->name.begin, t->name.end, (void*)&output_directory.begin, (void*)&output_directory.end);
     directory_parent(output_directory.begin, output_directory.end, (void*)&output_directory.begin, (void*)&output_directory.end);
@@ -123,7 +122,7 @@ u8 target_build_extract(target* t, string cache_dir, stack_alloc* alloc) {
         command.end = alloc->cursor;
 
         // print_format(file_stdout(), STRING("%s\n"), command);
-        exec_command_result result = exec_command(command, alloc);
+        exec_command_result result = command_session_exec_command(session, command, alloc);
         string output = {result.output, alloc->cursor};
         print_format(file_stdout(), STRING("%s"), output);
         
@@ -170,7 +169,7 @@ static u8 target_should_build(target* t, string cache_dir, stack_alloc* alloc) {
 }
 
 
-u8 target_build(target* targets_begin, target* targets_end, target* target_to_build, string cache_dir, stack_alloc* alloc) {
+u8 target_build(target* targets_begin, target* targets_end, target* target_to_build, exec_command_session* session, string cache_dir, stack_alloc* alloc) {
     void* begin = alloc->cursor;
     u8 success = 1;
     // Compute the target execution list
@@ -183,7 +182,7 @@ u8 target_build(target* targets_begin, target* targets_end, target* target_to_bu
 
         if (target_should_build(t, cache_dir, alloc)) {
              print_format(file_stdout(), STRING("%s\n"), t->name);
-            if (!t->build(t, cache_dir, alloc)) {
+            if (!t->build(t, session, cache_dir, alloc)) {
                 success = 0;
                 break;
             }

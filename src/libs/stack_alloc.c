@@ -98,7 +98,13 @@ u8 sa_equals(stack_alloc* alloc, const void* left_begin, const void* left_end, c
 
 // Check if a needle memory range is contained within a haystack memory range
 u8 sa_contains(stack_alloc* alloc, const void* haystack_begin, const void* haystack_end, const void* needle_begin, const void* needle_end) {
+    if (sa_find(alloc, haystack_begin, haystack_end, needle_begin, needle_end)) {
+        return 1;
+    }
+    return 0;
+}
 
+void* sa_find(stack_alloc* alloc, const void* haystack_begin, const void* haystack_end, const void* needle_begin, const void* needle_end) {
     uptr haystack_size = (uptr)((char*)haystack_end - (char*)haystack_begin);
     uptr needle_size = (uptr)((char*)needle_end - (char*)needle_begin);
 
@@ -114,7 +120,7 @@ u8 sa_contains(stack_alloc* alloc, const void* haystack_begin, const void* hayst
 
     for (uptr i = 0; i <= haystack_size - needle_size; i++) {
         if (__builtin_memcmp((char*)haystack_begin + i, needle_begin, needle_size) == 0) {
-            return 1;
+            return byteoffset(haystack_begin, i);
         }
     }
 
