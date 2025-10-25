@@ -253,7 +253,13 @@ u8 target_build(target* targets_begin, target* targets_end, target* target_to_bu
     for (target** target_pp = execution_list.end - 1; target_pp >= execution_list.begin; --target_pp) {
         target* t = *target_pp;
 
-        if (target_should_build(t, cache_dir, alloc)) {
+        u8 should_build;
+        if (dry) {
+            should_build = 1;
+        } else {
+            should_build = target_should_build(t, cache_dir, alloc);
+        }
+        if (should_build) {
              print_format(file_stdout(), STRING("%s\n"), t->name);
             if (!t->build(t, dry, session, cache_dir, alloc)) {
                 success = 0;

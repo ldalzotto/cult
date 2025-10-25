@@ -379,16 +379,34 @@ i32 main(i32 argc, char** argv) {
     u64 build_begin_ms = sys_time_ms();
 
     u8 dry = 0;
-
-    /* Get the target name(s) from the command line instead of hardcoding.
-       If no target is provided, build the default set. */
+    /* Get the dry value from the command line. Support "-n" and "--dry-run".
+       Also allow building specific targets passed on the command line; if no
+       target names are given (only flags or nothing), build the default "all". */
     u8 return_code = 1;
     if (argc >= 2) {
-        /* Build each target passed on the command line (argv[1] ... argv[argc-1]). */
+        /* Build each target passed on the command line (argv[1] ... argv[argc-1]),
+           skipping recognized flags. */
         for (i32 i = 1; i < argc; ++i) {
+            uptr arg_len = mem_cstrlen((void*)argv[i]);
+
+            /* check for "-n" */
+            if (arg_len == 2 && argv[i][0] == '-' && argv[i][1] == 'n') {
+                dry = 1;
+                continue;
+            }
+
+            /* check for "--dry-run" */
+            if (arg_len == 9 &&
+                argv[i][0] == '-' && argv[i][1] == '-' &&
+                argv[i][2] == 'd' && argv[i][3] == 'r' && argv[i][4] == 'y' &&
+                argv[i][5] == '-' && argv[i][6] == 'r' && argv[i][7] == 'u' && argv[i][8] == 'n') {
+                dry = 1;
+                continue;
+            }
+
             string s;
             s.begin = (u8*)argv[i];
-            s.end = byteoffset(argv[i], mem_cstrlen((void*)argv[i]));
+            s.end = byteoffset(argv[i], arg_len);
             return_code = return_code & target_build_name(targetss, s, build_dir, cache_dir, dry, session, alloc);
         }
     }
