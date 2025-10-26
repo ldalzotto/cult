@@ -28,6 +28,7 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_string(STRING("-pedantic"), alloc);
     if (use_debug) {
         push_string(STRING("-DDEBUG_ASSERTIONS_ENABLED=1"), alloc);
+        push_string(STRING("-g"), alloc);
         push_string(STRING("-O0"), alloc);
     } else {
         push_string(STRING("-DDEBUG_ASSERTIONS_ENABLED=0"), alloc);
@@ -376,8 +377,10 @@ i32 main(i32 argc, char** argv) {
     u64 target_begin_ms = sys_time_ms();
 
     targets targetss = make_targets(/*use_debug=*/ 1, build_dir, session, alloc);
-
+    
     u64 target_end_ms = sys_time_ms();
+    const mem_bytesize_human_readable_values target_alloc_size = mem_bytesize_human_readable(alloc->begin, alloc->cursor);
+    mem_release_unused(alloc->cursor, alloc->end);
 
     u64 build_begin_ms = sys_time_ms();
 
@@ -414,9 +417,13 @@ i32 main(i32 argc, char** argv) {
         }
     }
 
+    const mem_bytesize_human_readable_values total_size = mem_bytesize_human_readable(alloc->begin, alloc->end);
     u64 build_end_ms = sys_time_ms();
-    print_format(file_stdout(), STRING("Targets took: %ums\n"), target_end_ms - target_begin_ms);
-    print_format(file_stdout(), STRING("Builds took: %ums\n"), build_end_ms - build_begin_ms);
+    print_format(file_stdout(), STRING("Targets took: %ums. Memory: %uM %uK / %uM %uK.\n"), target_end_ms - target_begin_ms, 
+        target_alloc_size.mib, target_alloc_size.kib,
+        total_size.mib, total_size.kib
+    );
+    print_format(file_stdout(), STRING("Builds took: %ums.\n"), build_end_ms - build_begin_ms);
     
     sa_free(alloc, targetss.begin);
     close_persistent_shell(session);
