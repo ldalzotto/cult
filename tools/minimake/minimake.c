@@ -6,7 +6,12 @@
 #include "print.h"
 #include "minimake_script.h"
 
-static targets make_targets(u8 use_debug, string build_dir, exec_command_session* session, stack_alloc* alloc) {
+typedef enum {
+  flavor_debug,
+  flavor_release,  
+} flavor;
+
+static targets make_targets(flavor flavor, string build_dir, exec_command_session* session, stack_alloc* alloc) {
     targets targetss;
     targetss.begin = alloc->cursor;
 
@@ -26,14 +31,17 @@ static targets make_targets(u8 use_debug, string build_dir, exec_command_session
     push_string(STRING("-Wextra"), alloc);
     push_string(STRING("-Werror"), alloc);
     push_string(STRING("-pedantic"), alloc);
-    if (use_debug) {
+    switch (flavor) {
+    case flavor_debug: {
         push_string(STRING("-DDEBUG_ASSERTIONS_ENABLED=1"), alloc);
         push_string(STRING("-g"), alloc);
-        push_string(STRING("-O0"), alloc);
-    } else {
+        push_string(STRING("-O0"), alloc);    
+    } break;
+    case flavor_release: {
         push_string(STRING("-DDEBUG_ASSERTIONS_ENABLED=0"), alloc);
         push_string(STRING("-DNDEBUG"), alloc);
         push_string(STRING("-O3"), alloc);
+    } break;
     }
     push_string(STRING("-Isrc/libs"), alloc);
     end_strings(&common_c_flags, alloc);
@@ -376,7 +384,32 @@ i32 main(i32 argc, char** argv) {
 
     u64 target_begin_ms = sys_time_ms();
 
-    targets targetss = make_targets(/*use_debug=*/ 1, build_dir, session, alloc);
+    flavor flavor = flavor_debug;
+    /* Parse command-line arguments for build flavor. Support "-r" and "--release".
+       This only inspects arguments and does not consume them; the later pass
+       still handles target/dry-run processing. */
+    if (argc >= 2) {
+        for (i32 i = 1; i < argc; ++i) {
+            uptr arg_len = mem_cstrlen((void*)argv[i]);
+
+            /* check for "-r" */
+            if (arg_len == 2 && argv[i][0] == '-' && argv[i][1] == 'r') {
+                flavor = flavor_release;
+                continue;
+            }
+
+            /* check for "--release" */
+            if (arg_len == 9 &&
+                argv[i][0] == '-' && argv[i][1] == '-' &&
+                argv[i][2] == 'r' && argv[i][3] == 'e' && argv[i][4] == 'l' &&
+                argv[i][5] == 'e' && argv[i][6] == 'a' && argv[i][7] == 's' && argv[i][8] == 'e') {
+                flavor = flavor_release;
+                continue;
+            }
+        }
+    }
+
+    targets targetss = make_targets(flavor, build_dir, session, alloc);
     
     u64 target_end_ms = sys_time_ms();
     const mem_bytesize_human_readable_values target_alloc_size = mem_bytesize_human_readable(alloc->begin, alloc->cursor);
@@ -410,6 +443,17 @@ i32 main(i32 argc, char** argv) {
                 continue;
             }
 
+            /* skip flavor flags here as well */
+            if (arg_len == 2 && argv[i][0] == '-' && argv[i][1] == 'r') {
+                continue;
+            }
+            if (arg_len == 9 &&
+                argv[i][0] == '-' && argv[i][1] == '-' &&
+                argv[i][2] == 'r' && argv[i][3] == 'e' && argv[i][4] == 'l' &&
+                argv[i][5] == 'e' && argv[i][6] == 'a' && argv[i][7] == 's' && argv[i][8] == 'e') {
+                continue;
+            }
+
             string s;
             s.begin = (u8*)argv[i];
             s.end = byteoffset(argv[i], arg_len);
@@ -419,11 +463,11 @@ i32 main(i32 argc, char** argv) {
 
     const mem_bytesize_human_readable_values total_size = mem_bytesize_human_readable(alloc->begin, alloc->end);
     u64 build_end_ms = sys_time_ms();
-    print_format(file_stdout(), STRING("Targets took: %ums. Memory: %uM %uK / %uM %uK.\n"), target_end_ms - target_begin_ms, 
+    print_format(file_stdout(), STRING("Targets took: %ums. Memory: %uM %uK / %uM %uK."), target_end_ms - target_begin_ms, 
         target_alloc_size.mib, target_alloc_size.kib,
         total_size.mib, total_size.kib
     );
-    print_format(file_stdout(), STRING("Builds took: %ums.\n"), build_end_ms - build_begin_ms);
+    print_format(file_stdout(), STRING("Builds took: %ums."), build_end_ms - build_begin_ms);
     
     sa_free(alloc, targetss.begin);
     close_persistent_shell(session);
