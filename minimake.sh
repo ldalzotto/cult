@@ -1,20 +1,3 @@
 mkdir ./build
-gcc -DDEBUG_ASSERTIONS_ENABLED=0 -DNDEBUG -O3 -Isrc/libs \
-    ./tools/minimake/minimake_script.c \
-    ./tools/minimake/minimake.c \
-    ./tools/minimake/target_build.c \
-    ./tools/minimake/target_c_dependencies.c \
-    ./tools/minimake/target_execution_list.c \
-    ./tools/minimake/target_timestamp.c \
-    ./src/libs/stack_alloc.c \
-    ./src/libs/assert.c \
-    ./src/libs/file.c \
-    ./src/libs/print.c \
-    ./src/libs/mem.c \
-    ./src/libs/format_iterator.c \
-    ./src/libs/meta_iterator.c \
-    ./src/libs/convert.c \
-    ./src/libs/backtrace.c \
-    ./src/libs/exec_command.c \
-    ./src/libs/system_time.c \
+gcc -march=native -DDEBUG_ASSERTIONS_ENABLED=0 -DNDEBUG -O3 -fdata-sections -ffunction-sections -Wl,--gc-sections -Isrc/libs ./tools/minimake/minimake.amalgamated.c \
     -o ./build/minimake
