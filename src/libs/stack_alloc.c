@@ -28,6 +28,12 @@ void* sa_alloc(stack_alloc* alloc, uptr size) {
     return result;
 }
 
+void* sa_alloc_copy(stack_alloc* alloc, const void* begin, const void* end) {
+    void* cursor = sa_alloc(alloc, bytesize(begin, end));
+    sa_copy(alloc, begin, cursor, bytesize(begin, end));
+    return cursor;
+}
+
 // Insert a new block of memory of 'size' bytes at the address 'at' by shifting the tail.
 void sa_insert(stack_alloc* alloc, void* at, uptr size) {
     // Record current end of allocated region

@@ -51,6 +51,8 @@ void* sa_alloc(stack_alloc* alloc, uptr size);
 
 void sa_free(stack_alloc* alloc, void* pointer);
 
+void* sa_alloc_copy(stack_alloc* alloc, const void* begin, const void* end);
+
 // Insert a new block of memory of 'size' bytes at the address 'at' within the allocated region.
 // This function reserves space at the end and shifts the tail starting at 'at' to make space.
 void sa_insert(stack_alloc* alloc, void* at, uptr size);

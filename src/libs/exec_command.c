@@ -51,15 +51,12 @@ exec_command_result command_session_exec_command(exec_command_session* session, 
     result.output = alloc->cursor;
     result.success = 0;
 
-    void* cursor;
     string command;
     command.begin = alloc->cursor;
-    cursor = sa_alloc(alloc, bytesize(cmd.begin, cmd.end));
-    sa_copy(alloc, cmd.begin, cursor, bytesize(cmd.begin, cmd.end));
+    sa_alloc_copy(alloc, cmd.begin, cmd.end);
 
     const string end_marker_command = STR("; echo __END__ $?\n");
-    cursor = sa_alloc(alloc, bytesize(end_marker_command.begin, end_marker_command.end));
-    sa_copy(alloc, end_marker_command.begin, cursor, bytesize(end_marker_command.begin, end_marker_command.end));
+    sa_alloc_copy(alloc, end_marker_command.begin, end_marker_command.end);
     command.end = alloc->cursor;
 
     write(session->in_fd, command.begin, bytesize(command.begin, command.end));

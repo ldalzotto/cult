@@ -39,8 +39,7 @@ static target* create_target(stack_alloc* alloc, const string name, u8 (*build)(
     target* t = sa_alloc(alloc, sizeof(*t));
 
     /* Copy name into the stack allocator */
-    t->name.begin = sa_alloc(alloc, bytesize(name.begin, name.end));
-    sa_copy(alloc, name.begin, (void*)t->name.begin, bytesize(name.begin, name.end));
+    t->name.begin = sa_alloc_copy(alloc, name.begin, name.end);
     t->name.end = alloc->cursor;
 
 
@@ -65,8 +64,7 @@ void end_string(string* s, stack_alloc* alloc) {s->end = alloc->cursor;}
 
 void push_string(const string s, stack_alloc* alloc) {
     string* sp = sa_alloc(alloc, sizeof(string));
-    sp->begin = sa_alloc(alloc, bytesize(s.begin, s.end));
-    sa_copy(alloc, s.begin, (void*)sp->begin, bytesize(s.begin, s.end));
+    sp->begin = sa_alloc_copy(alloc, s.begin, s.end);
     sp->end = alloc->cursor;
 }
 
@@ -220,8 +218,7 @@ targets create_c_object_targets(const string cc, const strings flags,
         void* var_end = alloc->cursor;
 
         target* target = create_target(alloc, *object, target_build_object);
-        target->template = sa_alloc(alloc, bytesize(build_object_template.begin, build_object_template.end));
-        sa_copy(alloc, build_object_template.begin, target->template, bytesize(build_object_template.begin, build_object_template.end));
+        target->template = sa_alloc_copy(alloc, build_object_template.begin, build_object_template.end);
         target->deps = alloc->cursor;
         for (string* d = additional_deps.begin; (void*)d < additional_deps.end;) {
             push_string(*d, alloc);
@@ -232,8 +229,7 @@ targets create_c_object_targets(const string cc, const strings flags,
         finish_target(target, alloc);
 
         struct target* dependency_target = create_target(alloc, *object_dependency, target_build_object_dependencies);
-        dependency_target->template = sa_alloc(alloc, bytesize(extract_dependency_template.begin, extract_dependency_template.end));
-        sa_copy(alloc, extract_dependency_template.begin, dependency_target->template, bytesize(extract_dependency_template.begin, extract_dependency_template.end));
+        dependency_target->template = sa_alloc_copy(alloc, extract_dependency_template.begin, extract_dependency_template.end);
         dependency_target->deps = alloc->cursor;
         push_string(*source, alloc);
 
@@ -282,8 +278,7 @@ target* create_executable_target(const string cc, const strings flags, string ex
     void* var_end = alloc->cursor;
 
     target* target = create_target(alloc, executable_file, target_build_executable);
-    target->template = sa_alloc(alloc, bytesize(executable_link_template.begin, executable_link_template.end));
-    sa_copy(alloc, executable_link_template.begin, target->template, bytesize(executable_link_template.begin, executable_link_template.end));
+    target->template = sa_alloc_copy(alloc, executable_link_template.begin, executable_link_template.end);
 
     target->deps = alloc->cursor;
     for (string* dep = deps.begin; (void*)dep < deps.end;) {

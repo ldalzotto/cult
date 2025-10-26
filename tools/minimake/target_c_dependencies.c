@@ -40,8 +40,7 @@ string* extract_c_dependencies(string gcc_output, stack_alloc* alloc) {
 
         // Allocate a string entry for this dependency
         string* dep_entry = sa_alloc(alloc, sizeof(*dep_entry));
-        dep_entry->begin = sa_alloc(alloc, bytesize(tok_b, tok_e));
-        sa_copy(alloc, tok_b, (void*)dep_entry->begin, bytesize(tok_b, tok_e));
+        dep_entry->begin = sa_alloc_copy(alloc, tok_b, tok_e);
         dep_entry->end = alloc->cursor;
     }
 

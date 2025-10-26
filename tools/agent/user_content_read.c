@@ -36,8 +36,7 @@ u8* user_content_read(stack_alloc* alloc, u8_slice file_content) {
         }
     }
 
-    void* user_content_copy = sa_alloc(alloc, bytesize(user_content.begin, user_content.end));
-    sa_copy(alloc, user_content.begin, user_content_copy, bytesize(user_content.begin, user_content.end));
+    sa_alloc_copy(alloc, user_content.begin, user_content.end);
 
     const char token[] = "@";
     const uptr token_len = sizeof(token) - 1;

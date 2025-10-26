@@ -5,10 +5,8 @@
 
 void timestamp_write(const string name, const string cache_dir, uptr ts, stack_alloc* alloc) {
     string name_path;
-    name_path.begin = sa_alloc(alloc, bytesize(cache_dir.begin, cache_dir.end));
-    sa_copy(alloc, cache_dir.begin, (void*)name_path.begin, bytesize(cache_dir.begin, cache_dir.end));
-    void* cursor = sa_alloc(alloc, bytesize(name.begin, name.end));
-    sa_copy(alloc, name.begin, cursor, bytesize(name.begin, name.end));
+    name_path.begin = sa_alloc_copy(alloc, cache_dir.begin, cache_dir.end);
+    sa_alloc_copy(alloc, name.begin, name.end);
     name_path.end = alloc->cursor;
 
     directory_create_for_file(alloc, name_path.begin, name_path.end, DIR_MODE_PUBLIC);
@@ -22,10 +20,8 @@ void timestamp_write(const string name, const string cache_dir, uptr ts, stack_a
 
 uptr timestamp_read(const string name, const string cache_dir, stack_alloc* alloc) {
     string name_path;
-    name_path.begin = sa_alloc(alloc, bytesize(cache_dir.begin, cache_dir.end));
-    sa_copy(alloc, cache_dir.begin, (void*)name_path.begin, bytesize(cache_dir.begin, cache_dir.end));
-    void* cursor = sa_alloc(alloc, bytesize(name.begin, name.end));
-    sa_copy(alloc, name.begin, cursor, bytesize(name.begin, name.end));
+    name_path.begin = sa_alloc_copy(alloc, cache_dir.begin, cache_dir.end);
+    sa_alloc_copy(alloc, name.begin, name.end);
     name_path.end = alloc->cursor;
 
     uptr ts = 0;

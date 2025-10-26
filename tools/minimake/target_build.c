@@ -118,8 +118,7 @@ u8 target_build_executable(target* t, u8 dry, exec_command_session* session, str
         if (!sa_contains(alloc, d->begin, d->end, extension.begin, extension.end)) {
             goto next;
         }
-        void* cursor = sa_alloc(alloc, bytesize(d->begin, d->end));
-        sa_copy(alloc, d->begin, cursor, bytesize(d->begin, d->end));
+        void* cursor = sa_alloc_copy(alloc, d->begin, d->end);
         cursor = sa_alloc(alloc, 1);
         *(u8*)cursor = ' ';
         next:
@@ -173,18 +172,10 @@ u8 target_build_extract(target* t, u8 dry, exec_command_session* session, string
         const string tar_command = STRING("tar -xzvf ");
         const string output_command = STRING(" -C ");
 
-        void* cursor;
-        cursor = sa_alloc(alloc, bytesize(tar_command.begin, tar_command.end));
-        sa_copy(alloc, tar_command.begin, cursor, bytesize(tar_command.begin, tar_command.end));
-
-        cursor = sa_alloc(alloc, bytesize(tar_gz_input_path.begin, tar_gz_input_path.end));
-        sa_copy(alloc, tar_gz_input_path.begin, cursor, bytesize(tar_gz_input_path.begin, tar_gz_input_path.end));
-
-        cursor = sa_alloc(alloc, bytesize(output_command.begin, output_command.end));
-        sa_copy(alloc, output_command.begin, cursor, bytesize(output_command.begin, output_command.end));
-
-        cursor = sa_alloc(alloc, bytesize(output_directory.begin, output_directory.end));
-        sa_copy(alloc, output_directory.begin, cursor, bytesize(output_directory.begin, output_directory.end));
+        sa_alloc_copy(alloc, tar_command.begin, tar_command.end);
+        sa_alloc_copy(alloc, tar_gz_input_path.begin, tar_gz_input_path.end);
+        sa_alloc_copy(alloc, output_command.begin, output_command.end);
+        sa_alloc_copy(alloc, output_directory.begin, output_directory.end);
 
         command.end = alloc->cursor;
 
