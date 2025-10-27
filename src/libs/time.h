@@ -14,4 +14,6 @@ void fps_ticker_init(fps_ticker* ticker, u64 preferred_frame_us, u64 start_time_
 // Updates ticker with current time and returns number of frames that should be processed
 u32 fps_ticker_update(fps_ticker* ticker, u64 current_time_us);
 
+u64 fps_ticker_estimated_next_frame(fps_ticker* ticker);
+
 #endif // TIME_H

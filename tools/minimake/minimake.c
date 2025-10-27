@@ -62,6 +62,7 @@ static targets make_targets(flavor flavor, string build_dir, exec_command_sessio
     push_string(STRING("src/libs/print.c"), alloc);
     push_string(STRING("src/libs/stack_alloc.c"), alloc);
     push_string(STRING("src/libs/system_time.c"), alloc);
+    push_string(STRING("src/libs/thread.c"), alloc);
     push_string(STRING("src/libs/time.c"), alloc);
     end_strings(&common_c_files, alloc);
 
