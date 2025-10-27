@@ -19,6 +19,6 @@ u32 fps_ticker_update(fps_ticker* ticker, u64 current_time_us) {
     return frames;
 }
 
-u64 fps_ticker_estimated_next_frame(fps_ticker* ticker) {
-    return ticker->last_time_us + ticker->preferred_frame_us;
+u64 fps_ticker_estimated_next_frame(fps_ticker ticker) {
+    return ticker.last_time_us + ticker.preferred_frame_us;
 }

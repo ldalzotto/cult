@@ -56,7 +56,7 @@ i32 main(void) {
 
         if (frames_to_process == 0) {
             // Not enough time elapsed for the next frame
-            u64 to_wait_us = fps_ticker_estimated_next_frame(&ticker);
+            u64 to_wait_us = fps_ticker_estimated_next_frame(ticker);
             thread_current_sleep_until_us(to_wait_us);
             continue;
         }
