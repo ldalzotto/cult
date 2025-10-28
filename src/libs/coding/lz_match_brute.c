@@ -31,8 +31,6 @@ u8 lz_match_is_large_enough(lz_match match, lzss_match_size_t match_size_min) {
 }
 
 lz_match lz_match_brute(lz_window window, lzss_match_size_t match_size_max) {
-    // TODO
-    unused(window);
     lz_match match_largest = {
         .search = {window.search_begin, window.search_begin},
         .lookahead = {window.lookahead_begin, window.lookahead_begin},

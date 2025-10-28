@@ -48,8 +48,6 @@ target** target_execution_list(target* targets_begin, target* targets_end, targe
                         target** push = sa_alloc(alloc, sizeof(*push));
                         *push = cand;
                         list_end = alloc->cursor;
-                    } else {
-                        // TODO
                     }
 
                     /* Found matching target, no need to check other candidates */
