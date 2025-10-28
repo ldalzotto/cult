@@ -124,7 +124,6 @@ snake_update_result snake_update(snake* s, snake_input input, u64 frame_us, stac
         *s->player_cells.begin = head_pos;
     }
 
-    // TODO: add a test about that
     // Generate new reward position
     if (should_extend) {
         position cand = generate_next_reward_position(s->reward, s->player_cells.begin, s->player_cells.end,
