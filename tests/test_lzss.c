@@ -27,7 +27,7 @@ static void test_lzss_window_size_boundary(test_context* t) {
     TEST_ASSERT_NOT_NULL(t, out);
 
     uptr compressed_size = bytesize(out, alloc.cursor);
-    TEST_ASSERT(t, compressed_size == 45, "Compression should work");
+    TEST_ASSERT(t, compressed_size == 36, "Compression should work");
     TEST_ASSERT(t, compressed_size <= input_size, "Compressed size should not exceed input for repeating pattern");
 
     void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, 0);
@@ -66,7 +66,7 @@ static void test_lzss_large_input(test_context* t) {
     TEST_ASSERT_NOT_NULL(t, out);
 
     uptr compressed_size = bytesize(out, alloc.cursor);
-    TEST_ASSERT(t, compressed_size == 49, "Compression should work");
+    TEST_ASSERT(t, compressed_size == 39, "Compression should work");
     TEST_ASSERT(t, compressed_size <= input_size, "Compressed size should not exceed input for repeating pattern");
 
     void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, 0);
@@ -99,7 +99,7 @@ static void test_lzss_all_identical(test_context* t) {
     TEST_ASSERT_NOT_NULL(t, out);
 
     uptr compressed_size = bytesize(out, alloc.cursor);
-    TEST_ASSERT(t, compressed_size == 37, "Should compress well with identical bytes");
+    TEST_ASSERT(t, compressed_size == 30, "Should compress well with identical bytes");
 
     void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, 0);
     uptr decompressed_size = bytesize(decompressed, alloc.cursor);
@@ -133,7 +133,7 @@ static void test_lzss_alternating_pattern(test_context* t) {
     TEST_ASSERT_NOT_NULL(t, out);
 
     uptr compressed_size = bytesize(out, alloc.cursor);
-    TEST_ASSERT(t, compressed_size == 30, "Compression should work");
+    TEST_ASSERT(t, compressed_size == 24, "Compression should work");
     TEST_ASSERT(t, compressed_size <= input_size, "Compressed size should not exceed input for alternating pattern");
 
     void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, 0);
@@ -165,7 +165,7 @@ static void test_lzss_minimum_match(test_context* t) {
     TEST_ASSERT_NOT_NULL(t, out);
 
     uptr compressed_size = bytesize(out, alloc.cursor);
-    TEST_ASSERT(t, compressed_size == 18, "Compression should work");
+    TEST_ASSERT(t, compressed_size == 15, "Compression should work");
 
     void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, 0);
     uptr decompressed_size = bytesize(decompressed, alloc.cursor);
@@ -196,7 +196,7 @@ static void test_lzss_with_nulls(test_context* t) {
     TEST_ASSERT_NOT_NULL(t, out);
 
     uptr compressed_size = bytesize(out, alloc.cursor);
-    TEST_ASSERT(t, compressed_size == 18, "Compression should work");
+    TEST_ASSERT(t, compressed_size == 15, "Compression should work");
     TEST_ASSERT(t, compressed_size > 0, "Compressed size should be > 0 for binary data with nulls");
 
     void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, 0);
@@ -227,7 +227,7 @@ static void test_lzss_end_match(test_context* t) {
     TEST_ASSERT_NOT_NULL(t, out);
 
     uptr compressed_size = bytesize(out, alloc.cursor);
-    TEST_ASSERT(t, compressed_size == 12, "Compression should work");
+    TEST_ASSERT(t, compressed_size == 11, "Compression should work");
 
     void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, 0);
     uptr decompressed_size = bytesize(decompressed, alloc.cursor);
@@ -289,7 +289,7 @@ static void test_lzss_config_variations(test_context* t) {
     TEST_ASSERT_NOT_NULL(t, out);
 
     uptr compressed_size = bytesize(out, alloc.cursor);
-    TEST_ASSERT(t, compressed_size == 13, "Compression should work");
+    TEST_ASSERT(t, compressed_size == 11, "Compression should work");
 
     void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, 0);
     uptr decompressed_size = bytesize(decompressed, alloc.cursor);
@@ -355,7 +355,7 @@ static void test_lzss_match_size_max_boundary(test_context* t) {
     TEST_ASSERT_NOT_NULL(t, out);
 
     uptr compressed_size = bytesize(out, alloc.cursor);
-    TEST_ASSERT(t, compressed_size == 50, "Compression should work");
+    TEST_ASSERT(t, compressed_size == 40, "Compression should work");
     TEST_ASSERT(t, compressed_size <= input_size, "Compressed size should not exceed input for match boundary");
 
     void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, 0);
@@ -388,7 +388,7 @@ static void test_lzss_long_identical_run(test_context* t) {
     TEST_ASSERT_NOT_NULL(t, out);
 
     uptr compressed_size = bytesize(out, alloc.cursor);
-    TEST_ASSERT(t, compressed_size == 45, "Compression should work");
+    TEST_ASSERT(t, compressed_size == 36, "Compression should work");
     TEST_ASSERT(t, compressed_size < input_size, "Should compress extremely well with long identical run");
 
     void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, 0);
@@ -424,7 +424,7 @@ static void test_lzss_random_binary(test_context* t) {
     TEST_ASSERT_NOT_NULL(t, out);
 
     uptr compressed_size = bytesize(out, alloc.cursor);
-    TEST_ASSERT(t, compressed_size == 267, "Compression should work");
+    TEST_ASSERT(t, compressed_size == 264, "Compression should work");
     TEST_ASSERT(t, compressed_size > 0, "Compressed size should be > 0 for random binary");
 
     void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, 0);
@@ -456,7 +456,7 @@ static void test_lzss_debug_output(test_context* t) {
     TEST_ASSERT_NOT_NULL(t, out);
 
     uptr compressed_size = bytesize(out, alloc.cursor);
-    TEST_ASSERT(t, compressed_size == 18, "Compression should work");
+    TEST_ASSERT(t, compressed_size == 15, "Compression should work");
     TEST_ASSERT(t, compressed_size > 0, "Compressed size should be > 0 when using debug output");
 
     void* decompressed = lzss_decompress(out, alloc.cursor, &alloc, file_stdout());

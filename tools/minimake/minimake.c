@@ -53,6 +53,7 @@ static targets make_targets(flavor flavor, string build_dir, exec_command_sessio
     strings common_c_files = begin_strings(alloc);
     push_string(STRING("src/libs/assert.c"), alloc);
     push_string(STRING("src/libs/backtrace.c"), alloc);
+    push_string(STRING("src/libs/bit.c"), alloc);
     push_string(STRING("src/libs/convert.c"), alloc);
     push_string(STRING("src/libs/exec_command.c"), alloc);
     push_string(STRING("src/libs/file.c"), alloc);
