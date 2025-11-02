@@ -12,7 +12,7 @@ STATIC_ASSERT(sizeof(item_type) == 1);
 typedef struct {
     u8* value;
     u8 bit_index;
-} item_type_bit;
+} item_type_bit_state;
 
 static const u8 item_type_bit_count = 8;
 

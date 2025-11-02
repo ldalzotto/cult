@@ -4,23 +4,23 @@
 #include "lz_bit_types.h"
 #include "bit.h"
 
-static item_type fetch_item_type(item_type_bit* bit, void** out_cursor) {
-    if (bit->bit_index == item_type_bit_count) {
-        bit->value = *out_cursor;
-        *out_cursor = byteoffset(bit->value, 1);
-        bit->bit_index = 0;
+static item_type fetch_item_type(item_type_bit_state* bit_state, void** out_cursor) {
+    if (bit_state->bit_index == item_type_bit_count) {
+        bit_state->value = *out_cursor;
+        *out_cursor = byteoffset(bit_state->value, 1);
+        bit_state->bit_index = 0;
     }
-    item_type b = BIT_GET(*bit->value, bit->bit_index);
-    bit->bit_index += 1;
+    item_type b = BIT_GET(*bit_state->value, bit_state->bit_index);
+    bit_state->bit_index += 1;
     return b;
 }
 
 u8* lz_deserialize(u8* compressed_begin, u8* compressed_end, stack_alloc* alloc, file_t debug) {
     u8* output = alloc->cursor;
     u8* current = compressed_begin;
-    item_type_bit bit = {.bit_index = item_type_bit_count, .value = compressed_begin};
+    item_type_bit_state bit_state = {.bit_index = item_type_bit_count, .value = compressed_begin};
     while (current < compressed_end) {
-        item_type type = fetch_item_type(&bit, (void**)&current);
+        item_type type = fetch_item_type(&bit_state, (void**)&current);
         if (type == LITERAL) {
             u8 size = *(u8*)current;
             current = byteoffset(current, sizeof(size));
