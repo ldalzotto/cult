@@ -85,6 +85,19 @@ static targets make_targets(flavor flavor, string build_dir, exec_command_sessio
     c_object_files coding = make_c_object_files(coding_c_files, build_dir, alloc);
     // END - coding
 
+    // BEGIN - image
+    strings image_c_flags = begin_strings(alloc);
+    push_strings(common_c_flags, alloc);
+    end_strings(&image_c_flags, alloc);
+    
+    strings image_c_files = begin_strings(alloc);
+    push_string(STRING("src/libs/image/bmp_read.c"), alloc);
+    push_string(STRING("src/libs/image/bmp_write.c"), alloc);
+    end_strings(&image_c_files, alloc);
+
+    c_object_files image = make_c_object_files(image_c_files, build_dir, alloc);
+    // END - image
+
     // BEGIN - network
     strings network_link_flags = begin_strings(alloc);
     push_string(STRING("-lssl"), alloc);
@@ -285,6 +298,7 @@ static targets make_targets(flavor flavor, string build_dir, exec_command_sessio
     push_string(STRING("tests/test_fps_ticker.c"), alloc);
     push_string(STRING("tests/test_framework.c"), alloc);
     push_string(STRING("tests/test_lzss.c"), alloc);
+    push_string(STRING("tests/test_bmp.c"), alloc);
     push_string(STRING("tests/test_mem.c"), alloc);
     push_string(STRING("tests/test_network_https.c"), alloc);
     push_string(STRING("tests/test_network_tcp.c"), alloc);
@@ -312,6 +326,7 @@ static targets make_targets(flavor flavor, string build_dir, exec_command_sessio
     push_strings(common.o, alloc);
     push_strings(window.o, alloc);
     push_strings(coding.o, alloc);
+    push_strings(image.o, alloc);
     push_strings(network.o, alloc);
     push_strings(snake_lib.o, alloc);
     push_strings(tests.o, alloc);
@@ -334,6 +349,7 @@ static targets make_targets(flavor flavor, string build_dir, exec_command_sessio
     
     create_c_object_targets(cc, common_c_flags, common, (strings){0,0}, alloc);
     create_c_object_targets(cc, coding_c_flags, coding, (strings){0,0}, alloc);
+    create_c_object_targets(cc, image_c_flags, image, (strings){0,0}, alloc);
     create_c_object_targets(cc, network_c_flags, network, (strings){0,0}, alloc);
 
     // X11 lib target
@@ -464,11 +480,11 @@ i32 main(i32 argc, char** argv) {
 
     const mem_bytesize_human_readable_values total_size = mem_bytesize_human_readable(alloc->begin, alloc->end);
     u64 build_end_ms = sys_time_ms();
-    print_format(file_stdout(), STRING("Targets took: %ums. Memory: %uM %uK / %uM %uK."), target_end_ms - target_begin_ms, 
+    print_format(file_stdout(), STRING("Targets took: %ums. Memory: %uM %uK / %uM %uK.\n"), target_end_ms - target_begin_ms, 
         target_alloc_size.mib, target_alloc_size.kib,
         total_size.mib, total_size.kib
     );
-    print_format(file_stdout(), STRING("Builds took: %ums."), build_end_ms - build_begin_ms);
+    print_format(file_stdout(), STRING("Builds took: %ums.\n"), build_end_ms - build_begin_ms);
     
     sa_free(alloc, targetss.begin);
     close_persistent_shell(session);

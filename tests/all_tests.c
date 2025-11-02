@@ -5,6 +5,7 @@
 #include "test_file.h"
 #include "test_print.h"
 #include "test_lzss.h"
+#include "test_bmp.h"
 #include "test_backtrace.h"
 #include "test_exec_command.h"
 #include "test_fps_ticker.h"
@@ -63,6 +64,7 @@ int main(int argc, char* argv[]) {
     test_backtrace_module(ctx);
     test_exec_command_module(ctx);
     test_lzss_module(ctx);
+    test_bmp_module(ctx);
     test_fps_ticker_module(ctx);
     test_snake_module(ctx);
     test_network_tcp_module(ctx);
