@@ -3,6 +3,7 @@
 
 #include "primitive.h"
 
+// TODO: For size optimization, we can write this as an 8 bit field
 typedef u8 item_type;
 static const item_type LITERAL = 0;
 static const item_type MATCH = 1;
