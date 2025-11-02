@@ -36,7 +36,7 @@ static void test_bmp_read_write(test_context* t) {
 }
 
 void test_bmp_module(test_context* t) {
-    print_string(file_stdout(), STRING("Registering File Module Tests...\n"));
+    print_string(file_stdout(), STRING("Registering Image Module Tests...\n"));
 
     REGISTER_TEST(t, "bmp_read_write", test_bmp_read_write);
 }
