@@ -41,7 +41,7 @@ lz_match lz_match_brute(lz_window window, lzss_match_size_t match_size_max) {
     u8 comparison_started = 0;
     while (1) {
         if (lookahead_cursor == window.end ||
-            search_cursor == window.end) {
+            search_cursor == window.lookahead_begin) {
                 if (comparison_started) {
                     comparison_started = 0;
                     lz_match match_current = {

@@ -2,8 +2,6 @@
 #include "assert.h"
 #include "lz_bit_types.h"
 
-typedef lz_match match;
-
 static void allocate_litteral(stack_alloc* alloc, u8* begin, u8* end) {
     debug_assert(begin != end);
     *(item_type*)sa_alloc(alloc, sizeof(item_type)) = LITERAL;
@@ -24,7 +22,7 @@ static void allocate_and_split_litteral(stack_alloc* alloc, lzss_match_size_t ma
     }
 }
 
-static void allocate_match(stack_alloc* alloc, match* match) {
+static void allocate_match(stack_alloc* alloc, lz_match* match) {
     *(item_type*)sa_alloc(alloc, sizeof(item_type)) = MATCH;
     uptr offset = match->lookahead.begin - match->search.begin;
     *(u16*)sa_alloc(alloc, sizeof(u16)) = offset;
