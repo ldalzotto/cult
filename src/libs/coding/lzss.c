@@ -23,6 +23,12 @@ static void* compress(u8* begin, u8* end, lzss_config config, stack_alloc* alloc
             lookahead_next = byteoffset(window.lookahead_begin, 1);
         }
         lz_window_advance(&window, lookahead_next, config.window_size_max);
+        if (debug) {
+            print_format(debug, STRING("search_begin: %u\nlookahead_begin: %u %p\nend: %u\n"),
+                bytesize(begin, window.search_begin),
+                bytesize(begin, window.lookahead_begin), window.lookahead_begin,
+                bytesize(begin, window.end));
+        }
     }
     matches.end = alloc->cursor;
 
