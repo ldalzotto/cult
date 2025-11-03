@@ -10,7 +10,7 @@ static item_type fetch_item_type(item_type_bit_state* bit_state, void** out_curs
         *out_cursor = byteoffset(bit_state->value, 1);
         bit_state->bit_index = 0;
     }
-    item_type b = BIT_GET(*bit_state->value, bit_state->bit_index);
+    item_type b = bit_get(*bit_state->value, bit_state->bit_index);
     bit_state->bit_index += 1;
     return b;
 }

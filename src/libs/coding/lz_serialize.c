@@ -8,7 +8,7 @@ static void allocate_item_type(stack_alloc* alloc, item_type_bit_state* bit_stat
         bit_state->bit_index = 0;
         bit_state->value = sa_alloc(alloc, 1);
     }
-    *bit_state->value = BIT_WRITE(*bit_state->value, bit_state->bit_index, value);
+    *bit_state->value = bit_write(*bit_state->value, bit_state->bit_index, value);
     bit_state->bit_index += 1;
 }
 
