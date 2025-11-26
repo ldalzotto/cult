@@ -1,4 +1,5 @@
 #include "snake.h"
+#include "snake_asset.h"
 #include "snake_render.h"
 #include "primitive.h"
 #include "mem.h"
@@ -41,6 +42,7 @@ i32 main(void) {
     print_string(file_stdout(), STRING("Window created successfully. Press Ctrl+C to exit.\n"));
 
     // Allocate snake
+    snake_asset* asset = snake_asset_init(&win_alloc);
     snake* s = snake_init(&win_alloc);
 
     // ---------------- FPS TICKER ----------------
@@ -117,7 +119,7 @@ i32 main(void) {
 
         // Render snake to commands
         u32 command_count;
-        draw_command* cmds = snake_render(s, WIDTH, HEIGHT, &command_count, &win_alloc);
+        draw_command* cmds = snake_render(s, asset, WIDTH, HEIGHT, &command_count, &win_alloc);
 
         // Execute draw commands
         for (u32 i = 0; i < command_count; ++i) {
@@ -138,6 +140,38 @@ i32 main(void) {
                         }
                     }
                 }
+            } else if (cmd.type == DRAW_COMMAND_DRAW_RECTANGLE_TEXTURED) {
+                /* Draw textured rectangle using nearest-neighbor scaling.
+                   No floating point used; integer arithmetic for nearest mapping.
+                   Source pixels are RGB (3 bytes per pixel). Destination buffer is 32-bit RGBA.
+                */
+                draw_rectangle_textured* t = &cmd.data.rect_textured;
+                if (t->w <= 0 || t->h <= 0 || t->tex_w <= 0 || t->tex_h <= 0 || t->pixels == 0) {
+                    continue;
+                }
+                for (i32 dy = 0; dy < t->h; ++dy) {
+                    i32 py = t->y + dy;
+                    if (py < 0 || py >= HEIGHT) continue;
+                    for (i32 dx = 0; dx < t->w; ++dx) {
+                        i32 px = t->x + dx;
+                        if (px < 0 || px >= WIDTH) continue;
+                        /* Nearest sampling: map destination (dx,dy) to source (src_x, src_y)
+                           Use integer math: src_x = (dx * tex_w) / w
+                        */
+                        i32 src_x = (dx * t->tex_w) / t->w;
+                        i32 src_y = (dy * t->tex_h) / t->h;
+                        if (src_x < 0) src_x = 0;
+                        else if (src_x >= t->tex_w) src_x = t->tex_w - 1;
+                        if (src_y < 0) src_y = 0;
+                        else if (src_y >= t->tex_h) src_y = t->tex_h - 1;
+                        u8* p = t->pixels + (src_y * t->tex_w + src_x) * 3;
+                        u8 r = p[0];
+                        u8 g = p[1];
+                        u8 b = p[2];
+                        u32 pixel = (255u << 24) | ((u32)r << 16) | ((u32)g << 8) | (u32)b;
+                        ((i32*)buffer.begin)[py * WIDTH + px] = (i32)pixel;
+                    }
+                }
             }
         }
 
@@ -153,6 +187,7 @@ i32 main(void) {
 
     // Deinit snake
     snake_deinit(s, &win_alloc);
+    snake_asset_deinit(asset, &win_alloc);
 
     // Close window
     win_x11_close_window(win_ctx);

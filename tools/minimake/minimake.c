@@ -181,6 +181,7 @@ static targets make_targets(flavor flavor, string build_dir, exec_command_sessio
 
     // BEGIN - snake
     strings snake_lib_c_files = begin_strings(alloc);
+    push_string(STRING("src/apps/snake/snake_asset.c"), alloc);
     push_string(STRING("src/apps/snake/snake_grid.c"), alloc);
     push_string(STRING("src/apps/snake/snake_move.c"), alloc);
     push_string(STRING("src/apps/snake/snake_render.c"), alloc);
@@ -465,11 +466,11 @@ i32 main(i32 argc, char** argv) {
 
     const mem_bytesize_human_readable_values total_size = mem_bytesize_human_readable(alloc->begin, alloc->end);
     u64 build_end_ms = sys_time_ms();
-    print_format(file_stdout(), STRING("Targets took: %ums. Memory: %uM %uK / %uM %uK."), target_end_ms - target_begin_ms, 
+    print_format(file_stdout(), STRING("Targets took: %ums. Memory: %uM %uK / %uM %uK.\n"), target_end_ms - target_begin_ms, 
         target_alloc_size.mib, target_alloc_size.kib,
         total_size.mib, total_size.kib
     );
-    print_format(file_stdout(), STRING("Builds took: %ums."), build_end_ms - build_begin_ms);
+    print_format(file_stdout(), STRING("Builds took: %ums.\n"), build_end_ms - build_begin_ms);
     
     sa_free(alloc, targetss.begin);
     close_persistent_shell(session);
