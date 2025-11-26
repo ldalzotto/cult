@@ -41,10 +41,10 @@ draw_command* snake_render(snake* s, snake_asset* asset, u32 screen_width, u32 s
         c->data.rect_textured.y = (i32)reward.y * cell_size_y;
         c->data.rect_textured.w = cell_size_x;
         c->data.rect_textured.h = cell_size_y;
-        snake_asset_default_image(asset, 
-            (void**)&c->data.rect_textured.pixels,
-            &c->data.rect_textured.tex_w,
-            &c->data.rect_textured.tex_h);
+        image default_image = snake_asset_default_image(asset);
+        c->data.rect_textured.pixels = default_image.data;
+        c->data.rect_textured.tex_w = default_image.width;
+        c->data.rect_textured.tex_h = default_image.height;
     }
 
     *command_count = bytesize(cmds, alloc->cursor) / sizeof(draw_command);

@@ -7,6 +7,12 @@ typedef struct snake_asset snake_asset;
 snake_asset* snake_asset_init(stack_alloc* alloc);
 void snake_asset_deinit(snake_asset* asset, stack_alloc* alloc);
 
-void snake_asset_default_image(snake_asset* asset, void** out_buffer, i32* out_width, i32* out_height);
+typedef struct {
+    void* data;
+    u32 width;
+    u32 height;
+} image;
+
+image snake_asset_default_image(snake_asset* asset);
 
 #endif
