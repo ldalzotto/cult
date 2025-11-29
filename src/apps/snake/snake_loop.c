@@ -99,7 +99,6 @@ i32 main(void) {
         void* s_end_before = snake_end(s);
         snake_update_result upd = snake_update(s, input, ticker.preferred_frame_us, &win_alloc);
         if (snake_end(s) != s_end_before) {
-            print_string(file_stdout(), STRING("Memory layout changed\n"));
             /*
                 The memory layout changed.
                 Nothing to do for now. Because nothing is allocated past the snake module.
