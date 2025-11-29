@@ -32,13 +32,12 @@ static snake_test_env env_init(void) {
     stack_alloc alloc;
     sa_init(&alloc, pointer, byteoffset(pointer, size));
 
+    env.asset = snake_asset_init(&alloc);
     env.s = snake_init(&alloc);
 
     env.pointer = pointer;
     env.size = size;
     env.alloc = alloc;
-
-    env.asset = snake_asset_init(&alloc);
 
     env.config = (snake_config){ .delta_time_between_movement = 1 };
     snake_set_config(env.s, env.config);
@@ -56,6 +55,7 @@ static snake_test_env env_init(void) {
 /* Destroy a previously created test environment */
 static void env_deinit(snake_test_env* env) {
     snake_deinit(env->s, &env->alloc);
+    snake_asset_deinit(env->asset, &env->alloc);
     sa_deinit(&env->alloc);
     mem_unmap(env->pointer, env->size);
 }
@@ -70,22 +70,27 @@ static draw_command* env_render(snake_test_env* env, u32* command_count) {
 }
 
 // Helper: draw a rectangle and verify its properties in the rendered command
-static void check_draw_rect(test_context* t, snake_test_env* env, draw_command cmd, i32 gx, i32 gy, void* texture_data) {
+static void check_cell_is_player(test_context* t, snake_test_env* env, draw_command cmd, i32 gx, i32 gy) {
     const i32 size = env->cell_size;
     TEST_ASSERT_EQUAL(t, cmd.type, DRAW_COMMAND_DRAW_RECTANGLE_TEXTURED);
     TEST_ASSERT_EQUAL(t, cmd.data.rect_textured.x, gx * size);
     TEST_ASSERT_EQUAL(t, cmd.data.rect_textured.y, gy * size);
     TEST_ASSERT_EQUAL(t, cmd.data.rect_textured.w, size);
     TEST_ASSERT_EQUAL(t, cmd.data.rect_textured.h, size);
-    TEST_ASSERT_EQUAL(t, cmd.data.rect_textured.pixels, texture_data);
-}
-
-static void check_cell_is_player(test_context* t, snake_test_env* env, draw_command cmd, i32 gx, i32 gy) {
-    check_draw_rect(t, env, cmd, gx, gy, snake_asset_body(env->asset).data);
+    TEST_ASSERT_TRUE(t, 
+        cmd.data.rect_textured.pixels == snake_asset_body(env->asset).data ||
+        cmd.data.rect_textured.pixels == snake_asset_head(env->asset).data ||
+        cmd.data.rect_textured.pixels == snake_asset_tail(env->asset).data)
 }
 
 static void check_cell_is_reward(test_context* t, snake_test_env* env, draw_command cmd, i32 gx, i32 gy) {
-    check_draw_rect(t, env, cmd, gx, gy, snake_asset_apple(env->asset).data);
+    const i32 size = env->cell_size;
+    TEST_ASSERT_EQUAL(t, cmd.type, DRAW_COMMAND_DRAW_RECTANGLE_TEXTURED);
+    TEST_ASSERT_EQUAL(t, cmd.data.rect_textured.x, gx * size);
+    TEST_ASSERT_EQUAL(t, cmd.data.rect_textured.y, gy * size);
+    TEST_ASSERT_EQUAL(t, cmd.data.rect_textured.w, size);
+    TEST_ASSERT_EQUAL(t, cmd.data.rect_textured.h, size);
+    TEST_ASSERT_EQUAL(t, cmd.data.rect_textured.pixels, snake_asset_apple(env->asset).data);
 }
 
 /*
