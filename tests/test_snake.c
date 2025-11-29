@@ -226,9 +226,76 @@ static void test_snake_increase_size_on_reward(test_context* t) {
     env_deinit(&env);
 }
 
+static void test_snake_multiple_input_between_update(test_context* t) {
+    snake_test_env env = env_init();
+
+    // Default direction is SNAKE_DIR_RIGHT
+    
+    snake_input input = {0, 0, 0, 0};
+    env_update(&env, input);
+
+    {
+        u32 command_count;
+        draw_command* cmds = env_render(&env, &command_count);
+
+        // Clear background, snake head, reward
+        TEST_ASSERT_EQUAL(t, command_count, 3);
+
+        // Clear background
+        TEST_ASSERT_EQUAL(t, cmds[0].type, DRAW_COMMAND_CLEAR_BACKGROUND);
+
+        check_cell_is_player(t, &env, cmds[1], 11, 10);
+
+        sa_free(&env.alloc, cmds);
+    }
+
+    input.up = 1;
+    snake_update(env.s, input, 0, &env.alloc);
+    input.up = 0;
+    input.left = 1;
+    snake_update(env.s, input, 0, &env.alloc);
+
+    {
+        u32 command_count;
+        draw_command* cmds = env_render(&env, &command_count);
+
+        // Clear background, snake head, reward
+        TEST_ASSERT_EQUAL(t, command_count, 3);
+
+        // Clear background
+        TEST_ASSERT_EQUAL(t, cmds[0].type, DRAW_COMMAND_CLEAR_BACKGROUND);
+
+        check_cell_is_player(t, &env, cmds[1], 11, 10);
+
+        sa_free(&env.alloc, cmds);
+    }
+
+    env_update(&env, input);
+
+    // Having pressed UP and LEFT in between an update cause the snake to not register the direction
+    // change. Only the last direction is taken into account.
+    {
+        u32 command_count;
+        draw_command* cmds = env_render(&env, &command_count);
+
+        // Clear background, snake head, reward
+        TEST_ASSERT_EQUAL(t, command_count, 3);
+
+        // Clear background
+        TEST_ASSERT_EQUAL(t, cmds[0].type, DRAW_COMMAND_CLEAR_BACKGROUND);
+
+        check_cell_is_player(t, &env, cmds[1], 12, 10);
+
+        sa_free(&env.alloc, cmds);
+    }
+
+    env_deinit(&env);
+}
+
 void test_snake_module(test_context* t) {
     REGISTER_TEST(t, "snake_render", test_render);
     REGISTER_TEST(t, "snake_move_towards_reward", test_snake_move_towards_reward);
     REGISTER_TEST(t, "snake_boundary_left_top", test_snake_boundary_left_top);
     REGISTER_TEST(t, "snake_increase_size_on_reward", test_snake_increase_size_on_reward);
+    REGISTER_TEST(t, "snake_multiple_input_between_update", test_snake_multiple_input_between_update);
 }

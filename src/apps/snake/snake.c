@@ -20,6 +20,8 @@ struct snake {
         position* end;
     } player_cells;
     snake_direction player_direction;
+
+    snake_direction player_direction_on_next_update;
     
     void* end;
 };
@@ -40,6 +42,7 @@ snake* snake_init(stack_alloc* alloc) {
     s->reward.y = s->grid_height / 3;
     s->end = alloc->cursor;
     s->player_direction = SNAKE_DIR_RIGHT;
+    s->player_direction_on_next_update = s->player_direction;
     s->time_accum_us = 0;
     s->delta_time_between_movement = 1000000 / 8;
     return s;
@@ -60,7 +63,7 @@ void snake_set_config(snake* s, snake_config config) {
 
 snake_update_result snake_update(snake* s, snake_input input, u64 frame_us, stack_alloc* alloc) {
     // Determine new direction from input
-    snake_direction direction_new = s->player_direction;
+    snake_direction direction_new = s->player_direction_on_next_update;
     if (input.left) direction_new = SNAKE_DIR_LEFT;
     else if (input.right) direction_new = SNAKE_DIR_RIGHT;
     else if (input.up) direction_new = SNAKE_DIR_UP;
@@ -76,14 +79,14 @@ snake_update_result snake_update(snake* s, snake_input input, u64 frame_us, stac
         direction_new = direction_old;
     }
 
-    s->player_direction = direction_new;
-
     // Accumulate time and perform update only when at least 1 second has elapsed
-    
+    s->player_direction_on_next_update = direction_new;
+
     s->time_accum_us += frame_us;
     if (s->time_accum_us < s->delta_time_between_movement) {
         return SNAKE_UPDATE_CONTINUE;
     }
+    s->player_direction = s->player_direction_on_next_update;
     s->time_accum_us -= s->delta_time_between_movement;
 
     position head_pos;
