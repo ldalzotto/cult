@@ -13,6 +13,7 @@ typedef struct {
     u32 height;
 } image;
 
-image snake_asset_default_image(snake_asset* asset);
+image snake_asset_apple(snake_asset* asset);
+image snake_asset_body(snake_asset* asset);
 
 #endif

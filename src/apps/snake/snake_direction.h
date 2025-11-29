@@ -9,5 +9,4 @@ typedef enum {
 } snake_direction;
 
 
-
 #endif /*SNAKE_TYPES_H*/
