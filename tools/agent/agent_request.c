@@ -113,7 +113,7 @@ static u8_slice extract_answer(u8_slice api_output) {
 
 /* ------------------------- Agent request ------------------------- */
 
-u8* agent_request(u8_slice user_content, string api_key, string model, stack_alloc* alloc) {
+u8* agent_request(u8_slice user_content, string api_key, string model, string prompt_id, stack_alloc* alloc) {
     void* begin = alloc->cursor;
 
     u8_slice user_content_formatted;
@@ -125,15 +125,14 @@ u8* agent_request(u8_slice user_content, string api_key, string model, stack_all
         "{"
             "\"model\":\"%s\","
             "\"prompt\":{"
-                "\"id\":\"pmpt_68dab642df5c8193b611a4b526c3661d050b6e8ebdd8c5c0\","
-                "\"version\":\"4\""
+                "\"id\":\"%s\""
             "},"
             "\"input\":\"%s\""
         "}"
     );
 
     string json_body;
-    json_body.begin = print_format_to_buffer(alloc, json_tpl, model, user_content_formatted);
+    json_body.begin = print_format_to_buffer(alloc, json_tpl, model, prompt_id, user_content_formatted);
     json_body.end = alloc->cursor;
     const uptr body_size = bytesize(json_body.begin, json_body.end);
 

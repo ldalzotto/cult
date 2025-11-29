@@ -7,6 +7,7 @@ arguments extract_arguments(i32 argc, char** argv) {
     out.file_path.begin = 0; out.file_path.end = 0;
     out.api_key.begin = 0; out.api_key.end = 0;
     out.model.begin = 0; out.model.end = 0;
+    out.prompt_id.begin = 0; out.prompt_id.end = 0;
 
     if (argc < 2) {
         return out;
@@ -43,6 +44,24 @@ arguments extract_arguments(i32 argc, char** argv) {
                 const char* val = argv[i + 1];
                 out.model.begin = (u8*)val;
                 out.model.end = (u8*)val + mem_cstrlen((void*)val);
+                i++;
+                break;
+            }
+        }
+    }
+
+    // parse --prompt_id
+    for (i32 i = 1; i < argc; ++i) {
+        const char* arg = (const char*)argv[i];
+        // match "--model"
+        if (arg[0] == '-' && arg[1] == '-' &&
+            arg[2] == 'p' && arg[3] == 'r' && arg[4] == 'o' && arg[5] == 'm' &&
+            arg[6] == 'p' && arg[7] == 't' && arg[8] == '_' && arg[9] == 'i' &&
+            arg[10] == 'd' && arg[11] == '\0') {
+            if (i + 1 < argc) {
+                const char* val = argv[i + 1];
+                out.prompt_id.begin = (u8*)val;
+                out.prompt_id.end = (u8*)val + mem_cstrlen((void*)val);
                 i++;
                 break;
             }

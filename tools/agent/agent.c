@@ -20,21 +20,28 @@ i32 main(i32 argc, char** argv) {
     arguments args = extract_arguments(argc, argv);
 
     if (args.api_key.begin == 0 && args.api_key.end == 0) {
-        print_format(file_stderr(), STRING("Error: missing --key (API key) argument\nUsage: agent <file_path> --key <API_KEY> --model <MODEL>\n"));
+        print_format(file_stderr(), STRING("Error: missing --key (API key) argument\nUsage: agent <file_path> --key <API_KEY> --model <MODEL> --prompt_id <PROMPT_ID>\n"));
         sa_deinit(alloc);
         mem_unmap(memory, size);
         return 1;
     }
 
     if (args.model.begin == 0 && args.model.end == 0) {
-        print_format(file_stderr(), STRING("Error: missing --model argument\nUsage: agent <file_path> --key <API_KEY> --model <MODEL>\n"));
+        print_format(file_stderr(), STRING("Error: missing --model argument\nUsage: agent <file_path> --key <API_KEY> --model <MODEL> --prompt_id <PROMPT_ID>\n"));
+        sa_deinit(alloc);
+        mem_unmap(memory, size);
+        return 1;
+    }
+
+    if (args.prompt_id.begin == 0 && args.prompt_id.end == 0) {
+        print_format(file_stderr(), STRING("Error: missing --prompt_id argument\nUsage: agent <file_path> --key <API_KEY> --model <MODEL> --prompt_id <PROMPT_ID>\n"));
         sa_deinit(alloc);
         mem_unmap(memory, size);
         return 1;
     }
 
     if (args.file_path.begin == 0 && args.file_path.end == 0) {
-        print_format(file_stderr(), STRING("Error: missing file path positional argument\nUsage: agent <file_path> --key <API_KEY> --model <MODEL>\n"));
+        print_format(file_stderr(), STRING("Error: missing file path positional argument\nUsage: agent <file_path> --key <API_KEY> --model <MODEL> --prompt_id <PROMPT_ID>\n"));
         sa_deinit(alloc);
         mem_unmap(memory, size);
         return 1;
@@ -57,7 +64,7 @@ i32 main(i32 argc, char** argv) {
     file_content.begin = 0;file_content.end = 0;
 
     u8_slice agent_result;
-    agent_result.begin = agent_request(user_content, args.api_key, args.model, alloc);
+    agent_result.begin = agent_request(user_content, args.api_key, args.model, args.prompt_id, alloc);
     agent_result.end = alloc->cursor;
 
     agent_result_write(file, alloc, agent_result);

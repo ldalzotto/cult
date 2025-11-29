@@ -8,6 +8,7 @@ typedef struct {
     string file_path;
     string api_key;
     string model;
+    string prompt_id;
 } arguments;
 
 arguments extract_arguments(i32 argc, char** argv);
