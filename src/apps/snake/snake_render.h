@@ -26,8 +26,8 @@ typedef struct draw_rectangle {
 typedef struct draw_rectangle_textured {
     i32 x, y, w, h;   /* destination rectangle on screen */
     u8* pixels;       /* pointer to RGB pixel buffer (3 bytes per pixel) */
-    i32 tex_w;        /* width of the source texture in pixels */
-    i32 tex_h;        /* height of the source texture in pixels */
+    u32 tex_w;        /* width of the source texture in pixels */
+    u32 tex_h;        /* height of the source texture in pixels */
 } draw_rectangle_textured;
 
 typedef struct draw_command {

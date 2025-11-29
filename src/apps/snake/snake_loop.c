@@ -158,12 +158,12 @@ i32 main(void) {
                         /* Nearest sampling: map destination (dx,dy) to source (src_x, src_y)
                            Use integer math: src_x = (dx * tex_w) / w
                         */
-                        i32 src_x = (dx * t->tex_w) / t->w;
-                        i32 src_y = (dy * t->tex_h) / t->h;
-                        if (src_x < 0) src_x = 0;
-                        else if (src_x >= t->tex_w) src_x = t->tex_w - 1;
-                        if (src_y < 0) src_y = 0;
-                        else if (src_y >= t->tex_h) src_y = t->tex_h - 1;
+                        u32 src_x = (dx * t->tex_w) / t->w;
+                        u32 src_y = (dy * t->tex_h) / t->h;
+                        debug_assert(src_x < t->tex_w);
+                        debug_assert(src_y < t->tex_h);
+                        if (src_x >= t->tex_w) { src_x = t->tex_w - 1; }
+                        if (src_y >= t->tex_h) { src_y = t->tex_h - 1; }
                         u8* p = t->pixels + (src_y * t->tex_w + src_x) * 3;
                         u8 r = p[0];
                         u8 g = p[1];
