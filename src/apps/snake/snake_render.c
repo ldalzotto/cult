@@ -3,6 +3,18 @@
 #include "snake_grid.h"
 #include "snake.h"
 
+static void snake_render_enqueue_cell(stack_alloc* alloc, position cell, i32 cell_size_x, i32 cell_size_y, image texture) {
+    draw_command* c = sa_alloc(alloc, sizeof(*c));
+    c->type = DRAW_COMMAND_DRAW_RECTANGLE_TEXTURED;
+    c->data.rect_textured.x = (i32)cell.x * cell_size_x;
+    c->data.rect_textured.y = (i32)cell.y * cell_size_y;
+    c->data.rect_textured.w = cell_size_x;
+    c->data.rect_textured.h = cell_size_y;
+    c->data.rect_textured.pixels = (u8*)texture.data;
+    c->data.rect_textured.tex_w = texture.width;
+    c->data.rect_textured.tex_h = texture.height;
+}
+
 draw_command* snake_render(snake* s, snake_asset* asset, u32 screen_width, u32 screen_height, u32* command_count, stack_alloc* alloc) {
     draw_command* cmds = alloc->cursor;
     
@@ -22,18 +34,19 @@ draw_command* snake_render(snake* s, snake_asset* asset, u32 screen_width, u32 s
     position* begin = 0;
     position* end = 0;
     snake_get_player_cells(s, &begin, &end);
-    // TODO: is the cell is the first, draw head, else draw tail
-    for (position* cell = begin; cell < end; ++cell) {
-        draw_command* c = sa_alloc(alloc, sizeof(*c));
-        c->type = DRAW_COMMAND_DRAW_RECTANGLE_TEXTURED;
-        c->data.rect_textured.x = (i32)cell->x * cell_size_x;
-        c->data.rect_textured.y = (i32)cell->y * cell_size_y;
-        c->data.rect_textured.w = cell_size_x;
-        c->data.rect_textured.h = cell_size_y;
-        image body = snake_asset_body(asset);
-        c->data.rect_textured.pixels = body.data;
-        c->data.rect_textured.tex_w = body.width;
-        c->data.rect_textured.tex_h = body.height;
+
+    image head_texture = snake_asset_head(asset);
+    image body_texture = snake_asset_body(asset);
+    image tail_texture = snake_asset_tail(asset);
+    if (begin && begin < end) {
+        snake_render_enqueue_cell(alloc, *begin, cell_size_x, cell_size_y, head_texture);
+        if (begin + 1 < end) {
+            position* tail = end - 1;
+            for (position* cell = begin + 1; cell < tail; ++cell) {
+                snake_render_enqueue_cell(alloc, *cell, cell_size_x, cell_size_y, body_texture);
+            }
+            snake_render_enqueue_cell(alloc, *tail, cell_size_x, cell_size_y, tail_texture);
+        }
     }
     
     // Render the reward rectangle

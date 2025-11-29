@@ -5,6 +5,8 @@ struct snake_asset {
     image default_image;
     image apple;
     image body;
+    image head;
+    image tail;
 };
 
 typedef struct rgb888 {u8 r; u8 g; u8 b; } rgb888;
@@ -49,6 +51,81 @@ static image allocate_apple(void) {
     return image;
 }
 
+static image allocate_snake_head(void) {
+    const rgb888 black = {0x00, 0x00, 0x00};
+    const rgb888 green_dark = {0x00, 0x94, 0x36};
+    const rgb888 green = {0x22, 0xB1, 0x4C};
+    const rgb888 green_light = {0x5E, 0xFC, 0x8B};
+    const rgb888 white = {0xFF, 0xFF, 0xFF};
+    const rgb888 pupil = {0x00, 0x00, 0x00};
+
+    #define w 8
+    #define h 8
+    static const rgb888 HEAD[w*h] = {
+        // row 0
+        black, black, black, black, black, black, black, black,
+        // row 1
+        black, green_dark, green_dark, green_dark, green_dark, green_dark, green_dark, black,
+        // row 2
+        black, green_dark, green_light, green_light, green_light, green_light, green_dark, black,
+        // row 3
+        black, green, white, pupil, pupil, white, green, black,
+        // row 4
+        black, green, green, green, green, green, green, black,
+        // row 5
+        black, green, green, green_light, green_light, green, green, black,
+        // row 6
+        black, green, green, green, green, green, green, black,
+        // row 7
+        black, black, black, black, black, black, black, black,
+    };
+    image image;
+    image.data = (void*)HEAD;
+    image.height = h;
+    image.width = w;
+
+    #undef h
+    #undef w
+
+    return image;
+}
+
+static image allocate_snake_tail(void) {
+    const rgb888 black = {0x00, 0x00, 0x00};
+    const rgb888 tail_dark = {0x00, 0x74, 0x2A};
+    const rgb888 tail_mid = {0x11, 0xA1, 0x4E};
+    const rgb888 tail_light = {0x1B, 0xE0, 0x6E};
+
+    #define w 8
+    #define h 8
+    static const rgb888 TAIL[w*h] = {
+        // row 0
+        black, black, black, black, black, black, black, black,
+        // row 1
+        black, tail_dark, tail_dark, tail_dark, tail_dark, tail_dark, tail_dark, black,
+        // row 2
+        black, tail_dark, tail_mid, tail_mid, tail_mid, tail_mid, tail_dark, black,
+        // row 3
+        black, tail_dark, tail_mid, tail_light, tail_light, tail_mid, tail_dark, black,
+        // row 4
+        black, tail_dark, tail_mid, tail_light, tail_light, tail_mid, tail_dark, black,
+        // row 5
+        black, tail_dark, tail_mid, tail_mid, tail_mid, tail_mid, tail_dark, black,
+        // row 6
+        black, tail_dark, tail_dark, tail_mid, tail_mid, tail_dark, tail_dark, black,
+        // row 7
+        black, black, black, black, black, black, black, black,
+    };
+    image image;
+    image.data = (void*)TAIL;
+    image.width = w;
+    image.height = h;
+
+    #undef w
+    #undef h
+
+    return image;
+}
 
 static image allocate_snake_body(void) {
     const rgb888 black = {0x00, 0x00, 0x00};
@@ -90,6 +167,8 @@ snake_asset* snake_asset_init(stack_alloc* alloc) {
     snake_asset* asset = sa_alloc(alloc, sizeof(*asset));
     asset->apple = allocate_apple();
     asset->body = allocate_snake_body();
+    asset->head = allocate_snake_head();
+    asset->tail = allocate_snake_tail();
     return asset;
 }
 
@@ -103,4 +182,12 @@ image snake_asset_apple(snake_asset* asset) {
 
 image snake_asset_body(snake_asset* asset) {
     return asset->body;
+}
+
+image snake_asset_head(snake_asset* asset) {
+    return asset->head;
+}
+
+image snake_asset_tail(snake_asset* asset) {
+    return asset->tail;
 }

@@ -15,5 +15,7 @@ typedef struct {
 
 image snake_asset_apple(snake_asset* asset);
 image snake_asset_body(snake_asset* asset);
+image snake_asset_head(snake_asset* asset);
+image snake_asset_tail(snake_asset* asset);
 
 #endif

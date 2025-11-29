@@ -29,8 +29,8 @@ i32 main(void) {
     }
 
     // Open a window
-    const i32 WIDTH = 200;
-    const i32 HEIGHT = 200;
+    const i32 WIDTH = 600;
+    const i32 HEIGHT = 600;
     i32 window_created = win_x11_open_window(win_ctx, "Snake Game", WIDTH, HEIGHT, &win_alloc);
     if (window_created == 0) {
         print_string(file_stderr(), STRING("Failed to create window\n"));
