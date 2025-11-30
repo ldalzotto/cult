@@ -85,11 +85,8 @@ i32 main(void) {
                     case WIN_KEY_RIGHT: input.right = 0; break;
                     case WIN_KEY_UP: input.up = 0; break;
                     case WIN_KEY_DOWN: input.down = 0; break;
-                    default:
-                        if (event->key == WIN_KEY_UNKNOWN) { // Close event
-                            should_exit = 1;
-                        }
-                        break;
+                    case WIN_KEY_ESCAPE: should_exit = 1; break;
+                    default: break;
                 }
             }
         }

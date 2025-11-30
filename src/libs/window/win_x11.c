@@ -234,6 +234,7 @@ win_event* win_x11_poll_events(win_x11* win, stack_alloc* alloc) {
         KeySym keysym = XLookupKeysym(&xevent.xkey, 0);
         win_key mapped_key;
         switch (keysym) {
+            case XK_Escape: mapped_key = WIN_KEY_ESCAPE; break;
             case XK_Up: mapped_key = WIN_KEY_UP; break;
             case XK_Down: mapped_key = WIN_KEY_DOWN; break;
             case XK_Left: mapped_key = WIN_KEY_LEFT; break;
