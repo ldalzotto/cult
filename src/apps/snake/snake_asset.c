@@ -2,7 +2,6 @@
 #include "snake_asset.h"
 
 struct snake_asset {
-    image default_image;
     image apple;
     image body;
     image head;
