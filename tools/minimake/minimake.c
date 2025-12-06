@@ -289,6 +289,7 @@ static targets make_targets(flavor flavor, string build_dir, exec_command_sessio
     push_string(STRING("tests/test_file.c"), alloc);
     push_string(STRING("tests/test_fps_ticker.c"), alloc);
     push_string(STRING("tests/test_framework.c"), alloc);
+    push_string(STRING("tests/test_huffman.c"), alloc);
     push_string(STRING("tests/test_lzss.c"), alloc);
     push_string(STRING("tests/test_mem.c"), alloc);
     push_string(STRING("tests/test_network_https.c"), alloc);
