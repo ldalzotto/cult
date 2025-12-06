@@ -1,8 +1,8 @@
 #include "lzss.h"
 #include "lz_window.h"
 #include "lz_match_brute.h"
-#include "lz_serialize.h"
-#include "lz_deserialize.h"
+#include "lzss_serialize.h"
+#include "lzss_deserialize.h"
 #include "print.h"
 
 static void* compress(u8* begin, u8* end, lzss_config config, stack_alloc* alloc, file_t debug) {
@@ -32,7 +32,7 @@ static void* compress(u8* begin, u8* end, lzss_config config, stack_alloc* alloc
         }
     }
     
-    u8* output = lz_serialize(begin, end, matches, config.match_size_max, alloc);
+    u8* output = lzss_serialize(begin, end, matches, config.match_size_max, alloc);
 
     sa_move_tail(alloc, output, matches.begin);
 
@@ -40,7 +40,7 @@ static void* compress(u8* begin, u8* end, lzss_config config, stack_alloc* alloc
 }
 
 static u8* decompress(u8* begin, u8* end, stack_alloc* alloc, file_t debug) {
-    return lz_deserialize(begin, end, alloc, debug);
+    return lzss_deserialize(begin, end, alloc, debug);
 }
 
 void* lzss_compress(u8* begin, u8* end, lzss_config config, stack_alloc* alloc, file_t debug) {

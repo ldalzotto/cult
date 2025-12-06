@@ -1,4 +1,4 @@
-#include "lz_deserialize.h"
+#include "lzss_deserialize.h"
 #include "print.h"
 #include "assert.h"
 #include "lz_bit_types.h"
@@ -15,7 +15,7 @@ static item_type fetch_item_type(item_type_bit_state* bit_state, void** out_curs
     return b;
 }
 
-u8* lz_deserialize(u8* compressed_begin, u8* compressed_end, stack_alloc* alloc, file_t debug) {
+u8* lzss_deserialize(u8* compressed_begin, u8* compressed_end, stack_alloc* alloc, file_t debug) {
     u8* output = alloc->cursor;
     u8* current = compressed_begin;
     item_type_bit_state bit_state = {.bit_index = item_type_bit_count, .value = compressed_begin};

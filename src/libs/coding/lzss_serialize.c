@@ -1,4 +1,4 @@
-#include "lz_serialize.h"
+#include "lzss_serialize.h"
 #include "assert.h"
 #include "lz_bit_types.h"
 #include "bit.h"
@@ -40,7 +40,7 @@ static void allocate_match(stack_alloc* alloc, item_type_bit_state* bit_state, l
     *(u8*)sa_alloc(alloc, sizeof(u8)) = length;
 }
 
-u8* lz_serialize(u8* input_begin, u8* input_end, lz_match_slice matches, lzss_match_size_t match_size_max, stack_alloc* alloc) {
+u8* lzss_serialize(u8* input_begin, u8* input_end, lz_match_slice matches, lzss_match_size_t match_size_max, stack_alloc* alloc) {
     u8* output = alloc->cursor;
     u8* current = input_begin;
     item_type_bit_state bit_state = {.bit_index = item_type_bit_count, .value = 0};
