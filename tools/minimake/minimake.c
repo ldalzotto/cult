@@ -76,10 +76,13 @@ static targets make_targets(flavor flavor, string build_dir, exec_command_sessio
     end_strings(&coding_c_flags, alloc);
     
     strings coding_c_files = begin_strings(alloc);
-    push_string(STRING("src/libs/coding/lzss_deserialize.c"), alloc);
+    push_string(STRING("src/libs/coding/hf_frequency.c"), alloc);
+    push_string(STRING("src/libs/coding/hf_tree_build.c"), alloc);
+    push_string(STRING("src/libs/coding/huffman.c"), alloc);
     push_string(STRING("src/libs/coding/lz_match_brute.c"), alloc);
-    push_string(STRING("src/libs/coding/lzss_serialize.c"), alloc);
     push_string(STRING("src/libs/coding/lz_window.c"), alloc);
+    push_string(STRING("src/libs/coding/lzss_deserialize.c"), alloc);
+    push_string(STRING("src/libs/coding/lzss_serialize.c"), alloc);
     push_string(STRING("src/libs/coding/lzss.c"), alloc);
     end_strings(&coding_c_files, alloc);
 
