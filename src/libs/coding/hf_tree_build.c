@@ -1,5 +1,6 @@
 #include "hf_tree_build.h"
 #include "assert.h"
+#include "print.h"
 
 typedef struct {
     hf_node* begin;
@@ -28,10 +29,10 @@ static hf_node_slice initial_nodes(hf_frequency_array frequency, stack_alloc* al
     return slice;
 }
 
-static void node_insert(hf_node* end, hf_node* position, hf_node* value, stack_alloc* alloc) {
+static void node_insert(hf_node* end, hf_node* position, hf_node value, stack_alloc* alloc) {
     uptr move_size = bytesize(position, end);
     sa_move(alloc, position, position + 1, move_size);
-    *position = *value;
+    *position = value;
 }
 
 static void nodes_sort(hf_node_slice nodes, stack_alloc* alloc) {
@@ -50,7 +51,7 @@ static void nodes_sort(hf_node_slice nodes, stack_alloc* alloc) {
         
         // Insert
         {
-            node_insert(tmp_cursor, tmp_insert_position, input_node, alloc);
+            node_insert(tmp_cursor, tmp_insert_position, *input_node, alloc);
             tmp_cursor += 1;
             debug_assert(tmp_cursor <= tmp.end);
         }
@@ -67,8 +68,53 @@ static void nodes_sort(hf_node_slice nodes, stack_alloc* alloc) {
 }
 
 static hf_node_slice nodes_merge(hf_node_slice nodes, stack_alloc* alloc) {
-    // TODO
-    unused(alloc);
+    debug_assert(nodes.end == alloc->cursor);
+    print_format(file_stdout(), STRING("%m\n"), &hf_node_array_meta, &nodes);
+    
+    hf_node* cursor = nodes.end - 1;
+    while (1) {
+        if (cursor <= nodes.begin) {
+            break;
+        }
+
+        // peek the last two node
+        hf_node* cursor_before = cursor - 1;
+
+        // merge them
+        hf_node merged_node;
+        merged_node.frequency = cursor->frequency + cursor_before->frequency;
+        merged_node.left = cursor_before + 1; // It is going to be inserted
+        merged_node.right = cursor + 1; // It is going to be inserted
+        
+        // insert the node in the correct position at the sorted array
+        hf_node* insert_position = cursor_before;
+        {
+            hf_node* node = cursor;
+            while (node->frequency <= merged_node.frequency && node > nodes.begin) {
+                insert_position = node - 1;
+                node -= 1;
+            }
+        }
+
+        debug_assert(insert_position <= cursor);
+        debug_assert(insert_position <= cursor_before);
+        
+        sa_alloc(alloc, sizeof(hf_node));
+        node_insert(nodes.end, insert_position, merged_node, alloc);
+        nodes.end += 1;
+        for (hf_node* to_offset = insert_position + 1; to_offset < nodes.end; ++to_offset) {
+            if (to_offset->left) {
+                to_offset->left += 1;
+            }
+            if (to_offset->right) {
+                to_offset->right += 1;
+            }
+        }
+        
+        cursor -= 1; // Because we have inserted a node before.
+    }
+    
+    print_format(file_stdout(), STRING("%m\n"), &hf_node_array_meta, &nodes);
     return  nodes;
 }
 

@@ -19,7 +19,7 @@ static void test_huffman_simple_repetitive(test_context* t) {
 
     uptr compressed_size = bytesize(out, alloc.cursor);
     TEST_ASSERT(t, compressed_size > 0, "Compressed size should be > 0 for non-empty repetitive input");
-    TEST_ASSERT(t, compressed_size <= input_size, "Compressed size should not exceed input for repetitive data");
+    TEST_ASSERT(t, compressed_size < input_size, "Compressed size should not exceed input for repetitive data");
 
     sa_free(&alloc, out);
     sa_deinit(&alloc);
@@ -37,7 +37,7 @@ static void test_huffman_random_binary(test_context* t) {
     uptr input_size = 512;
     u8* input_buf = sa_alloc(&alloc, input_size);
     for (uptr i = 0; i < input_size; i++) {
-        input_buf[i] = (u8)((i * 37 + 91) % 256);
+        input_buf[i] = (u8)((i * 10 + 91) % 256);
     }
     string input = {(char*)input_buf, (char*)input_buf + input_size};
 
