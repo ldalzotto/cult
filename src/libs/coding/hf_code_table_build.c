@@ -3,7 +3,7 @@
 #include "hf_symbol.h"
 
 hf_code_table hf_code_table_build(hf_tree* tree, stack_alloc* alloc) {
-    void* begin = alloc->begin;
+    void* begin = alloc->cursor;
     typedef struct {
         hf_node* node;
         u8 current_value;

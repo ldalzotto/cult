@@ -10,6 +10,8 @@ u8* hf_serialize(u8* input_begin, u8* input_end, hf_tree tree, hf_code_table* co
     void* serialization_begin = alloc->cursor;
     // Serialize tree
     u16* tree_size = sa_alloc(alloc, sizeof(*tree_size));
+    u8* last_bit_padding = sa_alloc(alloc, sizeof(*last_bit_padding));
+
     void* hf_tree_begin = hf_tree_serialize(tree, alloc);
     *tree_size = bytesize(hf_tree_begin, alloc->cursor);
     
@@ -34,6 +36,10 @@ u8* hf_serialize(u8* input_begin, u8* input_end, hf_tree tree, hf_code_table* co
             *out_cursor = bit_write(*out_cursor, out_bit_cursor, bit_value);
             out_bit_cursor += 1;
         }
+    if (out_bit_cursor == 8) {
+        *last_bit_padding = 0;
+    } else {
+        *last_bit_padding = out_bit_cursor;
     }
 
     sa_move_tail(alloc, serialization_begin, begin);
