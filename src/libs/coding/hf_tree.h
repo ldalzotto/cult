@@ -18,7 +18,6 @@ typedef struct {
     hf_node* end;
 } hf_tree;
 
-
 // Fields for test_point_t
 static const field_descriptor hf_node_fields[] = {
     {STR("symbol"), offsetof(hf_node, symbol), &u8_meta},

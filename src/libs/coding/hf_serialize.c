@@ -1,18 +1,18 @@
 #include "hf_serialize.h"
 #include "hf_code_table_build.h"
+#include "hf_tree_serialize.h"
 #include "bit.h"
 
-u8* hf_serialize(u8* input_begin, u8* input_end, hf_code_table* code_table, stack_alloc* alloc) {
+u8* hf_serialize(u8* input_begin, u8* input_end, hf_tree tree, hf_code_table* code_table, stack_alloc* alloc) {
     void* begin = alloc->cursor;
     hf_code_table table_with_noop = hf_code_table_build_with_noop(code_table, alloc);
 
     void* serialization_begin = alloc->cursor;
-    // Serialize table
-    // TODO: have better size efficiency
-    u16 table_size = bytesize(code_table->begin, code_table->end);
-    *(u16*)sa_alloc(alloc, sizeof(table_size)) = table_size;
-    sa_alloc_copy(alloc, code_table->begin, code_table->end);
-
+    // Serialize tree
+    u16* tree_size = sa_alloc(alloc, sizeof(*tree_size));
+    void* hf_tree_begin = hf_tree_serialize(tree, alloc);
+    *tree_size = bytesize(hf_tree_begin, alloc->cursor);
+    
     // TODO: store the last byte padding
     
     // Encode text
@@ -30,7 +30,8 @@ u8* hf_serialize(u8* input_begin, u8* input_end, hf_code_table* code_table, stac
                 out_cursor = sa_alloc(alloc, 1);
                 out_bit_cursor = 0;
             }
-            bit_write(*out_cursor, out_bit_cursor, bit_get(entry->code, bit_index));
+            u8 bit_value = bit_get(entry->code, bit_index);
+            *out_cursor = bit_write(*out_cursor, out_bit_cursor, bit_value);
             out_bit_cursor += 1;
         }
     }

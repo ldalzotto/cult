@@ -4,5 +4,6 @@
 #include "stack_alloc.h"
 
 void* huffman_compress(u8* begin, u8* end, stack_alloc* alloc);
+void* huffman_decompress(u8* begin, u8* end, stack_alloc* alloc);
 
 #endif

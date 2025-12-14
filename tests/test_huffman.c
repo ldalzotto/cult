@@ -19,7 +19,12 @@ static void test_huffman_simple_repetitive(test_context* t) {
 
     uptr compressed_size = bytesize(out, alloc.cursor);
     TEST_ASSERT(t, compressed_size > 0, "Compressed size should be > 0 for non-empty repetitive input");
-    TEST_ASSERT(t, compressed_size < input_size, "Compressed size should not exceed input for repetitive data");
+
+    void* decompressed = huffman_decompress(out, alloc.cursor, &alloc);
+
+    uptr decompressed_size = bytesize(decompressed, alloc.cursor);
+    TEST_ASSERT(t, decompressed_size == input_size, "Decompression should lead to same size.");
+    TEST_ASSERT(t, sa_equals(&alloc, input.begin, input.end, decompressed, alloc.cursor), "Decompression should lead to same input.");
 
     sa_free(&alloc, out);
     sa_deinit(&alloc);
