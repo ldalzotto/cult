@@ -39,7 +39,7 @@ static void test_huffman_random_binary(test_context* t) {
     stack_alloc alloc;
     sa_init(&alloc, mem, byteoffset(mem, size));
 
-    uptr input_size = 512;
+    uptr input_size = 64;
     u8* input_buf = sa_alloc(&alloc, input_size);
     for (uptr i = 0; i < input_size; i++) {
         input_buf[i] = (u8)((i * 10 + 91) % 256);

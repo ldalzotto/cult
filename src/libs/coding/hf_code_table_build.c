@@ -66,6 +66,10 @@ hf_code_table hf_code_table_build_with_noop(hf_code_table* table, stack_alloc* a
     u8 symbol = 0;
     for (hf_code_entry* entry = table_with_noop.begin; entry < table_with_noop.end; ++entry) {
         hf_code_entry* table_entry_to_copy = 0;
+        if (symbol=='w') {
+                u8 debug = 0;
+                unused(debug);
+        }
         for (hf_code_entry* table_entry = table->begin; table_entry < table->end; ++table_entry) {
             if (table_entry->symbol == symbol) {
                 table_entry_to_copy = table_entry;

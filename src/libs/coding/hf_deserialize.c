@@ -1,17 +1,19 @@
 #include "hf_deserialize.h"
 #include "hf_tree_serialize.h"
 #include "bit.h"
+#include "assert.h"
+#include "print.h"
 
 static void hf_tree_decode(hf_tree* tree, 
         u8** input_pointer, u8* input_bit_index,
         u8** buffer_pointer) {
-
     hf_node* node = tree->begin;
     while (1) {
         if (!node->left && !node->right) {
             break;
         }
         u8 bit_value = bit_get(**input_pointer, *input_bit_index);
+        
         *input_bit_index += 1;
         if (*input_bit_index == 8) {
             *input_bit_index = 0;
@@ -24,6 +26,7 @@ static void hf_tree_decode(hf_tree* tree,
             node = node->right;
         }
     }
+    print_format(file_stdout(), STRING("Get: Symbol: %u\n"), node->symbol);
 
     **buffer_pointer = node->symbol;
     *buffer_pointer += 1;

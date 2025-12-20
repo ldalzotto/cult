@@ -69,7 +69,7 @@ static void nodes_sort(hf_node_slice nodes, stack_alloc* alloc) {
 
 static hf_node_slice nodes_merge(hf_node_slice nodes, stack_alloc* alloc) {
     debug_assert(nodes.end == alloc->cursor);
-    print_format(file_stdout(), STRING("%m\n"), &hf_node_array_meta, &nodes);
+    // print_format(file_stdout(), STRING("%m\n"), &hf_node_array_meta, &nodes);
     
     hf_node* cursor = nodes.end - 1;
     while (1) {
@@ -114,7 +114,7 @@ static hf_node_slice nodes_merge(hf_node_slice nodes, stack_alloc* alloc) {
         cursor -= 1; // Because we have inserted a node before.
     }
     
-    print_format(file_stdout(), STRING("%m\n"), &hf_node_array_meta, &nodes);
+    // print_format(file_stdout(), STRING("%m\n"), &hf_node_array_meta, &nodes);
     return  nodes;
 }
 
